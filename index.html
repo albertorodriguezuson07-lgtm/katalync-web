@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Catalog Tools - PROMETEIX</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          colors: {
+            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    [x-cloak] { display: none !important; }
+    .drop-zone.dragover { border-color: #4f46e5; background-color: #eef2ff; }
+    .progress-bar { transition: width 0.5s ease; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen" x-data="catalogApp()" x-cloak>
+
+  <!-- Header -->
+  <header class="bg-white border-b border-gray-200">
+    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-semibold text-gray-900">Catalog Tools</h1>
+          <p class="text-xs text-gray-500">by PROMETEIX</p>
+        </div>
+      </div>
+      <div x-show="jobId" class="text-sm text-gray-500">
+        Job: <span class="font-mono text-xs" x-text="jobId"></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-6 py-8">
+
+    <!-- STEP 1: Upload -->
+    <div x-show="step === 'upload'" x-transition>
+      <div class="text-center mb-8">
+        <h2 class="text-2xl font-bold text-gray-900">Convierte tu catalogo para marketplace</h2>
+        <p class="mt-2 text-gray-600">Sube tu Excel con los datos de producto y las imagenes. Las convertimos al formato que necesitas.</p>
+      </div>
+
+      <!-- Marketplace Selector -->
+      <div class="max-w-md mx-auto mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Marketplace destino</label>
+        <select x-model="marketplace" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3 border">
+          <option value="sprinter_es">Sprinter (ES)</option>
+          <option value="sportzone_pt">Sport Zone (PT)</option>
+          <option value="custom">Otro marketplace</option>
+        </select>
+      </div>
+
+      <!-- Ratio Selector -->
+      <div class="max-w-md mx-auto mb-8">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Formato de imagen destino</label>
+        <div class="grid grid-cols-3 gap-3">
+          <template x-for="r in ratios" :key="r.value">
+            <button @click="selectedRatio = r.value"
+              :class="selectedRatio === r.value ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'"
+              class="border-2 rounded-lg p-3 text-center transition-colors">
+              <div class="text-sm font-semibold" x-text="r.label"></div>
+              <div class="text-xs text-gray-500 mt-0.5" x-text="r.dims"></div>
+            </button>
+          </template>
+        </div>
+      </div>
+
+      <!-- Drop Zones -->
+      <div class="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+
+        <!-- Excel Drop Zone -->
+        <div class="drop-zone border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
+             @click="$refs.excelInput.click()"
+             @dragover.prevent="$event.currentTarget.classList.add('dragover')"
+             @dragleave="$event.currentTarget.classList.remove('dragover')"
+             @drop.prevent="handleExcelDrop($event)">
+          <input type="file" x-ref="excelInput" @change="handleExcelSelect($event)" accept=".xlsx,.xls,.csv" class="hidden">
+          <div x-show="!excelFile">
+            <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <p class="text-sm font-medium text-gray-700">Arrastra tu Excel aqui</p>
+            <p class="text-xs text-gray-500 mt-1">.xlsx, .xls o .csv</p>
+          </div>
+          <div x-show="excelFile" class="text-brand-600">
+            <svg class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-sm font-medium" x-text="excelFile?.name"></p>
+            <p class="text-xs text-gray-500 mt-1" x-text="formatSize(excelFile?.size)"></p>
+          </div>
+        </div>
+
+        <!-- Images Drop Zone -->
+        <div class="drop-zone border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
+             @click="$refs.imagesInput.click()"
+             @dragover.prevent="$event.currentTarget.classList.add('dragover')"
+             @dragleave="$event.currentTarget.classList.remove('dragover')"
+             @drop.prevent="handleImagesDrop($event)">
+          <input type="file" x-ref="imagesInput" @change="handleImagesSelect($event)" accept=".jpg,.jpeg,.png,.webp,.zip" multiple class="hidden">
+          <div x-show="imageFiles.length === 0">
+            <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p class="text-sm font-medium text-gray-700">Arrastra imagenes o ZIP</p>
+            <p class="text-xs text-gray-500 mt-1">.jpg, .png, .webp o .zip</p>
+          </div>
+          <div x-show="imageFiles.length > 0" class="text-brand-600">
+            <svg class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <p class="text-sm font-medium" x-text="imageFiles.length + ' archivos seleccionados'"></p>
+            <p class="text-xs text-gray-500 mt-1" x-text="formatSize(totalImageSize)"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="text-center mt-8">
+        <button @click="startProcessing()"
+          :disabled="!excelFile && imageFiles.length === 0"
+          :class="(excelFile || imageFiles.length > 0) ? 'bg-brand-600 hover:bg-brand-700 cursor-pointer' : 'bg-gray-300 cursor-not-allowed'"
+          class="inline-flex items-center gap-2 text-white font-semibold py-3 px-8 rounded-lg transition-colors text-sm">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          Procesar catalogo
+        </button>
+      </div>
+
+      <!-- Info Card -->
+      <div class="max-w-3xl mx-auto mt-10 bg-white border border-gray-200 rounded-xl p-6">
+        <h3 class="text-sm font-semibold text-gray-900 mb-3">Como funciona</h3>
+        <div class="grid md:grid-cols-3 gap-4 text-sm text-gray-600">
+          <div class="flex gap-3">
+            <span class="flex-shrink-0 w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">1</span>
+            <p>Sube tu Excel con los datos de producto (SKU, nombre, marca, etc.) y las imagenes</p>
+          </div>
+          <div class="flex gap-3">
+            <span class="flex-shrink-0 w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">2</span>
+            <p>Convertimos las imagenes al formato correcto y las alojamos en URLs publicas</p>
+          </div>
+          <div class="flex gap-3">
+            <span class="flex-shrink-0 w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">3</span>
+            <p>Descarga tu Excel listo para subir a Mirakl con los titulos y URLs correctos</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2: Processing -->
+    <div x-show="step === 'processing'" x-transition>
+      <div class="max-w-2xl mx-auto">
+        <div class="text-center mb-8">
+          <div class="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-brand-600 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900">Procesando tu catalogo</h2>
+          <p class="mt-2 text-gray-600">Esto puede tardar unos minutos para catalogos grandes</p>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
+          <div class="flex justify-between text-sm mb-2">
+            <span class="font-medium text-gray-700">Progreso</span>
+            <span class="text-gray-500">
+              <span x-text="progress.done"></span> / <span x-text="progress.total"></span> imagenes
+            </span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-3">
+            <div class="progress-bar bg-brand-600 h-3 rounded-full" :style="'width: ' + progressPercent + '%'"></div>
+          </div>
+          <div class="flex justify-between text-xs text-gray-500 mt-2">
+            <span x-text="progressPercent + '%'"></span>
+            <span x-show="progress.eta" x-text="'~' + progress.eta + ' restante'"></span>
+          </div>
+        </div>
+
+        <!-- Live Log -->
+        <div class="bg-gray-900 rounded-xl p-4 h-48 overflow-y-auto font-mono text-xs" x-ref="logContainer">
+          <template x-for="(entry, i) in logEntries" :key="i">
+            <div class="py-0.5" :class="entry.type === 'error' ? 'text-red-400' : 'text-green-400'">
+              <span class="text-gray-500" x-text="entry.time"></span>
+              <span x-text="entry.message"></span>
+            </div>
+          </template>
+          <div x-show="logEntries.length === 0" class="text-gray-500">Esperando datos...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: Results -->
+    <div x-show="step === 'results'" x-transition>
+      <div class="max-w-3xl mx-auto">
+        <div class="text-center mb-8">
+          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900">Catalogo procesado</h2>
+          <p class="mt-2 text-gray-600">
+            <span class="text-green-600 font-semibold" x-text="results.success"></span> productos procesados correctamente
+            <span x-show="results.errors > 0">
+              &middot; <span class="text-red-500 font-semibold" x-text="results.errors"></span> errores
+            </span>
+          </p>
+        </div>
+
+        <!-- Preview Grid -->
+        <div x-show="results.previews && results.previews.length > 0" class="mb-8">
+          <h3 class="text-sm font-semibold text-gray-900 mb-3">Vista previa</h3>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <template x-for="(preview, i) in results.previews" :key="i">
+              <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                <div class="grid grid-cols-2">
+                  <div class="aspect-square bg-gray-100">
+                    <img :src="preview.before" class="w-full h-full object-contain" alt="Original">
+                  </div>
+                  <div class="aspect-[2/3] bg-gray-100">
+                    <img :src="preview.after" class="w-full h-full object-contain" alt="Convertida">
+                  </div>
+                </div>
+                <div class="p-2 text-center">
+                  <p class="text-xs text-gray-500" x-text="preview.sku"></p>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Download Buttons -->
+        <div class="grid md:grid-cols-2 gap-4 mb-8">
+          <a :href="results.excelUrl" download
+            class="flex items-center gap-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl p-5 transition-colors">
+            <svg class="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <div>
+              <p class="font-semibold">Descargar Excel Mirakl-ready</p>
+              <p class="text-sm opacity-80">Listo para subir al marketplace</p>
+            </div>
+          </a>
+          <a :href="results.imagesUrl" download
+            class="flex items-center gap-3 bg-white border-2 border-gray-200 hover:border-brand-300 text-gray-800 rounded-xl p-5 transition-colors">
+            <svg class="w-8 h-8 flex-shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <div>
+              <p class="font-semibold">Descargar imagenes convertidas</p>
+              <p class="text-sm text-gray-500">ZIP con todas las imagenes en 2:3</p>
+            </div>
+          </a>
+        </div>
+
+        <!-- Error List (expandable) -->
+        <div x-show="results.errorList && results.errorList.length > 0" class="mb-8">
+          <button @click="showErrors = !showErrors" class="flex items-center gap-2 text-sm text-red-600 font-medium">
+            <svg class="w-4 h-4 transition-transform" :class="showErrors ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+            Ver <span x-text="results.errorList.length"></span> errores
+          </button>
+          <div x-show="showErrors" x-transition class="mt-3 bg-red-50 border border-red-200 rounded-lg p-4">
+            <template x-for="(err, i) in results.errorList" :key="i">
+              <div class="text-sm py-1 border-b border-red-100 last:border-0">
+                <span class="font-mono text-red-700" x-text="err.sku"></span>
+                <span class="text-red-600 ml-2" x-text="err.message"></span>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- New Job Button -->
+        <div class="text-center">
+          <button @click="reset()" class="text-sm text-brand-600 hover:text-brand-700 font-medium">
+            Procesar otro catalogo
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-gray-200 mt-16">
+    <div class="max-w-5xl mx-auto px-6 py-4 text-center text-xs text-gray-400">
+      PROMETEIX Catalog Tools &middot; Conversion y optimizacion de catalogos para marketplace
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
