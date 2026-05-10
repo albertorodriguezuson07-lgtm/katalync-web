@@ -204,7 +204,10 @@ const TRANSLATIONS = {
     sub_plan_label: 'Plan',
     sub_badge_active: 'Activo',
     sub_badge_pending: 'Pago pendiente',
-    sub_badge_suspended: 'Suspendido'
+    sub_badge_suspended: 'Suspendido',
+    billing_portal: 'Facturación',
+    billing_portal_loading: 'Abriendo portal...',
+    billing_portal_error: 'No se pudo abrir el portal de facturación'
   },
   pt: {
     auth_login_title: 'Iniciar sessão', auth_login_sub: 'Insira suas credenciais para acessar',
@@ -408,7 +411,10 @@ const TRANSLATIONS = {
     sub_plan_label: 'Plano',
     sub_badge_active: 'Ativo',
     sub_badge_pending: 'Pagamento pendente',
-    sub_badge_suspended: 'Suspenso'
+    sub_badge_suspended: 'Suspenso',
+    billing_portal: 'Faturação',
+    billing_portal_loading: 'Abrindo portal...',
+    billing_portal_error: 'Não foi possível abrir o portal de faturação'
   }
 };
 
@@ -754,6 +760,24 @@ function app() {
         }
       } catch(e) {
         this.showNotification('Error de conexión con el servidor de pagos', 'error');
+      }
+    },
+
+    async openBillingPortal() {
+      try {
+        const resp = await fetch(N8N_BASE + '/webhook/stripe-portal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: this.currentUser?.email || '' })
+        });
+        const data = await resp.json();
+        if (data.success && data.portal_url) {
+          window.location.href = data.portal_url;
+        } else {
+          this.showNotification(data.error || this.t('billing_portal_error'), 'error');
+        }
+      } catch(e) {
+        this.showNotification(this.t('billing_portal_error'), 'error');
       }
     },
 
