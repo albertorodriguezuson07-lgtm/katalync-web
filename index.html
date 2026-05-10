@@ -1,314 +1,1287 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Catalog Tools - PROMETEIX</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
-          colors: {
-            brand: { 50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1', 600: '#4f46e5', 700: '#4338ca', 800: '#3730a3' }
-          }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Katalync — Automatiza tu catálogo para marketplace</title>
+    <meta name="description" content="Automatiza tu catálogo para marketplace con IA. Convierte, valida y sincroniza productos para Sprinter, Sport Zone y cualquier marketplace Mirakl.">
+    <meta property="og:title" content="Katalync — Automatiza tu catálogo para marketplace">
+    <meta property="og:description" content="Convierte, valida y sincroniza productos con IA. Listo para Sprinter, Sport Zone y cualquier marketplace Mirakl.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="assets/logo-horizontal.png">
+    <link rel="icon" href="assets/favicon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <script defer src="assets/alpine.min.js" integrity="sha384-9Ax3MmS9AClxJyd5/zafcXXjxmwFhZCdsT6HJoJjarvCaAkJlk5QDzjLJm+Wdx5F" crossorigin="anonymous"></script>
+    <script defer src="https://image-tools-umami.reyl9a.easypanel.host/script.js" data-website-id="ecbee6b9-91c8-48ca-ad86-d38de4e82b97"></script>
+    <style>
+        :root {
+            --primary: #0d9488;
+            --primary-light: #14b8a6;
+            --accent: #06b6d4;
+            --navy: #0f172a;
+            --navy-light: #1e293b;
+            --surface: #f8fafc;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --text-faint: #94a3b8;
+            --white: #ffffff;
+            --gradient: linear-gradient(135deg, var(--primary), var(--accent));
+            --gradient-subtle: linear-gradient(135deg, rgba(13,148,136,0.08), rgba(6,182,212,0.08));
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.04);
+            --shadow-xl: 0 24px 64px rgba(0,0,0,0.12);
+            --shadow-teal: 0 8px 32px rgba(13,148,136,0.2);
+            --radius: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 24px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-      }
-    }
-  </script>
-  <style>
-    [x-cloak] { display: none !important; }
-    .drop-zone.dragover { border-color: #4f46e5; background-color: #eef2ff; }
-    .progress-bar { transition: width 0.5s ease; }
-  </style>
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; color: var(--text); line-height: 1.6; overflow-x: hidden; background: var(--white); -webkit-font-smoothing: antialiased; }
+        h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif; line-height: 1.15; letter-spacing: -0.02em; }
+        .container { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+        img { max-width: 100%; }
+
+        /* ═══════════════ NAV ═══════════════ */
+        .nav {
+            position: sticky; top: 0; z-index: 1000;
+            background: rgba(255,255,255,0.82);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-bottom: 1px solid rgba(226,232,240,0.6);
+            padding: 12px 0;
+            transition: box-shadow var(--transition);
+        }
+        .nav.scrolled { box-shadow: 0 1px 12px rgba(0,0,0,0.06); }
+        .nav-inner { display: flex; align-items: center; justify-content: space-between; }
+        .nav-logo { height: 44px; }
+        .nav-links { display: flex; gap: 32px; align-items: center; }
+        .nav-links a { text-decoration: none; color: var(--text-secondary); font-weight: 500; font-size: 14px; transition: color var(--transition); position: relative; }
+        .nav-links a::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: var(--gradient); border-radius: 1px; transition: width var(--transition); }
+        .nav-links a:hover { color: var(--primary); }
+        .nav-links a:hover::after { width: 100%; }
+        .nav-actions { display: flex; gap: 8px; align-items: center; }
+        .lang-switch { display: flex; background: var(--surface); border-radius: 8px; overflow: hidden; border: 1px solid var(--border); font-size: 12px; font-weight: 600; }
+        .lang-switch button { padding: 6px 12px; border: none; background: transparent; cursor: pointer; transition: all var(--transition); color: var(--text-muted); font-family: inherit; font-weight: 600; }
+        .lang-switch button.active { background: var(--gradient); color: white; }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 22px; border-radius: 10px; font-weight: 600; font-size: 14px; text-decoration: none; transition: all var(--transition); cursor: pointer; border: none; font-family: inherit; line-height: 1.4; }
+        .btn-primary { background: var(--gradient); color: white; box-shadow: var(--shadow-teal); }
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 40px rgba(13,148,136,0.3); }
+        .btn-primary:active { transform: translateY(0); }
+        .btn-ghost { background: transparent; color: var(--text-secondary); border: 1.5px solid var(--border); }
+        .btn-ghost:hover { border-color: var(--primary); color: var(--primary); background: rgba(13,148,136,0.04); }
+        .btn-white { background: white; color: var(--primary); font-weight: 700; box-shadow: var(--shadow-md); }
+        .btn-white:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+        .btn-outline-white { background: transparent; color: white; border: 1.5px solid rgba(255,255,255,0.4); }
+        .btn-outline-white:hover { border-color: white; background: rgba(255,255,255,0.1); }
+        .btn-lg { padding: 14px 32px; font-size: 15px; border-radius: 12px; }
+
+        .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; padding: 8px; background: none; border: none; }
+        .hamburger span { width: 22px; height: 2px; background: var(--text); border-radius: 2px; transition: all 0.3s; }
+        .mobile-menu { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.98); backdrop-filter: blur(20px); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; gap: 28px; }
+        .mobile-menu.open { display: flex; }
+        .mobile-menu a { font-size: 18px; text-decoration: none; color: var(--text); font-weight: 600; }
+        .mobile-close { position: absolute; top: 16px; right: 20px; font-size: 28px; cursor: pointer; background: none; border: none; color: var(--text-muted); width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; }
+
+        /* ═══════════════ HERO ═══════════════ */
+        .hero {
+            position: relative;
+            padding: 80px 0 100px;
+            background: var(--navy);
+            overflow: hidden;
+        }
+        .hero-bg-grid {
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(148,163,184,0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(148,163,184,0.05) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        .hero-bg-glow1 {
+            position: absolute; top: -200px; right: -100px;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(6,182,212,0.12) 0%, transparent 60%);
+            border-radius: 50%; filter: blur(40px);
+            animation: float 8s ease-in-out infinite;
+        }
+        .hero-bg-glow2 {
+            position: absolute; bottom: -200px; left: -100px;
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(13,148,136,0.1) 0%, transparent 60%);
+            border-radius: 50%; filter: blur(40px);
+            animation: float 10s ease-in-out infinite reverse;
+        }
+        @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+
+        .hero-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; position: relative; z-index: 1; }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(13,148,136,0.12); border: 1px solid rgba(13,148,136,0.2);
+            border-radius: 100px; padding: 6px 16px 6px 8px;
+            font-size: 13px; font-weight: 500; color: var(--accent);
+            margin-bottom: 24px;
+        }
+        .hero-badge-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse-dot 2s ease-in-out infinite; }
+        @keyframes pulse-dot { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.4); } }
+
+        .hero h1 { font-size: clamp(2.4rem, 4.5vw, 3.6rem); color: white; margin-bottom: 20px; }
+        .hero h1 .gradient-text { background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .hero-sub { color: var(--text-faint); font-size: 17px; line-height: 1.7; margin-bottom: 36px; max-width: 480px; }
+
+        .hero-buttons { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 48px; }
+
+        .hero-stats { display: flex; gap: 40px; }
+        .hero-stat { text-align: left; }
+        .hero-stat-value { font-family: 'Space Grotesk', sans-serif; font-size: 28px; font-weight: 700; color: white; line-height: 1; }
+        .hero-stat-value .accent { color: var(--accent); }
+        .hero-stat-label { font-size: 13px; color: var(--text-faint); margin-top: 4px; }
+
+        /* Dashboard mockup */
+        .hero-visual { position: relative; }
+        .mockup {
+            background: var(--navy-light);
+            border-radius: 16px; border: 1px solid rgba(255,255,255,0.06);
+            padding: 20px; position: relative;
+            box-shadow: 0 32px 64px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.04);
+        }
+        .mockup-dots { display: flex; gap: 6px; margin-bottom: 16px; }
+        .mockup-dots span { width: 10px; height: 10px; border-radius: 50%; }
+        .mockup-dots span:nth-child(1) { background: #ef4444; }
+        .mockup-dots span:nth-child(2) { background: #eab308; }
+        .mockup-dots span:nth-child(3) { background: #22c55e; }
+        .mockup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .mockup-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px; }
+        .mockup-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+        .mockup-val { font-family: 'Space Grotesk', sans-serif; font-size: 24px; font-weight: 700; color: white; }
+        .mockup-val.teal { color: var(--accent); }
+        .mockup-bar { height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+        .mockup-bar-fill { height: 100%; background: var(--gradient); border-radius: 3px; transition: width 1.5s cubic-bezier(0.4,0,0.2,1); }
+        .mockup-wide { grid-column: 1 / -1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 14px; }
+        .mockup-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .mockup-row:last-child { border-bottom: none; }
+        .mockup-status { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+        .mockup-status.warn { background: #eab308; }
+        .mockup-text { height: 7px; background: rgba(255,255,255,0.06); border-radius: 4px; }
+        .mockup-badge { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+        .mockup-badge.green { background: rgba(34,197,94,0.15); color: #4ade80; }
+        .mockup-badge.yellow { background: rgba(234,179,8,0.15); color: #facc15; }
+        .mockup-glow {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            width: 80%; height: 80%;
+            background: radial-gradient(circle, rgba(6,182,212,0.06) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        /* ═══════════════ SECTIONS ═══════════════ */
+        .section { padding: 100px 0; }
+        .section-tag { display: inline-flex; align-items: center; gap: 6px; background: var(--gradient-subtle); color: var(--primary); font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 100px; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.04em; }
+        .section-title { font-size: clamp(1.8rem, 3.5vw, 2.6rem); margin-bottom: 16px; color: var(--text); }
+        .section-desc { font-size: 16px; color: var(--text-muted); max-width: 560px; margin: 0 auto 56px; line-height: 1.7; }
+
+        /* ═══════════════ METRICS ROW ═══════════════ */
+        .metrics {
+            background: var(--white);
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            padding: 48px 0;
+            position: relative;
+        }
+        .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; text-align: center; }
+        .metric-item { position: relative; }
+        .metric-item:not(:last-child)::after {
+            content: ''; position: absolute; right: -16px; top: 10%; height: 80%;
+            width: 1px; background: var(--border);
+        }
+        .metric-value {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: clamp(2rem, 3vw, 2.8rem); font-weight: 700;
+            background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            line-height: 1;
+        }
+        .metric-label { font-size: 14px; color: var(--text-muted); margin-top: 8px; font-weight: 500; }
+
+        /* ═══════════════ BEFORE/AFTER ═══════════════ */
+        .transform-section { background: var(--surface); }
+        .transform-grid { display: grid; grid-template-columns: 1fr auto 1fr; gap: 24px; align-items: center; max-width: 900px; margin: 0 auto; }
+        .transform-card { border-radius: var(--radius-lg); padding: 32px; position: relative; overflow: hidden; }
+        .transform-card.before { background: #fef2f2; border: 1px solid #fecaca; }
+        .transform-card.after { background: #f0fdfa; border: 1px solid #99f6e4; }
+        .transform-card-tag {
+            display: inline-flex; padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 700;
+            text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px;
+        }
+        .transform-card.before .transform-card-tag { background: #fecaca; color: #991b1b; }
+        .transform-card.after .transform-card-tag { background: #99f6e4; color: #065f46; }
+        .transform-card h3 { font-size: 18px; margin-bottom: 16px; }
+        .transform-list { list-style: none; }
+        .transform-list li { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; font-size: 14px; color: var(--text-secondary); }
+        .transform-list li svg { width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px; }
+        .transform-arrow { display: flex; align-items: center; justify-content: center; }
+        .transform-arrow-icon {
+            width: 56px; height: 56px; border-radius: 50%;
+            background: var(--gradient); display: flex; align-items: center; justify-content: center;
+            box-shadow: var(--shadow-teal);
+            animation: pulse-arrow 2.5s ease-in-out infinite;
+        }
+        @keyframes pulse-arrow { 0%,100% { box-shadow: var(--shadow-teal); } 50% { box-shadow: 0 8px 40px rgba(13,148,136,0.4); } }
+        .transform-arrow-icon svg { width: 24px; height: 24px; color: white; }
+
+        /* ═══════════════ ROI CALCULATOR ═══════════════ */
+        .roi-section { background: var(--navy); color: white; position: relative; overflow: hidden; }
+        .roi-section::before {
+            content: ''; position: absolute; inset: 0;
+            background-image: linear-gradient(rgba(148,163,184,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        .roi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; position: relative; z-index: 1; }
+        .roi-input-group { margin-bottom: 24px; }
+        .roi-label { font-size: 14px; color: var(--text-faint); margin-bottom: 8px; font-weight: 500; }
+        .roi-slider-container { position: relative; }
+        .roi-slider {
+            -webkit-appearance: none; appearance: none; width: 100%; height: 6px;
+            background: rgba(255,255,255,0.1); border-radius: 3px; outline: none;
+        }
+        .roi-slider::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%;
+            background: var(--gradient); cursor: pointer; box-shadow: 0 2px 8px rgba(13,148,136,0.4);
+            border: 3px solid white;
+        }
+        .roi-slider-value {
+            font-family: 'Space Grotesk', sans-serif; font-size: 20px; font-weight: 700;
+            color: white; margin-top: 8px;
+        }
+        .roi-results { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .roi-card {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: var(--radius); padding: 24px; text-align: center;
+        }
+        .roi-card-value {
+            font-family: 'Space Grotesk', sans-serif; font-size: 32px; font-weight: 700;
+            background: var(--gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            line-height: 1; margin-bottom: 6px;
+        }
+        .roi-card-label { font-size: 13px; color: var(--text-faint); }
+        .roi-card.highlight {
+            grid-column: 1 / -1;
+            background: rgba(13,148,136,0.1); border-color: rgba(13,148,136,0.3);
+        }
+
+        /* ═══════════════ HOW IT WORKS ═══════════════ */
+        .steps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; position: relative; }
+        .steps-grid::before {
+            content: ''; position: absolute; top: 44px; left: 12%; right: 12%;
+            height: 2px; background: var(--gradient); opacity: 0.2;
+        }
+        .step-card { text-align: center; position: relative; z-index: 1; }
+        .step-icon {
+            width: 88px; height: 88px; border-radius: 50%;
+            background: var(--gradient);
+            display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: var(--shadow-teal);
+            transition: transform var(--transition), box-shadow var(--transition);
+        }
+        .step-card:hover .step-icon { transform: scale(1.08); box-shadow: 0 12px 40px rgba(13,148,136,0.35); }
+        .step-icon svg { width: 36px; height: 36px; color: white; }
+        .step-num { font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+        .step-card h3 { font-size: 15px; color: var(--text); font-weight: 600; }
+
+        /* ═══════════════ FEATURES ═══════════════ */
+        .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .feature-card {
+            background: var(--white); border: 1px solid var(--border);
+            border-radius: var(--radius-lg); padding: 32px;
+            transition: all var(--transition); position: relative; overflow: hidden;
+        }
+        .feature-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+            background: var(--gradient); opacity: 0; transition: opacity var(--transition);
+        }
+        .feature-card:hover { border-color: transparent; box-shadow: var(--shadow-lg); transform: translateY(-4px); }
+        .feature-card:hover::before { opacity: 1; }
+        .feature-icon-wrap {
+            width: 48px; height: 48px; border-radius: var(--radius);
+            background: var(--gradient); display: flex; align-items: center; justify-content: center;
+            margin-bottom: 16px;
+        }
+        .feature-icon-wrap svg { width: 24px; height: 24px; color: white; }
+        .feature-card h3 { font-size: 17px; margin-bottom: 8px; }
+        .feature-card p { font-size: 14px; color: var(--text-muted); line-height: 1.65; }
+        .feature-card .feature-stat {
+            display: inline-flex; align-items: center; gap: 6px;
+            margin-top: 12px; padding: 4px 10px; border-radius: 6px;
+            background: var(--gradient-subtle); font-size: 12px; font-weight: 600; color: var(--primary);
+        }
+
+        /* ═══════════════ INTEGRATIONS ═══════════════ */
+        .integrations-section { background: var(--surface); }
+        .logos-row { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .logo-badge {
+            background: var(--white); border: 1px solid var(--border);
+            border-radius: var(--radius); padding: 16px 36px;
+            font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 17px;
+            color: var(--text); transition: all var(--transition);
+            cursor: default;
+        }
+        .logo-badge:hover { border-color: var(--primary); box-shadow: var(--shadow-md); transform: translateY(-2px); }
+
+        /* ═══════════════ TRUST ═══════════════ */
+        .trust-bar {
+            display: flex; justify-content: center; gap: 48px; flex-wrap: wrap;
+            padding: 32px 0; margin-top: 40px;
+            border-top: 1px solid var(--border);
+        }
+        .trust-item { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-muted); font-weight: 500; }
+        .trust-icon { width: 20px; height: 20px; color: var(--primary); }
+
+        /* ═══════════════ PRICING ═══════════════ */
+        .pricing-card {
+            background: var(--white); border: 2px solid var(--border);
+            border-radius: var(--radius-xl); padding: 48px;
+            max-width: 480px; margin: 0 auto; text-align: center;
+            transition: all var(--transition); position: relative;
+        }
+        .pricing-card:hover { border-color: var(--primary); box-shadow: 0 20px 60px rgba(13,148,136,0.1); }
+        .pricing-card h3 { font-size: 22px; margin-bottom: 6px; }
+        .pricing-card .price-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 28px; }
+        .pricing-list { list-style: none; text-align: left; margin-bottom: 32px; }
+        .pricing-list li { padding: 11px 0; border-bottom: 1px solid var(--surface); display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--text-secondary); }
+        .pricing-list li svg { width: 20px; height: 20px; color: var(--primary); flex-shrink: 0; }
+
+        /* ═══════════════ FAQ ═══════════════ */
+        .faq-item { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; transition: all var(--transition); }
+        .faq-item:hover { border-color: #cbd5e1; }
+        .faq-q { padding: 18px 22px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-weight: 600; font-size: 15px; color: var(--text); background: none; border: none; width: 100%; text-align: left; font-family: inherit; }
+        .faq-q:hover { color: var(--primary); }
+        .faq-chevron { width: 18px; height: 18px; transition: transform 0.3s ease; color: var(--text-faint); flex-shrink: 0; }
+        .faq-chevron.open { transform: rotate(180deg); }
+        .faq-a { padding: 0 22px 18px; font-size: 14px; color: var(--text-muted); line-height: 1.7; }
+
+        /* ═══════════════ CTA FINAL ═══════════════ */
+        .cta-final {
+            background: var(--navy); padding: 80px 0; text-align: center;
+            position: relative; overflow: hidden;
+        }
+        .cta-final::before {
+            content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(13,148,136,0.1) 0%, transparent 60%);
+            filter: blur(60px);
+        }
+        .cta-final h2 { color: white; font-size: clamp(1.8rem, 3vw, 2.4rem); margin-bottom: 14px; position: relative; z-index: 1; }
+        .cta-final p { color: var(--text-faint); font-size: 16px; margin-bottom: 32px; position: relative; z-index: 1; }
+        .cta-final .btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; position: relative; z-index: 1; }
+
+        /* ═══════════════ FOOTER ═══════════════ */
+        .footer { background: var(--navy); border-top: 1px solid rgba(255,255,255,0.06); padding: 40px 0; color: var(--text-faint); }
+        .footer-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+        .footer a { color: var(--text-faint); text-decoration: none; font-size: 13px; transition: color var(--transition); }
+        .footer a:hover { color: var(--accent); }
+        .footer-links { display: flex; gap: 24px; }
+
+        /* ═══════════════ MODAL ═══════════════ */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.6); backdrop-filter: blur(8px); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 24px; }
+        .modal { background: white; border-radius: var(--radius-xl); padding: 40px; width: 100%; max-width: 400px; position: relative; box-shadow: var(--shadow-xl); }
+        .modal-close { position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 22px; cursor: pointer; color: var(--text-faint); width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border-radius: 8px; transition: all var(--transition); }
+        .modal-close:hover { background: var(--surface); color: var(--text); }
+        .modal h2 { font-size: 20px; margin-bottom: 4px; }
+        .modal .modal-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; font-weight: 500; color: var(--text-secondary); margin-bottom: 5px; }
+        .form-group input { width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 10px; font-size: 14px; font-family: inherit; transition: all var(--transition); outline: none; }
+        .form-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(13,148,136,0.08); }
+        .form-error { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; }
+
+        /* ═══════════════ SCROLL PROGRESS BAR ═══════════════ */
+        .scroll-progress { position: fixed; top: 0; left: 0; height: 3px; background: var(--gradient); z-index: 10001; transition: width 0.1s linear; }
+
+        /* ═══════════════ PARTICLES ═══════════════ */
+        .hero-particles { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+        .particle {
+            position: absolute; width: 4px; height: 4px; border-radius: 50%;
+            background: rgba(6,182,212,0.4); animation: particleFloat linear infinite;
+        }
+        .particle:nth-child(odd) { background: rgba(13,148,136,0.35); }
+        .particle:nth-child(1) { left: 10%; top: 20%; width: 3px; height: 3px; animation-duration: 12s; animation-delay: 0s; }
+        .particle:nth-child(2) { left: 20%; top: 60%; width: 5px; height: 5px; animation-duration: 15s; animation-delay: 2s; }
+        .particle:nth-child(3) { left: 35%; top: 40%; width: 3px; height: 3px; animation-duration: 18s; animation-delay: 4s; }
+        .particle:nth-child(4) { left: 50%; top: 75%; width: 4px; height: 4px; animation-duration: 13s; animation-delay: 1s; }
+        .particle:nth-child(5) { left: 65%; top: 30%; width: 6px; height: 6px; animation-duration: 16s; animation-delay: 3s; }
+        .particle:nth-child(6) { left: 80%; top: 55%; width: 3px; height: 3px; animation-duration: 14s; animation-delay: 5s; }
+        .particle:nth-child(7) { left: 90%; top: 15%; width: 4px; height: 4px; animation-duration: 17s; animation-delay: 2.5s; }
+        .particle:nth-child(8) { left: 45%; top: 85%; width: 5px; height: 5px; animation-duration: 11s; animation-delay: 0.5s; }
+        @keyframes particleFloat {
+            0% { transform: translateY(0) translateX(0) scale(1); opacity: 0; }
+            10% { opacity: 1; }
+            50% { transform: translateY(-120px) translateX(30px) scale(1.2); opacity: 0.6; }
+            90% { opacity: 0.2; }
+            100% { transform: translateY(-250px) translateX(-20px) scale(0.8); opacity: 0; }
+        }
+
+        /* ═══════════════ TYPING CURSOR ═══════════════ */
+        .typing-cursor { display: inline-block; width: 3px; height: 0.9em; background: var(--accent); margin-left: 4px; animation: blink 1s step-end infinite; vertical-align: text-bottom; }
+        @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* ═══════════════ FEATURE CARD SHIMMER ═══════════════ */
+        .feature-card::after {
+            content: ''; position: absolute; top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(13,148,136,0.04), transparent);
+            transition: none; pointer-events: none;
+        }
+        .feature-card:hover::after { animation: shimmer 0.8s ease forwards; }
+        @keyframes shimmer { to { left: 150%; } }
+
+        /* ═══════════════ WAVE DIVIDERS ═══════════════ */
+        .wave-divider { position: relative; width: 100%; overflow: hidden; line-height: 0; }
+        .wave-divider svg { position: relative; display: block; width: calc(100% + 1.3px); height: 60px; }
+        .wave-divider.flip { transform: rotate(180deg); }
+        .wave-top svg { fill: var(--surface); }
+        .wave-dark svg { fill: var(--navy); }
+        .wave-white svg { fill: var(--white); }
+
+        /* ═══════════════ ROI MINI CHART ═══════════════ */
+        .roi-chart { margin-top: 24px; padding: 20px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: var(--radius); }
+        .roi-chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 80px; }
+        .roi-chart-bar { flex: 1; border-radius: 4px 4px 0 0; transition: height 1s cubic-bezier(0.4,0,0.2,1); position: relative; min-height: 4px; }
+        .roi-chart-bar.manual { background: rgba(239,68,68,0.3); border: 1px solid rgba(239,68,68,0.4); }
+        .roi-chart-bar.auto { background: var(--gradient); }
+        .roi-chart-labels { display: flex; justify-content: space-around; margin-top: 8px; font-size: 11px; color: var(--text-faint); }
+        .roi-chart-legend { display: flex; gap: 16px; justify-content: center; margin-top: 10px; font-size: 11px; color: var(--text-faint); }
+        .roi-chart-legend span { display: flex; align-items: center; gap: 5px; }
+        .roi-chart-legend .dot { width: 8px; height: 8px; border-radius: 2px; }
+        .roi-chart-legend .dot.red { background: rgba(239,68,68,0.5); }
+        .roi-chart-legend .dot.teal { background: var(--primary); }
+
+        /* ═══════════════ SOCIAL PROOF / URGENCY ═══════════════ */
+        .social-proof-float {
+            position: fixed; bottom: 24px; left: 24px; z-index: 9000;
+            background: white; border-radius: var(--radius); padding: 14px 18px;
+            box-shadow: var(--shadow-lg); border-left: 3px solid var(--primary);
+            display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-secondary);
+            transform: translateX(-120%); transition: transform 0.5s cubic-bezier(0.4,0,0.2,1);
+            max-width: 320px;
+        }
+        .social-proof-float.show { transform: translateX(0); }
+        .social-proof-float .sp-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--gradient-subtle); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .social-proof-float .sp-icon svg { width: 16px; height: 16px; color: var(--primary); }
+        .social-proof-float .sp-close { position: absolute; top: 4px; right: 6px; background: none; border: none; font-size: 14px; cursor: pointer; color: var(--text-faint); line-height: 1; padding: 4px; }
+
+        /* ═══════════════ PRICING MICRO ═══════════════ */
+        .pricing-micro { font-size: 13px; color: var(--text-muted); margin-top: 12px; font-weight: 500; }
+
+        /* ═══════════════ LOGO BADGES RESPONSIVE ═══════════════ */
+        .logo-badge { min-width: 0; text-align: center; white-space: nowrap; }
+
+        /* ═══════════════ ANIMATIONS ═══════════════ */
+        @media (prefers-reduced-motion: no-preference) {
+            .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1), transform 0.6s cubic-bezier(0.4,0,0.2,1); }
+            .reveal.visible { opacity: 1; transform: translateY(0); }
+            .reveal-left { opacity: 0; transform: translateX(-28px); transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1), transform 0.6s cubic-bezier(0.4,0,0.2,1); }
+            .reveal-left.visible { opacity: 1; transform: translateX(0); }
+            .reveal-right { opacity: 0; transform: translateX(28px); transition: opacity 0.6s cubic-bezier(0.4,0,0.2,1), transform 0.6s cubic-bezier(0.4,0,0.2,1); }
+            .reveal-right.visible { opacity: 1; transform: translateX(0); }
+            .stagger-1 { transition-delay: 0.05s; }
+            .stagger-2 { transition-delay: 0.1s; }
+            .stagger-3 { transition-delay: 0.15s; }
+            .stagger-4 { transition-delay: 0.2s; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .reveal, .reveal-left, .reveal-right { opacity: 1; transform: none; transition: none; }
+            .particle { display: none; }
+            .typing-cursor { display: none; }
+        }
+
+        /* ═══════════════ RESPONSIVE ═══════════════ */
+        @media (max-width: 1024px) {
+            .hero-inner { grid-template-columns: 1fr; gap: 48px; }
+            .hero-visual { max-width: 480px; margin: 0 auto; }
+            .roi-grid { grid-template-columns: 1fr; gap: 40px; }
+        }
+        @media (max-width: 768px) {
+            .nav-links, .nav-actions { display: none !important; }
+            .hamburger { display: flex; }
+            .hero { padding: 56px 0 64px; }
+            .hero h1 { font-size: 2rem; }
+            .hero-stats { gap: 24px; }
+            .hero-stat-value { font-size: 22px; }
+            .section { padding: 64px 0; }
+            .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+            .metric-item:nth-child(2)::after { display: none; }
+            .steps-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+            .steps-grid::before { display: none; }
+            .features-grid { grid-template-columns: 1fr; }
+            .transform-grid { grid-template-columns: 1fr; }
+            .transform-arrow { transform: rotate(90deg); }
+            .footer-inner { flex-direction: column; text-align: center; }
+            .footer-links { justify-content: center; }
+            .logos-row { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 12px; }
+            .logo-badge { padding: 12px 20px; font-size: 14px; }
+            .trust-bar { gap: 20px; flex-direction: column; align-items: center; }
+            .hero-buttons { justify-content: center; }
+            .social-proof-float { left: 12px; right: 12px; max-width: none; bottom: 12px; }
+            .wave-divider svg { height: 36px; }
+        }
+        @media (max-width: 480px) {
+            .steps-grid { grid-template-columns: 1fr; }
+            .hero-stats { flex-direction: column; gap: 16px; }
+            .hero-buttons { flex-direction: column; align-items: stretch; }
+            .mockup-grid { grid-template-columns: 1fr; }
+            .roi-results { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
-<body class="bg-gray-50 min-h-screen" x-data="catalogApp()" x-cloak>
+<body x-data="katalync()" x-init="init()">
 
-  <!-- Header -->
-  <header class="bg-white border-b border-gray-200">
-    <div class="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
-          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-          </svg>
-        </div>
-        <div>
-          <h1 class="text-lg font-semibold text-gray-900">Catalog Tools</h1>
-          <p class="text-xs text-gray-500">by PROMETEIX</p>
-        </div>
-      </div>
-      <div x-show="jobId" class="text-sm text-gray-500">
-        Job: <span class="font-mono text-xs" x-text="jobId"></span>
-      </div>
-    </div>
-  </header>
+    <!-- ═══════════════ SCROLL PROGRESS ═══════════════ -->
+    <div class="scroll-progress" :style="'width:' + scrollPercent + '%'"></div>
 
-  <main class="max-w-5xl mx-auto px-6 py-8">
-
-    <!-- STEP 1: Upload -->
-    <div x-show="step === 'upload'" x-transition>
-      <div class="text-center mb-8">
-        <h2 class="text-2xl font-bold text-gray-900">Convierte tu catalogo para marketplace</h2>
-        <p class="mt-2 text-gray-600">Sube tu Excel con los datos de producto y las imagenes. Las convertimos al formato que necesitas.</p>
-      </div>
-
-      <!-- Marketplace Selector -->
-      <div class="max-w-md mx-auto mb-6">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Marketplace destino</label>
-        <select x-model="marketplace" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-brand-500 focus:ring-brand-500 text-sm py-2.5 px-3 border">
-          <option value="sprinter_es">Sprinter (ES)</option>
-          <option value="sportzone_pt">Sport Zone (PT)</option>
-          <option value="custom">Otro marketplace</option>
-        </select>
-      </div>
-
-      <!-- Ratio Selector -->
-      <div class="max-w-md mx-auto mb-8">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Formato de imagen destino</label>
-        <div class="grid grid-cols-3 gap-3">
-          <template x-for="r in ratios" :key="r.value">
-            <button @click="selectedRatio = r.value"
-              :class="selectedRatio === r.value ? 'border-brand-600 bg-brand-50 text-brand-700' : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'"
-              class="border-2 rounded-lg p-3 text-center transition-colors">
-              <div class="text-sm font-semibold" x-text="r.label"></div>
-              <div class="text-xs text-gray-500 mt-0.5" x-text="r.dims"></div>
-            </button>
-          </template>
-        </div>
-      </div>
-
-      <!-- Drop Zones -->
-      <div class="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-
-        <!-- Excel Drop Zone -->
-        <div class="drop-zone border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
-             @click="$refs.excelInput.click()"
-             @dragover.prevent="$event.currentTarget.classList.add('dragover')"
-             @dragleave="$event.currentTarget.classList.remove('dragover')"
-             @drop.prevent="handleExcelDrop($event)">
-          <input type="file" x-ref="excelInput" @change="handleExcelSelect($event)" accept=".xlsx,.xls,.csv" class="hidden">
-          <div x-show="!excelFile">
-            <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            <p class="text-sm font-medium text-gray-700">Arrastra tu Excel aqui</p>
-            <p class="text-xs text-gray-500 mt-1">.xlsx, .xls o .csv</p>
-          </div>
-          <div x-show="excelFile" class="text-brand-600">
-            <svg class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <p class="text-sm font-medium" x-text="excelFile?.name"></p>
-            <p class="text-xs text-gray-500 mt-1" x-text="formatSize(excelFile?.size)"></p>
-          </div>
-        </div>
-
-        <!-- Images Drop Zone -->
-        <div class="drop-zone border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer hover:border-gray-400 transition-colors"
-             @click="$refs.imagesInput.click()"
-             @dragover.prevent="$event.currentTarget.classList.add('dragover')"
-             @dragleave="$event.currentTarget.classList.remove('dragover')"
-             @drop.prevent="handleImagesDrop($event)">
-          <input type="file" x-ref="imagesInput" @change="handleImagesSelect($event)" accept=".jpg,.jpeg,.png,.webp,.zip" multiple class="hidden">
-          <div x-show="imageFiles.length === 0">
-            <svg class="w-12 h-12 text-gray-400 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-            </svg>
-            <p class="text-sm font-medium text-gray-700">Arrastra imagenes o ZIP</p>
-            <p class="text-xs text-gray-500 mt-1">.jpg, .png, .webp o .zip</p>
-          </div>
-          <div x-show="imageFiles.length > 0" class="text-brand-600">
-            <svg class="w-10 h-10 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-            <p class="text-sm font-medium" x-text="imageFiles.length + ' archivos seleccionados'"></p>
-            <p class="text-xs text-gray-500 mt-1" x-text="formatSize(totalImageSize)"></p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Submit Button -->
-      <div class="text-center mt-8">
-        <button @click="startProcessing()"
-          :disabled="!excelFile && imageFiles.length === 0"
-          :class="(excelFile || imageFiles.length > 0) ? 'bg-brand-600 hover:bg-brand-700 cursor-pointer' : 'bg-gray-300 cursor-not-allowed'"
-          class="inline-flex items-center gap-2 text-white font-semibold py-3 px-8 rounded-lg transition-colors text-sm">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-          </svg>
-          Procesar catalogo
-        </button>
-      </div>
-
-      <!-- Info Card -->
-      <div class="max-w-3xl mx-auto mt-10 bg-white border border-gray-200 rounded-xl p-6">
-        <h3 class="text-sm font-semibold text-gray-900 mb-3">Como funciona</h3>
-        <div class="grid md:grid-cols-3 gap-4 text-sm text-gray-600">
-          <div class="flex gap-3">
-            <span class="flex-shrink-0 w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">1</span>
-            <p>Sube tu Excel con los datos de producto (SKU, nombre, marca, etc.) y las imagenes</p>
-          </div>
-          <div class="flex gap-3">
-            <span class="flex-shrink-0 w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-            <p>Convertimos las imagenes al formato correcto y las alojamos en URLs publicas</p>
-          </div>
-          <div class="flex gap-3">
-            <span class="flex-shrink-0 w-6 h-6 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-bold">3</span>
-            <p>Descarga tu Excel listo para subir a Mirakl con los titulos y URLs correctos</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEP 2: Processing -->
-    <div x-show="step === 'processing'" x-transition>
-      <div class="max-w-2xl mx-auto">
-        <div class="text-center mb-8">
-          <div class="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-brand-600 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-          </div>
-          <h2 class="text-2xl font-bold text-gray-900">Procesando tu catalogo</h2>
-          <p class="mt-2 text-gray-600">Esto puede tardar unos minutos para catalogos grandes</p>
-        </div>
-
-        <!-- Progress Bar -->
-        <div class="bg-white border border-gray-200 rounded-xl p-6 mb-6">
-          <div class="flex justify-between text-sm mb-2">
-            <span class="font-medium text-gray-700">Progreso</span>
-            <span class="text-gray-500">
-              <span x-text="progress.done"></span> / <span x-text="progress.total"></span> imagenes
-            </span>
-          </div>
-          <div class="w-full bg-gray-200 rounded-full h-3">
-            <div class="progress-bar bg-brand-600 h-3 rounded-full" :style="'width: ' + progressPercent + '%'"></div>
-          </div>
-          <div class="flex justify-between text-xs text-gray-500 mt-2">
-            <span x-text="progressPercent + '%'"></span>
-            <span x-show="progress.eta" x-text="'~' + progress.eta + ' restante'"></span>
-          </div>
-        </div>
-
-        <!-- Live Log -->
-        <div class="bg-gray-900 rounded-xl p-4 h-48 overflow-y-auto font-mono text-xs" x-ref="logContainer">
-          <template x-for="(entry, i) in logEntries" :key="i">
-            <div class="py-0.5" :class="entry.type === 'error' ? 'text-red-400' : 'text-green-400'">
-              <span class="text-gray-500" x-text="entry.time"></span>
-              <span x-text="entry.message"></span>
+    <!-- ═══════════════ NAV ═══════════════ -->
+    <nav class="nav" :class="scrollY > 20 ? 'scrolled' : ''">
+        <div class="container nav-inner">
+            <a href="#"><img src="assets/logo-horizontal.png" alt="Katalync" class="nav-logo"></a>
+            <div class="nav-links">
+                <a href="#funciones" x-text="t.nav.features"></a>
+                <a href="#como-funciona" x-text="t.nav.how"></a>
+                <a href="#precios" x-text="t.nav.pricing"></a>
+                <a href="#faq" x-text="t.nav.faq"></a>
             </div>
-          </template>
-          <div x-show="logEntries.length === 0" class="text-gray-500">Esperando datos...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- STEP 3: Results -->
-    <div x-show="step === 'results'" x-transition>
-      <div class="max-w-3xl mx-auto">
-        <div class="text-center mb-8">
-          <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-            </svg>
-          </div>
-          <h2 class="text-2xl font-bold text-gray-900">Catalogo procesado</h2>
-          <p class="mt-2 text-gray-600">
-            <span class="text-green-600 font-semibold" x-text="results.success"></span> productos procesados correctamente
-            <span x-show="results.errors > 0">
-              &middot; <span class="text-red-500 font-semibold" x-text="results.errors"></span> errores
-            </span>
-          </p>
-        </div>
-
-        <!-- Preview Grid -->
-        <div x-show="results.previews && results.previews.length > 0" class="mb-8">
-          <h3 class="text-sm font-semibold text-gray-900 mb-3">Vista previa</h3>
-          <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <template x-for="(preview, i) in results.previews" :key="i">
-              <div class="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <div class="grid grid-cols-2">
-                  <div class="aspect-square bg-gray-100">
-                    <img :src="preview.before" class="w-full h-full object-contain" alt="Original">
-                  </div>
-                  <div class="aspect-[2/3] bg-gray-100">
-                    <img :src="preview.after" class="w-full h-full object-contain" alt="Convertida">
-                  </div>
+            <div class="nav-actions">
+                <div class="lang-switch">
+                    <button :class="lang === 'es' ? 'active' : ''" @click="lang = 'es'">ES</button>
+                    <button :class="lang === 'pt' ? 'active' : ''" @click="lang = 'pt'">PT</button>
                 </div>
-                <div class="p-2 text-center">
-                  <p class="text-xs text-gray-500" x-text="preview.sku"></p>
+                <button class="btn btn-ghost" style="font-size:13px; padding:8px 16px;" @click="showLogin = true" x-text="t.nav.login"></button>
+                <a href="#cta-final" class="btn btn-primary" style="font-size:13px; padding:8px 18px;" x-text="t.nav.demo"></a>
+            </div>
+            <button class="hamburger" @click="mobileOpen = true"><span></span><span></span><span></span></button>
+        </div>
+    </nav>
+
+    <div class="mobile-menu" :class="mobileOpen ? 'open' : ''" x-show="mobileOpen" x-transition>
+        <button class="mobile-close" @click="mobileOpen = false">&times;</button>
+        <div class="lang-switch" style="margin-bottom: 12px;">
+            <button :class="lang === 'es' ? 'active' : ''" @click="lang = 'es'">ES</button>
+            <button :class="lang === 'pt' ? 'active' : ''" @click="lang = 'pt'">PT</button>
+        </div>
+        <a href="#funciones" @click="mobileOpen = false" x-text="t.nav.features"></a>
+        <a href="#como-funciona" @click="mobileOpen = false" x-text="t.nav.how"></a>
+        <a href="#precios" @click="mobileOpen = false" x-text="t.nav.pricing"></a>
+        <a href="#faq" @click="mobileOpen = false" x-text="t.nav.faq"></a>
+        <button class="btn btn-ghost" @click="mobileOpen = false; showLogin = true" x-text="t.nav.login"></button>
+        <a href="#cta-final" class="btn btn-primary" @click="mobileOpen = false" x-text="t.nav.demo"></a>
+    </div>
+
+    <!-- ═══════════════ HERO ═══════════════ -->
+    <section class="hero">
+        <div class="hero-bg-grid"></div>
+        <div class="hero-bg-glow1"></div>
+        <div class="hero-bg-glow2"></div>
+        <div class="hero-particles">
+            <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+            <div class="particle"></div><div class="particle"></div><div class="particle"></div><div class="particle"></div>
+        </div>
+        <div class="container hero-inner">
+            <div>
+                <div class="hero-badge">
+                    <span class="hero-badge-dot"></span>
+                    <span x-text="t.hero.badge"></span>
                 </div>
-              </div>
-            </template>
-          </div>
-        </div>
-
-        <!-- Download Buttons -->
-        <div class="grid md:grid-cols-2 gap-4 mb-8">
-          <a :href="results.excelUrl" download
-            class="flex items-center gap-3 bg-brand-600 hover:bg-brand-700 text-white rounded-xl p-5 transition-colors">
-            <svg class="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-            </svg>
-            <div>
-              <p class="font-semibold">Descargar Excel Mirakl-ready</p>
-              <p class="text-sm opacity-80">Listo para subir al marketplace</p>
+                <h1>
+                    <span class="gradient-text" x-text="t.hero.h1a"></span><br>
+                    <span x-text="t.hero.h1b"></span><span class="typing-cursor"></span>
+                </h1>
+                <p class="hero-sub" x-text="t.hero.sub"></p>
+                <div class="hero-buttons">
+                    <a href="#cta-final" class="btn btn-primary btn-lg" x-text="t.nav.demo"></a>
+                    <a href="#como-funciona" class="btn btn-outline-white btn-lg" x-text="t.nav.how"></a>
+                </div>
+                <div class="hero-stats">
+                    <div class="hero-stat">
+                        <div class="hero-stat-value" x-ref="stat1">0</div>
+                        <div class="hero-stat-label" x-text="t.hero.stat1"></div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value"><span x-ref="stat2">0</span><span class="accent">%</span></div>
+                        <div class="hero-stat-label" x-text="t.hero.stat2"></div>
+                    </div>
+                    <div class="hero-stat">
+                        <div class="hero-stat-value"><span x-ref="stat3">0</span><span class="accent">min</span></div>
+                        <div class="hero-stat-label" x-text="t.hero.stat3"></div>
+                    </div>
+                </div>
             </div>
-          </a>
-          <a :href="results.imagesUrl" download
-            class="flex items-center gap-3 bg-white border-2 border-gray-200 hover:border-brand-300 text-gray-800 rounded-xl p-5 transition-colors">
-            <svg class="w-8 h-8 flex-shrink-0 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-            </svg>
-            <div>
-              <p class="font-semibold">Descargar imagenes convertidas</p>
-              <p class="text-sm text-gray-500">ZIP con todas las imagenes en 2:3</p>
+            <div class="hero-visual">
+                <div class="mockup">
+                    <div class="mockup-glow"></div>
+                    <div class="mockup-dots"><span></span><span></span><span></span></div>
+                    <div class="mockup-grid">
+                        <div class="mockup-card">
+                            <div class="mockup-label" x-text="t.mockup.products"></div>
+                            <div class="mockup-val" x-ref="mockupProducts">0</div>
+                            <div class="mockup-bar"><div class="mockup-bar-fill" x-ref="bar1" style="width:0%"></div></div>
+                        </div>
+                        <div class="mockup-card">
+                            <div class="mockup-label" x-text="t.mockup.validated"></div>
+                            <div class="mockup-val teal" x-ref="mockupValidated">0%</div>
+                            <div class="mockup-bar"><div class="mockup-bar-fill" x-ref="bar2" style="width:0%"></div></div>
+                        </div>
+                        <div class="mockup-wide">
+                            <div class="mockup-label" x-text="t.mockup.activity"></div>
+                            <div class="mockup-row">
+                                <div class="mockup-status"></div>
+                                <div class="mockup-text" style="flex:1"></div>
+                                <span class="mockup-badge green">OK</span>
+                            </div>
+                            <div class="mockup-row">
+                                <div class="mockup-status"></div>
+                                <div class="mockup-text" style="flex:1"></div>
+                                <span class="mockup-badge green">OK</span>
+                            </div>
+                            <div class="mockup-row">
+                                <div class="mockup-status warn"></div>
+                                <div class="mockup-text" style="flex:1"></div>
+                                <span class="mockup-badge yellow" x-text="t.mockup.processing"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </a>
         </div>
+    </section>
 
-        <!-- Error List (expandable) -->
-        <div x-show="results.errorList && results.errorList.length > 0" class="mb-8">
-          <button @click="showErrors = !showErrors" class="flex items-center gap-2 text-sm text-red-600 font-medium">
-            <svg class="w-4 h-4 transition-transform" :class="showErrors ? 'rotate-90' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-            </svg>
-            Ver <span x-text="results.errorList.length"></span> errores
-          </button>
-          <div x-show="showErrors" x-transition class="mt-3 bg-red-50 border border-red-200 rounded-lg p-4">
-            <template x-for="(err, i) in results.errorList" :key="i">
-              <div class="text-sm py-1 border-b border-red-100 last:border-0">
-                <span class="font-mono text-red-700" x-text="err.sku"></span>
-                <span class="text-red-600 ml-2" x-text="err.message"></span>
-              </div>
-            </template>
-          </div>
-        </div>
+    <!-- Wave: hero → metrics -->
+    <div class="wave-divider wave-white"><svg viewBox="0 0 1200 60" preserveAspectRatio="none"><path d="M0,0 C300,60 900,0 1200,40 L1200,60 L0,60 Z"/></svg></div>
 
-        <!-- New Job Button -->
-        <div class="text-center">
-          <button @click="reset()" class="text-sm text-brand-600 hover:text-brand-700 font-medium">
-            Procesar otro catalogo
-          </button>
+    <!-- ═══════════════ METRICS BAR ═══════════════ -->
+    <section class="metrics">
+        <div class="container">
+            <div class="metrics-grid">
+                <div class="metric-item reveal stagger-1">
+                    <div class="metric-value" x-ref="m1">0</div>
+                    <div class="metric-label" x-text="t.metrics.m1"></div>
+                </div>
+                <div class="metric-item reveal stagger-2">
+                    <div class="metric-value" x-ref="m2">0h</div>
+                    <div class="metric-label" x-text="t.metrics.m2"></div>
+                </div>
+                <div class="metric-item reveal stagger-3">
+                    <div class="metric-value" x-ref="m3">0%</div>
+                    <div class="metric-label" x-text="t.metrics.m3"></div>
+                </div>
+                <div class="metric-item reveal stagger-4">
+                    <div class="metric-value" x-ref="m4">0x</div>
+                    <div class="metric-label" x-text="t.metrics.m4"></div>
+                </div>
+            </div>
         </div>
-      </div>
+    </section>
+
+    <!-- ═══════════════ BEFORE/AFTER ═══════════════ -->
+    <section class="section transform-section">
+        <div class="container text-center" style="text-align:center;">
+            <span class="section-tag reveal" x-text="t.transform.tag"></span>
+            <h2 class="section-title reveal" x-text="t.transform.title"></h2>
+            <p class="section-desc reveal" x-text="t.transform.desc"></p>
+            <div class="transform-grid">
+                <div class="transform-card before reveal-left">
+                    <span class="transform-card-tag" x-text="t.transform.before"></span>
+                    <h3 x-text="t.transform.beforeTitle"></h3>
+                    <ul class="transform-list">
+                        <template x-for="item in t.transform.beforeList" :key="item">
+                            <li>
+                                <svg fill="none" stroke="#dc2626" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                                <span x-text="item"></span>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+                <div class="transform-arrow reveal">
+                    <div class="transform-arrow-icon">
+                        <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 12h14m-7-7l7 7-7 7"/></svg>
+                    </div>
+                </div>
+                <div class="transform-card after reveal-right">
+                    <span class="transform-card-tag" x-text="t.transform.after"></span>
+                    <h3 x-text="t.transform.afterTitle"></h3>
+                    <ul class="transform-list">
+                        <template x-for="item in t.transform.afterList" :key="item">
+                            <li>
+                                <svg fill="none" stroke="#059669" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                <span x-text="item"></span>
+                            </li>
+                        </template>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ ROI CALCULATOR ═══════════════ -->
+    <section class="section roi-section">
+        <div class="container">
+            <div class="roi-grid">
+                <div class="reveal-left">
+                    <span class="section-tag" style="background: rgba(13,148,136,0.15); color: var(--accent);" x-text="t.roi.tag"></span>
+                    <h2 class="section-title" style="color:white; margin-bottom: 8px;" x-text="t.roi.title"></h2>
+                    <p style="color: var(--text-faint); margin-bottom: 32px; font-size: 15px;" x-text="t.roi.desc"></p>
+                    <div class="roi-input-group">
+                        <div class="roi-label" x-text="t.roi.skuLabel"></div>
+                        <input type="range" class="roi-slider" min="100" max="10000" step="100" x-model="roiSkus" @input="calcRoi()">
+                        <div class="roi-slider-value" x-text="Number(roiSkus).toLocaleString() + ' SKUs'"></div>
+                    </div>
+                    <div class="roi-input-group">
+                        <div class="roi-label" x-text="t.roi.freqLabel"></div>
+                        <input type="range" class="roi-slider" min="1" max="20" step="1" x-model="roiFreq" @input="calcRoi()">
+                        <div class="roi-slider-value" x-text="roiFreq + 'x / ' + t.roi.month"></div>
+                    </div>
+                </div>
+                <div class="reveal-right">
+                    <div class="roi-results">
+                        <div class="roi-card">
+                            <div class="roi-card-value" x-text="roiManualHours + 'h'"></div>
+                            <div class="roi-card-label" x-text="t.roi.manual"></div>
+                        </div>
+                        <div class="roi-card">
+                            <div class="roi-card-value" x-text="roiAutoMinutes + 'min'"></div>
+                            <div class="roi-card-label" x-text="t.roi.auto"></div>
+                        </div>
+                        <div class="roi-card highlight">
+                            <div class="roi-card-value" style="font-size:40px;" x-text="roiSaved + 'h'"></div>
+                            <div class="roi-card-label" style="font-size:14px;" x-text="t.roi.saved"></div>
+                        </div>
+                    </div>
+                    <div class="roi-chart">
+                        <div class="roi-chart-bars">
+                            <div class="roi-chart-bar manual" :style="'height:' + Math.min(100, roiManualHours * 0.6) + '%'"></div>
+                            <div class="roi-chart-bar auto" :style="'height:' + Math.max(4, roiAutoMinutes * 0.3) + '%'"></div>
+                            <div class="roi-chart-bar manual" :style="'height:' + Math.min(90, roiManualHours * 0.5) + '%'"></div>
+                            <div class="roi-chart-bar auto" :style="'height:' + Math.max(4, roiAutoMinutes * 0.25) + '%'"></div>
+                            <div class="roi-chart-bar manual" :style="'height:' + Math.min(95, roiManualHours * 0.55) + '%'"></div>
+                            <div class="roi-chart-bar auto" :style="'height:' + Math.max(4, roiAutoMinutes * 0.28) + '%'"></div>
+                        </div>
+                        <div class="roi-chart-legend">
+                            <span><span class="dot red"></span> Manual</span>
+                            <span><span class="dot teal"></span> Katalync</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Wave: ROI → How it works -->
+    <div class="wave-divider wave-top"><svg viewBox="0 0 1200 60" preserveAspectRatio="none"><path d="M0,40 C400,0 800,60 1200,20 L1200,60 L0,60 Z"/></svg></div>
+
+    <!-- ═══════════════ HOW IT WORKS ═══════════════ -->
+    <section class="section" id="como-funciona" style="background: var(--surface);">
+        <div class="container" style="text-align:center;">
+            <span class="section-tag reveal" x-text="t.how.tag"></span>
+            <h2 class="section-title reveal" x-text="t.how.title"></h2>
+            <p class="section-desc reveal" x-text="t.how.desc"></p>
+            <div class="steps-grid">
+                <div class="step-card reveal stagger-1">
+                    <div class="step-icon">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                    </div>
+                    <div class="step-num" x-text="t.how.step + ' 1'"></div>
+                    <h3 x-text="t.how.s1"></h3>
+                </div>
+                <div class="step-card reveal stagger-2">
+                    <div class="step-icon">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                    </div>
+                    <div class="step-num" x-text="t.how.step + ' 2'"></div>
+                    <h3 x-text="t.how.s2"></h3>
+                </div>
+                <div class="step-card reveal stagger-3">
+                    <div class="step-icon">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    </div>
+                    <div class="step-num" x-text="t.how.step + ' 3'"></div>
+                    <h3 x-text="t.how.s3"></h3>
+                </div>
+                <div class="step-card reveal stagger-4">
+                    <div class="step-icon">
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </div>
+                    <div class="step-num" x-text="t.how.step + ' 4'"></div>
+                    <h3 x-text="t.how.s4"></h3>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ FEATURES ═══════════════ -->
+    <section class="section" id="funciones">
+        <div class="container" style="text-align:center;">
+            <span class="section-tag reveal" x-text="t.feat.tag"></span>
+            <h2 class="section-title reveal" x-text="t.feat.title"></h2>
+            <p class="section-desc reveal" x-text="t.feat.desc"></p>
+            <div class="features-grid">
+                <div class="feature-card reveal stagger-1">
+                    <div class="feature-icon-wrap"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div>
+                    <h3 x-text="t.feat.f1.title"></h3>
+                    <p x-text="t.feat.f1.desc"></p>
+                    <span class="feature-stat" x-text="t.feat.f1.stat"></span>
+                </div>
+                <div class="feature-card reveal stagger-2">
+                    <div class="feature-icon-wrap"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg></div>
+                    <h3 x-text="t.feat.f2.title"></h3>
+                    <p x-text="t.feat.f2.desc"></p>
+                    <span class="feature-stat" x-text="t.feat.f2.stat"></span>
+                </div>
+                <div class="feature-card reveal stagger-3">
+                    <div class="feature-icon-wrap"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg></div>
+                    <h3 x-text="t.feat.f3.title"></h3>
+                    <p x-text="t.feat.f3.desc"></p>
+                    <span class="feature-stat" x-text="t.feat.f3.stat"></span>
+                </div>
+                <div class="feature-card reveal stagger-4">
+                    <div class="feature-icon-wrap"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg></div>
+                    <h3 x-text="t.feat.f4.title"></h3>
+                    <p x-text="t.feat.f4.desc"></p>
+                    <span class="feature-stat" x-text="t.feat.f4.stat"></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ INTEGRATIONS + TRUST ═══════════════ -->
+    <section class="section integrations-section">
+        <div class="container" style="text-align:center;">
+            <span class="section-tag reveal" x-text="t.integrations.tag"></span>
+            <h2 class="section-title reveal" x-text="t.integrations.title"></h2>
+            <p class="section-desc reveal" x-text="t.integrations.desc"></p>
+            <div class="logos-row reveal">
+                <div class="logo-badge">Sprinter</div>
+                <div class="logo-badge">Sport Zone</div>
+                <div class="logo-badge">Mirakl</div>
+            </div>
+            <p class="reveal" style="font-size:14px; color: var(--text-muted); margin-top: 16px;" x-text="t.integrations.extra"></p>
+            <div class="trust-bar reveal">
+                <div class="trust-item">
+                    <svg class="trust-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <span x-text="t.trust.ssl"></span>
+                </div>
+                <div class="trust-item">
+                    <svg class="trust-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <span x-text="t.trust.gdpr"></span>
+                </div>
+                <div class="trust-item">
+                    <svg class="trust-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                    <span x-text="t.trust.uptime"></span>
+                </div>
+                <div class="trust-item">
+                    <svg class="trust-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12l2 2 4-4"/></svg>
+                    <span x-text="t.trust.eu"></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ PRICING ═══════════════ -->
+    <section class="section" id="precios">
+        <div class="container" style="text-align:center;">
+            <span class="section-tag reveal" x-text="t.pricing.tag"></span>
+            <h2 class="section-title reveal" x-text="t.pricing.title"></h2>
+            <p class="section-desc reveal" x-text="t.pricing.desc"></p>
+            <div class="pricing-card reveal">
+                <h3 x-text="t.pricing.plan"></h3>
+                <p class="price-desc" x-text="t.pricing.planDesc"></p>
+                <ul class="pricing-list">
+                    <template x-for="item in t.pricing.items" :key="item">
+                        <li>
+                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                            <span x-text="item"></span>
+                        </li>
+                    </template>
+                </ul>
+                <a href="mailto:alberto@prometeix.com" class="btn btn-primary btn-lg" style="width:100%;" x-text="t.pricing.cta"></a>
+                <p class="pricing-micro" x-text="t.pricing.micro"></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ FAQ ═══════════════ -->
+    <section class="section" id="faq" style="background: var(--surface);">
+        <div class="container" style="max-width: 700px; text-align: center;">
+            <span class="section-tag reveal" x-text="t.faq.tag"></span>
+            <h2 class="section-title reveal" x-text="t.faq.title"></h2>
+            <p class="section-desc reveal" x-text="t.faq.desc"></p>
+            <div style="text-align:left;">
+                <template x-for="(item, i) in t.faq.items" :key="i">
+                    <div class="faq-item" style="opacity:1;">
+                        <button class="faq-q" @click="faqOpen === i ? faqOpen = null : faqOpen = i">
+                            <span x-text="item.q"></span>
+                            <svg class="faq-chevron" :class="faqOpen === i ? 'open' : ''" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+                        </button>
+                        <div class="faq-a" x-show="faqOpen === i" x-transition.duration.200ms>
+                            <p x-text="item.a"></p>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ FINAL CTA ═══════════════ -->
+    <section class="cta-final" id="cta-final">
+        <div class="container">
+            <h2 class="reveal" x-text="t.cta.title"></h2>
+            <p class="reveal" x-text="t.cta.sub"></p>
+            <div class="btns reveal">
+                <a href="mailto:alberto@prometeix.com" class="btn btn-white btn-lg" x-text="t.nav.demo"></a>
+                <button class="btn btn-outline-white btn-lg" @click="showLogin = true" x-text="t.nav.login"></button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════ FOOTER ═══════════════ -->
+    <footer class="footer">
+        <div class="container footer-inner">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <img src="assets/logo-horizontal.png" alt="Katalync" style="height:36px; filter:brightness(0) invert(1);">
+                <span style="font-size:13px;" x-text="t.footer.tagline"></span>
+            </div>
+            <div class="footer-links">
+                <a href="#funciones" x-text="t.nav.features"></a>
+                <a href="#precios" x-text="t.nav.pricing"></a>
+                <a href="#faq" x-text="t.nav.faq"></a>
+                <a href="mailto:alberto@prometeix.com" x-text="t.footer.support"></a>
+            </div>
+            <span style="font-size:12px;">&copy; 2026 Katalync by Prometeix</span>
+        </div>
+    </footer>
+
+    <!-- ═══════════════ LOGIN MODAL ═══════════════ -->
+    <template x-if="showLogin">
+        <div class="modal-overlay" @click.self="showLogin = false">
+            <div class="modal" @click.stop>
+                <button class="modal-close" @click="showLogin = false">&times;</button>
+                <h2 x-text="t.login.title"></h2>
+                <p class="modal-sub" x-text="t.login.sub"></p>
+                <div x-show="loginError" class="form-error" x-text="loginError"></div>
+                <form @submit.prevent="doLogin()">
+                    <div class="form-group">
+                        <label x-text="t.login.email"></label>
+                        <input type="email" x-model="loginEmail" required placeholder="tu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label x-text="t.login.password"></label>
+                        <input type="password" x-model="loginPassword" required placeholder="********">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg" style="width:100%;" :disabled="loginLoading">
+                        <span x-show="!loginLoading" x-text="t.login.btn"></span>
+                        <span x-show="loginLoading" style="display:flex;align-items:center;gap:8px;">
+                            <svg style="width:16px;height:16px;animation:spin 1s linear infinite;" fill="none" viewBox="0 0 24 24"><circle style="opacity:0.25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path style="opacity:0.75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                            <span x-text="t.login.loading"></span>
+                        </span>
+                    </button>
+                </form>
+                <p style="text-align:center; margin-top:16px; font-size:12px; color:var(--text-faint);" x-text="t.login.invite"></p>
+            </div>
+        </div>
+    </template>
+
+    <!-- ═══════════════ SOCIAL PROOF POPUP ═══════════════ -->
+    <div class="social-proof-float" :class="socialProofShow ? 'show' : ''" x-show="socialProofShow" x-transition>
+        <div class="sp-icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+        </div>
+        <span x-text="socialProofMsg"></span>
+        <button class="sp-close" @click="socialProofShow = false">&times;</button>
     </div>
 
-  </main>
+    <style>@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }</style>
 
-  <!-- Footer -->
-  <footer class="border-t border-gray-200 mt-16">
-    <div class="max-w-5xl mx-auto px-6 py-4 text-center text-xs text-gray-400">
-      PROMETEIX Catalog Tools &middot; Conversion y optimizacion de catalogos para marketplace
-    </div>
-  </footer>
+    <script>
+    function katalync() {
+        return {
+            lang: 'es',
+            mobileOpen: false,
+            showLogin: false,
+            loginEmail: '',
+            loginPassword: '',
+            loginError: '',
+            loginLoading: false,
+            faqOpen: null,
+            scrollY: 0,
+            scrollPercent: 0,
+            roiSkus: 1000,
+            roiFreq: 4,
+            roiManualHours: 0,
+            roiAutoMinutes: 0,
+            roiSaved: 0,
+            countersAnimated: false,
+            metricsAnimated: false,
+            socialProofShow: false,
+            socialProofMsg: '',
 
-  <script src="app.js"></script>
+            get t() { return this.lang === 'es' ? this.es : this.pt; },
+
+            es: {
+                nav: { features: 'Funciones', how: 'Proceso', pricing: 'Precios', faq: 'FAQ', login: 'Iniciar sesión', demo: 'Solicitar demo' },
+                hero: {
+                    badge: 'Compatible con Sprinter y Sport Zone',
+                    h1a: 'Tu catálogo listo para marketplace',
+                    h1b: 'en minutos, no en días.',
+                    sub: 'Katalync automatiza la conversión, validación y sincronización de productos para cualquier marketplace Mirakl. Menos errores. Más ventas.',
+                    stat1: 'Productos procesados', stat2: 'Tasa de aprobación', stat3: 'Tiempo medio'
+                },
+                mockup: { products: 'Productos', validated: 'Validados', activity: 'Actividad reciente', processing: 'En proceso' },
+                metrics: { m1: 'Productos procesados', m2: 'Ahorradas al mes', m3: 'Tasa de aprobación', m4: 'Más rápido que manual' },
+                transform: {
+                    tag: 'El problema',
+                    title: 'De Excel caótico a CSV perfecto',
+                    desc: 'Mira la diferencia entre gestionar tu catálogo manualmente y hacerlo con Katalync.',
+                    before: 'Sin Katalync', after: 'Con Katalync',
+                    beforeTitle: 'Proceso manual',
+                    afterTitle: 'Proceso automatizado',
+                    beforeList: ['4-8 horas reformateando Excel', 'Imágenes rechazadas por ratio incorrecto', 'EAN inválidos que bloquean la subida', 'Precios desincronizados con tu ERP', 'Rechazos constantes del marketplace'],
+                    afterList: ['Subida de Excel y descarga en 2 minutos', 'Imágenes convertidas a 2:3 automáticamente', 'Validación de EAN, SKU y campos en tiempo real', 'CSV listo para importar directamente', 'Tasa de aprobación del 98%+']
+                },
+                roi: {
+                    tag: 'Calculadora ROI',
+                    title: '¿Cuánto tiempo ahorras?',
+                    desc: 'Ajusta tu volumen de productos y frecuencia de actualización para ver el impacto real.',
+                    skuLabel: 'Número de SKUs en tu catálogo',
+                    freqLabel: 'Actualizaciones al mes',
+                    month: 'mes',
+                    manual: 'Tiempo manual estimado',
+                    auto: 'Tiempo con Katalync',
+                    saved: 'Horas ahorradas al mes'
+                },
+                how: {
+                    tag: 'Proceso', title: 'De tu Excel al marketplace', desc: 'Cuatro pasos simples. Sin configuración compleja.',
+                    step: 'Paso', s1: 'Sube tu Excel', s2: 'La IA valida y formatea', s3: 'Imágenes optimizadas a CDN', s4: 'Descarga CSV para Mirakl'
+                },
+                feat: {
+                    tag: 'Herramientas', title: 'Todo lo que necesitas en un solo lugar', desc: 'Cuatro herramientas diseñadas para sellers que quieren resultados, no trabajo extra.',
+                    f1: { title: 'Conversor de Catálogo', desc: 'Títulos, descripciones, imágenes 2:3 a CDN y CSV Mirakl-ready. De tu Excel al marketplace sin tocar nada.', stat: '~ 2 min por catálogo' },
+                    f2: { title: 'Actualización de Precios', desc: 'CSV de precios y descuentos listo para importar. Gestiona promociones y precios base en segundos.', stat: 'Bulk updates ilimitados' },
+                    f3: { title: 'Sincronización de Stock', desc: 'Actualiza stock directamente desde tu Excel. Evita overselling y mantente siempre al día.', stat: 'Actualización en tiempo real' },
+                    f4: { title: 'Validación Pre-Upload', desc: 'Valida EAN, imágenes y campos obligatorios antes de subir. Cero rechazos, cero sorpresas.', stat: '98.2% tasa de aprobación' }
+                },
+                integrations: { tag: 'Integraciones', title: 'Compatible con los principales marketplaces', desc: 'Genera archivos listos para importar en cualquier plataforma Mirakl.', extra: 'Y cualquier marketplace basado en Mirakl' },
+                trust: { ssl: 'Cifrado SSL', gdpr: 'GDPR compliant', uptime: '99.9% uptime', eu: 'Servidores en la UE' },
+                pricing: {
+                    tag: 'Precios', title: 'Precio adaptado a tu negocio', desc: 'Sin planes genéricos. Tu negocio es único y tu solución también.',
+                    plan: 'Plan personalizado', planDesc: 'Adaptado a tu volumen y necesidades',
+                    items: ['Las 4 herramientas incluidas', 'Productos ilimitados', 'Soporte prioritario', 'Integraciones a medida'],
+                    cta: 'Solicitar presupuesto',
+                    micro: 'Sin compromiso · Respuesta en 24h'
+                },
+                faq: {
+                    tag: 'FAQ', title: 'Preguntas frecuentes', desc: 'Resolvemos todas tus dudas antes de empezar.',
+                    items: [
+                        { q: '¿Qué formatos de Excel soporta?', a: 'Soportamos archivos .xlsx y .xls con cualquier estructura de columnas. Nuestro motor de IA mapea automáticamente tus campos al formato requerido por el marketplace, sin importar cómo esté organizado tu archivo original. No necesitas adaptar tu Excel — nosotros nos encargamos.' },
+                        { q: '¿Cuántos productos puedo procesar?', a: 'No hay límite. Hemos procesado catálogos de más de 50.000 SKUs sin problemas. El sistema escala automáticamente según tu volumen. Tanto si tienes 100 productos como 100.000, Katalync se adapta.' },
+                        { q: '¿Mis datos están seguros?', a: 'Absolutamente. Los archivos se procesan en servidores europeos (UE) con cifrado SSL en tránsito y en reposo. No almacenamos tus datos más allá del tiempo de procesamiento. Cumplimos con la normativa GDPR y nunca compartimos información con terceros.' },
+                        { q: '¿Qué marketplaces son compatibles?', a: 'Cualquier marketplace basado en Mirakl: Sprinter, Sport Zone, Worten, Carrefour, El Corte Inglés, y muchos más. Si el marketplace usa la plataforma Mirakl, Katalync genera el CSV exacto que necesitas.' },
+                        { q: '¿Cuánto tarda el procesamiento?', a: 'Un catálogo típico de 500 productos se procesa en menos de 2 minutos, incluyendo la conversión de imágenes al formato 2:3 y la validación completa de todos los campos. Catálogos más grandes (5.000+ SKUs) se procesan en menos de 10 minutos.' },
+                        { q: '¿Qué pasa con las imágenes de mis productos?', a: 'Katalync convierte automáticamente todas tus imágenes al formato 2:3 requerido por los marketplaces, las optimiza para web, y las sube a un CDN de alta velocidad. Recibes las URLs listas para incluir directamente en tu CSV de productos.' },
+                        { q: '¿Necesito conocimientos técnicos?', a: 'No. Si sabes usar Excel, sabes usar Katalync. Subes tu archivo, revisas el resultado y descargas el CSV. Sin código, sin configuración compleja, sin curva de aprendizaje. Además, nuestro equipo te ayuda con el onboarding.' },
+                        { q: '¿Puedo probar antes de contratar?', a: 'Sí. Ofrecemos una demostración personalizada donde procesamos una muestra real de tu catálogo para que veas los resultados con tus propios datos. Sin compromiso y sin coste. Solicita tu demo y te respondemos en menos de 24 horas.' }
+                    ]
+                },
+                cta: { title: '¿Listo para automatizar tu catálogo?', sub: 'Empieza hoy. Dedica tu tiempo a vender, no a formatear Excel.' },
+                footer: { tagline: 'Automatización para sellers', support: 'Soporte' },
+                login: { title: 'Iniciar sesión', sub: 'Accede a tu panel de Katalync', email: 'Email', password: 'Contraseña', btn: 'Entrar', loading: 'Accediendo...', invite: 'Acceso solo por invitación', error: 'Credenciales incorrectas.' }
+            },
+
+            pt: {
+                nav: { features: 'Funções', how: 'Processo', pricing: 'Preços', faq: 'FAQ', login: 'Iniciar sessão', demo: 'Solicitar demo' },
+                hero: {
+                    badge: 'Compatível com Sprinter e Sport Zone',
+                    h1a: 'Seu catálogo pronto para marketplace',
+                    h1b: 'em minutos, não em dias.',
+                    sub: 'Katalync automatiza a conversão, validação e sincronização de produtos para qualquer marketplace Mirakl. Menos erros. Mais vendas.',
+                    stat1: 'Produtos processados', stat2: 'Taxa de aprovação', stat3: 'Tempo médio'
+                },
+                mockup: { products: 'Produtos', validated: 'Validados', activity: 'Atividade recente', processing: 'Processando' },
+                metrics: { m1: 'Produtos processados', m2: 'Poupadas por mês', m3: 'Taxa de aprovação', m4: 'Mais rápido que manual' },
+                transform: {
+                    tag: 'O problema',
+                    title: 'De Excel caótico a CSV perfeito',
+                    desc: 'Veja a diferença entre gerir seu catálogo manualmente e fazê-lo com Katalync.',
+                    before: 'Sem Katalync', after: 'Com Katalync',
+                    beforeTitle: 'Processo manual',
+                    afterTitle: 'Processo automatizado',
+                    beforeList: ['4-8 horas reformatando Excel', 'Imagens rejeitadas por ratio incorreto', 'EAN inválidos que bloqueiam o upload', 'Preços dessincronizados com seu ERP', 'Rejeições constantes do marketplace'],
+                    afterList: ['Upload de Excel e download em 2 minutos', 'Imagens convertidas para 2:3 automaticamente', 'Validação de EAN, SKU e campos em tempo real', 'CSV pronto para importar diretamente', 'Taxa de aprovação de 98%+']
+                },
+                roi: {
+                    tag: 'Calculadora ROI',
+                    title: 'Quanto tempo você poupa?',
+                    desc: 'Ajuste seu volume de produtos e frequência de atualização para ver o impacto real.',
+                    skuLabel: 'Número de SKUs no seu catálogo',
+                    freqLabel: 'Atualizações por mês',
+                    month: 'mês',
+                    manual: 'Tempo manual estimado',
+                    auto: 'Tempo com Katalync',
+                    saved: 'Horas poupadas por mês'
+                },
+                how: {
+                    tag: 'Processo', title: 'Do seu Excel ao marketplace', desc: 'Quatro passos simples. Sem configuração complexa.',
+                    step: 'Passo', s1: 'Envie seu Excel', s2: 'A IA valida e formata', s3: 'Imagens otimizadas para CDN', s4: 'Baixe CSV para Mirakl'
+                },
+                feat: {
+                    tag: 'Ferramentas', title: 'Tudo que você precisa num só lugar', desc: 'Quatro ferramentas desenhadas para sellers que querem resultados, não trabalho extra.',
+                    f1: { title: 'Conversor de Catálogo', desc: 'Títulos, descrições, imagens 2:3 para CDN e CSV Mirakl-ready. Do seu Excel ao marketplace sem tocar em nada.', stat: '~ 2 min por catálogo' },
+                    f2: { title: 'Atualização de Preços', desc: 'CSV de preços e descontos pronto para importar. Gerencie promoções e preços base em segundos.', stat: 'Bulk updates ilimitados' },
+                    f3: { title: 'Sincronização de Stock', desc: 'Atualize stock diretamente do seu Excel. Evite overselling e mantenha-se sempre atualizado.', stat: 'Atualização em tempo real' },
+                    f4: { title: 'Validação Pre-Upload', desc: 'Valide EAN, imagens e campos obrigatórios antes de enviar. Zero rejeições, zero surpresas.', stat: '98.2% taxa de aprovação' }
+                },
+                integrations: { tag: 'Integrações', title: 'Compatível com os principais marketplaces', desc: 'Gere arquivos prontos para importar em qualquer plataforma Mirakl.', extra: 'E qualquer marketplace baseado em Mirakl' },
+                trust: { ssl: 'Encriptação SSL', gdpr: 'GDPR compliant', uptime: '99.9% uptime', eu: 'Servidores na UE' },
+                pricing: {
+                    tag: 'Preços', title: 'Preço adaptado ao seu negócio', desc: 'Sem planos genéricos. Seu negócio é único e sua solução também.',
+                    plan: 'Plano personalizado', planDesc: 'Adaptado ao seu volume e necessidades',
+                    items: ['As 4 ferramentas incluídas', 'Produtos ilimitados', 'Suporte prioritário', 'Integrações sob medida'],
+                    cta: 'Solicitar orçamento',
+                    micro: 'Sem compromisso · Resposta em 24h'
+                },
+                faq: {
+                    tag: 'FAQ', title: 'Perguntas frequentes', desc: 'Resolvemos todas as suas dúvidas antes de começar.',
+                    items: [
+                        { q: 'Que formatos de Excel suporta?', a: 'Suportamos arquivos .xlsx e .xls com qualquer estrutura de colunas. Nosso motor de IA mapeia automaticamente seus campos ao formato requerido pelo marketplace, independentemente de como o seu arquivo está organizado. Não precisa adaptar seu Excel — nós cuidamos disso.' },
+                        { q: 'Quantos produtos posso processar?', a: 'Não há limite. Processamos catálogos de mais de 50.000 SKUs sem problemas. O sistema escala automaticamente segundo seu volume. Tanto se tem 100 produtos como 100.000, Katalync adapta-se.' },
+                        { q: 'Os meus dados estão seguros?', a: 'Absolutamente. Os arquivos são processados em servidores europeus (UE) com cifragem SSL em trânsito e em repouso. Não armazenamos seus dados além do tempo de processamento. Cumprimos a normativa GDPR e nunca partilhamos informação com terceiros.' },
+                        { q: 'Que marketplaces são compatíveis?', a: 'Qualquer marketplace baseado em Mirakl: Sprinter, Sport Zone, Worten, Carrefour, El Corte Inglés, e muitos mais. Se o marketplace usa a plataforma Mirakl, Katalync gera o CSV exato que precisa.' },
+                        { q: 'Quanto tempo demora o processamento?', a: 'Um catálogo típico de 500 produtos é processado em menos de 2 minutos, incluindo a conversão de imagens ao formato 2:3 e a validação completa de todos os campos. Catálogos maiores (5.000+ SKUs) são processados em menos de 10 minutos.' },
+                        { q: 'O que acontece com as imagens dos meus produtos?', a: 'Katalync converte automaticamente todas as suas imagens ao formato 2:3 requerido pelos marketplaces, otimiza-as para web, e envia-as para um CDN de alta velocidade. Recebe as URLs prontas para incluir diretamente no seu CSV de produtos.' },
+                        { q: 'Preciso de conhecimentos técnicos?', a: 'Não. Se sabe usar Excel, sabe usar Katalync. Envia o seu arquivo, revisa o resultado e descarrega o CSV. Sem código, sem configuração complexa, sem curva de aprendizagem. Além disso, a nossa equipa ajuda-o com o onboarding.' },
+                        { q: 'Posso experimentar antes de contratar?', a: 'Sim. Oferecemos uma demonstração personalizada onde processamos uma amostra real do seu catálogo para que veja os resultados com os seus próprios dados. Sem compromisso e sem custo. Solicite a sua demo e respondemos em menos de 24 horas.' }
+                    ]
+                },
+                cta: { title: 'Pronto para automatizar seu catálogo?', sub: 'Comece hoje. Dedique seu tempo a vender, não a formatar Excel.' },
+                footer: { tagline: 'Automação para sellers', support: 'Suporte' },
+                login: { title: 'Iniciar sessão', sub: 'Acesse seu painel Katalync', email: 'Email', password: 'Senha', btn: 'Entrar', loading: 'Acessando...', invite: 'Acesso apenas por convite', error: 'Credenciais incorretas.' }
+            },
+
+            init() {
+                this.calcRoi();
+
+                window.addEventListener('scroll', () => {
+                    this.scrollY = window.scrollY;
+                    const docH = document.documentElement.scrollHeight - window.innerHeight;
+                    this.scrollPercent = docH > 0 ? (window.scrollY / docH) * 100 : 0;
+                }, { passive: true });
+
+                const revealObs = new IntersectionObserver((entries) => {
+                    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+                }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+                document.querySelectorAll('.reveal, .reveal-left, .reveal-right').forEach(el => revealObs.observe(el));
+
+                const counterObs = new IntersectionObserver((entries) => {
+                    entries.forEach(e => {
+                        if (e.isIntersecting && !this.countersAnimated) {
+                            this.countersAnimated = true;
+                            this.animateCounter(this.$refs.stat1, 0, 50000, 2000, v => v.toLocaleString());
+                            this.animateCounter(this.$refs.stat2, 0, 98.2, 2000, v => v.toFixed(1));
+                            this.animateCounter(this.$refs.stat3, 0, 2, 1500, v => '<' + v);
+                            this.animateCounter(this.$refs.mockupProducts, 0, 2847, 2000, v => v.toLocaleString());
+                            this.animateCounter(this.$refs.mockupValidated, 0, 98.2, 2000, v => v.toFixed(1) + '%');
+                            setTimeout(() => { if(this.$refs.bar1) this.$refs.bar1.style.width = '78%'; }, 300);
+                            setTimeout(() => { if(this.$refs.bar2) this.$refs.bar2.style.width = '98%'; }, 500);
+                        }
+                    });
+                }, { threshold: 0.3 });
+                if (this.$refs.stat1) counterObs.observe(this.$refs.stat1.closest('.hero'));
+
+                const metricObs = new IntersectionObserver((entries) => {
+                    entries.forEach(e => {
+                        if (e.isIntersecting && !this.metricsAnimated) {
+                            this.metricsAnimated = true;
+                            this.animateCounter(this.$refs.m1, 0, 50000, 2000, v => v.toLocaleString() + '+');
+                            this.animateCounter(this.$refs.m2, 0, 120, 1800, v => v + 'h');
+                            this.animateCounter(this.$refs.m3, 0, 98.2, 1600, v => v.toFixed(1) + '%');
+                            this.animateCounter(this.$refs.m4, 0, 15, 1400, v => v + 'x');
+                        }
+                    });
+                }, { threshold: 0.3 });
+                if (this.$refs.m1) metricObs.observe(this.$refs.m1.closest('.metrics'));
+
+                const proofsEs = ['Un seller acaba de procesar 2.400 productos', 'Demo solicitada hace 3 minutos', 'Nuevo catálogo validado con 0 errores', '3 sellers activos esta semana'];
+                const proofsPt = ['Um seller acaba de processar 2.400 produtos', 'Demo solicitada há 3 minutos', 'Novo catálogo validado com 0 erros', '3 sellers ativos esta semana'];
+                let pi = 0;
+                const showProof = () => {
+                    const proofs = this.lang === 'es' ? proofsEs : proofsPt;
+                    this.socialProofMsg = proofs[pi % proofs.length];
+                    this.socialProofShow = true;
+                    pi++;
+                    setTimeout(() => { this.socialProofShow = false; }, 5000);
+                };
+                setTimeout(showProof, 8000);
+                setInterval(showProof, 25000);
+            },
+
+            animateCounter(el, start, end, duration, fmt) {
+                if (!el) return;
+                const startTime = performance.now();
+                const isFloat = !Number.isInteger(end);
+                const step = (now) => {
+                    const elapsed = now - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const eased = 1 - Math.pow(1 - progress, 3);
+                    const current = start + (end - start) * eased;
+                    el.textContent = fmt(isFloat ? current : Math.round(current));
+                    if (progress < 1) requestAnimationFrame(step);
+                };
+                requestAnimationFrame(step);
+            },
+
+            calcRoi() {
+                const skus = Number(this.roiSkus);
+                const freq = Number(this.roiFreq);
+                const manualMinsPerSku = 0.8;
+                const autoMinsPerSku = 0.02;
+                this.roiManualHours = Math.round((skus * manualMinsPerSku * freq) / 60);
+                this.roiAutoMinutes = Math.round(skus * autoMinsPerSku * freq);
+                this.roiSaved = Math.round(this.roiManualHours - (this.roiAutoMinutes / 60));
+            },
+
+            _loginAttempts: [],
+            async doLogin() {
+                this.loginError = '';
+                const now = Date.now();
+                this._loginAttempts = this._loginAttempts.filter(t => now - t < 60000);
+                if (this._loginAttempts.length >= 5) {
+                    this.loginError = this.lang === 'es' ? 'Demasiados intentos. Espera 1 minuto.' : 'Muitas tentativas. Aguarde 1 minuto.';
+                    return;
+                }
+                this._loginAttempts.push(now);
+                this.loginLoading = true;
+                try {
+                    const res = await fetch('https://api.katalync.com/webhook/auth-login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: this.loginEmail, password: this.loginPassword })
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.token) {
+                        localStorage.setItem('authToken', data.token);
+                        this.loginPassword = '';
+                        window.location.href = '/app';
+                    } else {
+                        this.loginError = this.t.login.error;
+                        this.loginPassword = '';
+                    }
+                } catch (e) {
+                    this.loginError = this.t.login.error;
+                    this.loginPassword = '';
+                }
+                this.loginLoading = false;
+            }
+        };
+    }
+    </script>
 </body>
 </html>
