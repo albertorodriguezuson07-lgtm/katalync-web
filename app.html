@@ -237,41 +237,95 @@
   </div>
 
   <!-- ==================== SUBSCRIPTION PENDING SCREEN ==================== -->
-  <div x-show="currentUser && !showOnboarding && currentUser.subscription_status === 'pending_payment' && currentUser.role !== 'super_admin' && currentUser.role !== 'admin'" class="min-h-screen flex items-center justify-center p-4 bg-gray-50" :class="{ 'dark': darkMode }">
-    <div class="w-full max-w-lg">
-      <div class="bg-white rounded-2xl shadow-xl p-8 fade-in border border-gray-100">
-        <div class="text-center mb-8">
-          <div class="w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto shadow-lg mb-5">
-            <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+  <div x-show="currentUser && !showOnboarding && currentUser.subscription_status === 'pending_payment' && currentUser.role !== 'super_admin' && currentUser.role !== 'admin'" class="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center p-4" :class="{ 'dark': darkMode }">
+    <div class="w-full max-w-2xl">
+      <div class="bg-white rounded-2xl shadow-xl fade-in border border-gray-100 overflow-hidden">
+        <!-- Header gradient -->
+        <div class="flame-gradient px-8 py-8 text-center text-white">
+          <div class="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
           </div>
-          <h2 class="text-2xl font-bold text-gray-900" x-text="t('sub_pending_title')"></h2>
-          <p class="text-sm text-gray-500 mt-2" x-text="t('sub_pending_sub')"></p>
+          <h2 class="text-2xl font-bold" x-text="t('sub_pending_title')"></h2>
+          <p class="text-sm text-white/80 mt-2 max-w-md mx-auto" x-text="t('sub_pending_sub')"></p>
         </div>
 
-        <div class="bg-gradient-to-br from-brand-50 to-teal-50 rounded-xl p-6 mb-6 border border-brand-100">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold text-gray-900" x-text="currentUser?.role === 'marketplace_admin' ? t('sub_pending_plan_admin') : t('sub_pending_plan_vendor')"></h3>
-            <span class="text-2xl font-extrabold text-brand-600" x-text="currentUser?.role === 'marketplace_admin' ? t('sub_pending_price_admin') : t('sub_pending_price_vendor')"></span>
+        <div class="p-8">
+          <!-- Value proposition: time savings -->
+          <div class="grid grid-cols-3 gap-3 mb-8">
+            <div class="text-center p-4 bg-brand-50 rounded-xl">
+              <p class="text-2xl font-extrabold text-brand-600">10x</p>
+              <p class="text-[11px] text-gray-600 mt-1" x-text="lang === 'pt' ? 'Mais rápido que manual' : 'Más rápido que manual'"></p>
+            </div>
+            <div class="text-center p-4 bg-blue-50 rounded-xl">
+              <p class="text-2xl font-extrabold text-blue-600">0</p>
+              <p class="text-[11px] text-gray-600 mt-1" x-text="lang === 'pt' ? 'Erros nos catálogos' : 'Errores en catálogos'"></p>
+            </div>
+            <div class="text-center p-4 bg-green-50 rounded-xl">
+              <p class="text-2xl font-extrabold text-green-600">24/7</p>
+              <p class="text-[11px] text-gray-600 mt-1" x-text="lang === 'pt' ? 'Disponível sempre' : 'Disponible siempre'"></p>
+            </div>
           </div>
-          <p class="text-sm text-gray-600" x-text="t('sub_pending_features')"></p>
-          <div class="mt-4 grid grid-cols-2 gap-2">
-            <div class="flex items-center gap-2 text-xs text-gray-700"><svg class="w-4 h-4 text-brand-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span x-text="t('nav_converter')"></span></div>
-            <div class="flex items-center gap-2 text-xs text-gray-700"><svg class="w-4 h-4 text-brand-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span x-text="t('nav_prices')"></span></div>
-            <div class="flex items-center gap-2 text-xs text-gray-700"><svg class="w-4 h-4 text-brand-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span x-text="t('nav_stock')"></span></div>
-            <div class="flex items-center gap-2 text-xs text-gray-700"><svg class="w-4 h-4 text-brand-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span x-text="t('nav_validation')"></span></div>
-            <div class="flex items-center gap-2 text-xs text-gray-700"><svg class="w-4 h-4 text-brand-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span x-text="t('nav_repricing')"></span></div>
+
+          <!-- Plan card -->
+          <div class="bg-gradient-to-br from-brand-50 to-teal-50 rounded-xl p-6 mb-6 border border-brand-100">
+            <div class="flex items-center justify-between mb-5">
+              <div>
+                <h3 class="text-lg font-bold text-gray-900" x-text="currentUser?.role === 'marketplace_admin' ? t('sub_pending_plan_admin') : t('sub_pending_plan_vendor')"></h3>
+                <p class="text-xs text-gray-500 mt-0.5" x-text="lang === 'pt' ? 'Tudo incluso, sem limites' : 'Todo incluido, sin límites'"></p>
+              </div>
+              <div class="text-right">
+                <span class="text-3xl font-extrabold text-brand-600" x-text="currentUser?.role === 'marketplace_admin' ? '99€' : '39€'"></span>
+                <span class="text-sm text-gray-500" x-text="lang === 'pt' ? '/mês' : '/mes'"></span>
+              </div>
+            </div>
+
+            <!-- Tools included -->
+            <div class="space-y-2.5">
+              <div class="flex items-center gap-3 text-sm text-gray-700">
+                <div class="w-7 h-7 flame-gradient rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+                <div><span class="font-semibold" x-text="t('nav_converter')"></span> — <span class="text-gray-500" x-text="lang === 'pt' ? 'Títulos, descrições, imagens 2:3 e CSV Mirakl-ready' : 'Títulos, descripciones, imágenes 2:3 y CSV Mirakl-ready'"></span></div>
+              </div>
+              <div class="flex items-center gap-3 text-sm text-gray-700">
+                <div class="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                <div><span class="font-semibold" x-text="t('nav_prices')"></span> — <span class="text-gray-500" x-text="lang === 'pt' ? 'Atualização de preços e descontos em massa' : 'Actualización de precios y descuentos en masa'"></span></div>
+              </div>
+              <div class="flex items-center gap-3 text-sm text-gray-700">
+                <div class="w-7 h-7 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
+                <div><span class="font-semibold" x-text="t('nav_stock')"></span> — <span class="text-gray-500" x-text="lang === 'pt' ? 'Sincronização de estoque direto do Excel' : 'Sincronización de stock directo desde Excel'"></span></div>
+              </div>
+              <div class="flex items-center gap-3 text-sm text-gray-700">
+                <div class="w-7 h-7 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg></div>
+                <div><span class="font-semibold" x-text="t('nav_validation')"></span> — <span class="text-gray-500" x-text="lang === 'pt' ? 'Zero rejeitações: valida EAN, SKU e imagens antes de subir' : 'Cero rechazos: valida EAN, SKU e imágenes antes de subir'"></span></div>
+              </div>
+              <div class="flex items-center gap-3 text-sm text-gray-700">
+                <div class="w-7 h-7 bg-gradient-to-br from-rose-500 to-pink-600 rounded-lg flex items-center justify-center flex-shrink-0"><svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div>
+                <div><span class="font-semibold" x-text="t('nav_repricing')"></span> — <span class="text-gray-500" x-text="lang === 'pt' ? 'Preços ótimos vs concorrência automáticos' : 'Precios óptimos vs competencia automáticos'"></span></div>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <button @click="openStripeCheckout()" class="w-full flame-gradient text-white font-semibold py-3.5 rounded-xl text-sm shadow-lg shadow-teal-200 hover:opacity-90 transition-all flex items-center justify-center gap-2">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-          <span x-text="t('sub_pending_activate')"></span>
-        </button>
+          <!-- Time saving callout -->
+          <div class="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-100 mb-6">
+            <svg class="w-6 h-6 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <p class="text-sm text-amber-800" x-text="lang === 'pt' ? 'Vendedores como você economizam +15 horas/semana em tarefas manuais de catálogo.' : 'Vendedores como tú ahorran +15 horas/semana en tareas manuales de catálogo.'"></p>
+          </div>
 
-        <p class="text-center text-xs text-gray-400 mt-4" x-text="t('sub_pending_contact')"></p>
+          <!-- CTA button -->
+          <button @click="openStripeCheckout()" class="w-full flame-gradient text-white font-bold py-4 rounded-xl text-base shadow-lg shadow-teal-200 hover:opacity-90 transition-all flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span x-text="t('sub_pending_activate')"></span>
+          </button>
 
-        <div class="mt-6 pt-4 border-t border-gray-100 text-center">
-          <button @click="doLogout()" class="text-xs text-gray-400 hover:text-gray-600 transition-colors" x-text="t('logout')"></button>
+          <div class="flex items-center justify-center gap-4 mt-4">
+            <div class="flex items-center gap-1 text-[11px] text-gray-400"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg><span x-text="lang === 'pt' ? 'Pagamento seguro com Stripe' : 'Pago seguro con Stripe'"></span></div>
+            <div class="flex items-center gap-1 text-[11px] text-gray-400"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg><span x-text="lang === 'pt' ? 'Cancele quando quiser' : 'Cancela cuando quieras'"></span></div>
+          </div>
+
+          <p class="text-center text-xs text-gray-400 mt-5" x-text="t('sub_pending_contact')"></p>
+
+          <div class="mt-4 pt-4 border-t border-gray-100 text-center">
+            <button @click="doLogout()" class="text-xs text-gray-400 hover:text-gray-600 transition-colors" x-text="t('logout')"></button>
+          </div>
         </div>
       </div>
     </div>

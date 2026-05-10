@@ -449,7 +449,7 @@ function app() {
     authPage: 'login', authEmail: '', authPassword: '', authName: '', authError: '', authBusy: false, authLoading: true,
     currentUser: null, authToken: null, showLoginPass: false, showRegisterPass: false, showPwdCurrent: false, showPwdNew: false,
 
-    showOnboarding: false, onboardStep: 1, onboardCompany: '', onboardLang: safeGetLang(), onboardBusy: false,
+    showOnboarding: false, onboardStep: 1, onboardCompany: '', onboardLang: safeGetLang(), onboardBusy: false, paymentJustCompleted: false,
 
     showNotifPanel: false, notifications: [], unreadNotifCount: 0,
     showUserMenu: false,
@@ -474,6 +474,11 @@ function app() {
       else { this.authLoading = false; }
       this.$watch('darkMode', v => safeSaveDarkMode(v));
       this.$watch('browserNotifs', v => safeSaveBrowserNotifs(v));
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('payment') === 'success') {
+        this.paymentJustCompleted = true;
+        window.history.replaceState({}, '', window.location.pathname);
+      }
     },
 
     async doRegister() {
@@ -515,6 +520,10 @@ function app() {
           this.profileName = data.name; this.profileCompany = data.company || ''; this.profileLang = data.lang || this.lang;
           if (!this.currentUser.onboarded) { this.showOnboarding = true; }
           this.loadSavedFiles();
+          if (this.paymentJustCompleted && this.currentUser.subscription_status !== 'active') {
+            this.currentUser.subscription_status = 'active';
+            fetch(N8N_BASE + '/webhook/auth-admin-subscription', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, email: this.currentUser.email, subscription_status: 'active', source: 'stripe_redirect' }) });
+          }
         } else { safeClearToken(); this.authToken = null; }
       } catch(e) { safeClearToken(); this.authToken = null; }
       this.authLoading = false;
@@ -726,11 +735,25 @@ function app() {
       } catch(e) { this.showAdminMsg(this.t('connection_error_short'), 'error'); }
     },
 
-    openStripeCheckout() {
+    async openStripeCheckout() {
       if (this.currentUser && this.currentUser.stripe_checkout_url) {
-        window.open(this.currentUser.stripe_checkout_url, '_blank');
-      } else {
-        window.open(N8N_BASE + '/webhook/stripe-create-checkout?email=' + encodeURIComponent(this.currentUser?.email || ''), '_blank');
+        window.location.href = this.currentUser.stripe_checkout_url;
+        return;
+      }
+      try {
+        const resp = await fetch(N8N_BASE + '/webhook/stripe-create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: this.currentUser?.email || '', role: this.currentUser?.role || 'user' })
+        });
+        const data = await resp.json();
+        if (data.success && data.checkout_url) {
+          window.location.href = data.checkout_url;
+        } else {
+          this.showNotification(data.error || 'Error al crear sesión de pago', 'error');
+        }
+      } catch(e) {
+        this.showNotification('Error de conexión con el servidor de pagos', 'error');
       }
     },
 
