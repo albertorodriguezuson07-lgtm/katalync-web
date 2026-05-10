@@ -1269,7 +1269,7 @@
                     if (res.ok && data.token) {
                         localStorage.setItem('authToken', data.token);
                         this.loginPassword = '';
-                        window.location.href = '/app';
+                        window.location.href = '/app.html';
                     } else {
                         this.loginError = this.t.login.error;
                         this.loginPassword = '';
