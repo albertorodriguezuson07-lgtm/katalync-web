@@ -1271,7 +1271,7 @@
 
       <!-- ── DASHBOARD TAB ── -->
       <div x-show="adminTab === 'dashboard'" x-transition>
-        <div class="text-center mb-6"><h2 class="text-2xl font-bold text-gray-900" x-text="t('admin_dashboard_title')"></h2><p class="mt-2 text-gray-500" x-text="t('admin_dashboard_sub')"></p></div>
+        <div class="text-center mb-6"><h2 class="text-2xl font-bold text-gray-900" x-text="t('admin_dashboard_title')"></h2><p class="mt-2 text-gray-500" x-text="isMarketplaceAdmin ? t('admin_dashboard_sub_mp') : t('admin_dashboard_sub')"></p></div>
 
         <!-- Global Stats -->
         <div class="max-w-5xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
@@ -1284,7 +1284,7 @@
             <p class="text-xs text-gray-500 mt-1" x-text="t('admin_products_processed')"></p>
           </div>
           <div class="bg-white border border-gray-200 rounded-xl p-4 text-center card-hover">
-            <p class="text-2xl font-bold text-blue-600" x-text="adminUsers.length">0</p>
+            <p class="text-2xl font-bold text-blue-600" x-text="filteredAdminUsers.length">0</p>
             <p class="text-xs text-gray-500 mt-1" x-text="t('admin_users_label')"></p>
           </div>
           <div class="bg-white border border-gray-200 rounded-xl p-4 text-center card-hover">
@@ -1628,6 +1628,6 @@
 
   </div>
 
-  <script src="app.js?v=20260510h"></script>
+  <script src="app.js?v=20260510k"></script>
 </body>
 </html>

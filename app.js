@@ -136,6 +136,7 @@ const TRANSLATIONS = {
     file_too_large: 'Archivo demasiado grande. Máximo {max}MB',
     admin_dashboard_title: 'Dashboard',
     admin_dashboard_sub: 'Actividad global de la plataforma',
+    admin_dashboard_sub_mp: 'Actividad de tu marketplace',
     admin_total_jobs: 'Trabajos totales',
     admin_products_processed: 'Productos procesados',
     admin_users_label: 'Usuarios',
@@ -343,6 +344,7 @@ const TRANSLATIONS = {
     file_too_large: 'Arquivo muito grande. Máximo {max}MB',
     admin_dashboard_title: 'Dashboard',
     admin_dashboard_sub: 'Atividade global da plataforma',
+    admin_dashboard_sub_mp: 'Atividade do teu marketplace',
     admin_total_jobs: 'Trabalhos totais',
     admin_products_processed: 'Produtos processados',
     admin_users_label: 'Usuários',
@@ -793,7 +795,11 @@ function app() {
         if (data.success) {
           const toolLabels = { catalog: this.t('nav_converter'), prices: this.t('nav_prices'), validation: this.t('nav_validation'), stock: this.t('nav_stock'), repricing: this.t('nav_repricing') };
           const toolColors = { catalog: 'bg-blue-500', prices: 'bg-green-500', validation: 'bg-yellow-500', stock: 'bg-purple-500', repricing: 'bg-rose-500' };
-          const allFiles = data.allFiles || [];
+          let allFiles = data.allFiles || [];
+          if (this.isMarketplaceAdmin && this.currentUser.marketplace_id) {
+            const mpEmails = new Set(this.filteredAdminUsers.map(u => u.email));
+            allFiles = allFiles.filter(f => mpEmails.has(f.userEmail));
+          }
           const now = Date.now();
           const todayStart = new Date(); todayStart.setHours(0,0,0,0);
           let totalProducts = 0; let todayJobs = 0;
