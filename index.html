@@ -294,7 +294,7 @@
         .step-card h3 { font-size: 15px; color: var(--text); font-weight: 600; }
 
         /* ═══════════════ FEATURES ═══════════════ */
-        .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
         .feature-card {
             background: var(--white); border: 1px solid var(--border);
             border-radius: var(--radius-lg); padding: 32px;
@@ -516,7 +516,7 @@
             .metric-item:nth-child(2)::after { display: none; }
             .steps-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
             .steps-grid::before { display: none; }
-            .features-grid { grid-template-columns: 1fr; }
+            .features-grid { grid-template-columns: 1fr 1fr; }
             .transform-grid { grid-template-columns: 1fr; }
             .transform-arrow { transform: rotate(90deg); }
             .footer-inner { flex-direction: column; text-align: center; }
@@ -530,6 +530,7 @@
         }
         @media (max-width: 480px) {
             .steps-grid { grid-template-columns: 1fr; }
+            .features-grid { grid-template-columns: 1fr; }
             .hero-stats { flex-direction: column; gap: 16px; }
             .hero-buttons { flex-direction: column; align-items: stretch; }
             .mockup-grid { grid-template-columns: 1fr; }
@@ -788,14 +789,14 @@
             <div class="steps-grid">
                 <div class="step-card reveal stagger-1">
                     <div class="step-icon">
-                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                     </div>
                     <div class="step-num" x-text="t.how.step + ' 1'"></div>
                     <h3 x-text="t.how.s1"></h3>
                 </div>
                 <div class="step-card reveal stagger-2">
                     <div class="step-icon">
-                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
                     </div>
                     <div class="step-num" x-text="t.how.step + ' 2'"></div>
                     <h3 x-text="t.how.s2"></h3>
@@ -848,6 +849,18 @@
                     <h3 x-text="t.feat.f4.title"></h3>
                     <p x-text="t.feat.f4.desc"></p>
                     <span class="feature-stat" x-text="t.feat.f4.stat"></span>
+                </div>
+                <div class="feature-card reveal stagger-1">
+                    <div class="feature-icon-wrap"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 8l2-2 4 4-2 2"/><path d="M2 22l1-5 13-13 4 4-13 13z"/><path d="M7 17l-2 2"/><path d="M22 2l-4 4"/></svg></div>
+                    <h3 x-text="t.feat.f5.title"></h3>
+                    <p x-text="t.feat.f5.desc"></p>
+                    <span class="feature-stat" x-text="t.feat.f5.stat"></span>
+                </div>
+                <div class="feature-card reveal stagger-2">
+                    <div class="feature-icon-wrap"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                    <h3 x-text="t.feat.f6.title"></h3>
+                    <p x-text="t.feat.f6.desc"></p>
+                    <span class="feature-stat" x-text="t.feat.f6.stat"></span>
                 </div>
             </div>
         </div>
@@ -1059,24 +1072,26 @@
                     saved: 'Horas ahorradas al mes'
                 },
                 how: {
-                    tag: 'Proceso', title: 'De tu Excel al marketplace', desc: 'Cuatro pasos simples. Sin configuración compleja.',
-                    step: 'Paso', s1: 'Sube tu Excel', s2: 'La IA valida y formatea', s3: 'Imágenes optimizadas a CDN', s4: 'Descarga CSV para Mirakl'
+                    tag: 'Proceso', title: 'De tu Excel al marketplace', desc: 'Cuatro pasos simples. Sin configuración compleja. Tu marketplace te da de alta y empiezas a trabajar.',
+                    step: 'Paso', s1: 'Tu marketplace te registra', s2: 'Activa tu suscripción', s3: 'Sube tu Excel', s4: 'Descarga CSV listo para Mirakl'
                 },
                 feat: {
-                    tag: 'Herramientas', title: 'Todo lo que necesitas en un solo lugar', desc: 'Cuatro herramientas diseñadas para sellers que quieren resultados, no trabajo extra.',
+                    tag: 'Herramientas', title: 'Todo lo que necesitas en un solo lugar', desc: 'Cinco herramientas + panel de gestión diseñadas para sellers y marketplaces que quieren resultados, no trabajo extra.',
                     f1: { title: 'Conversor de Catálogo', desc: 'Títulos, descripciones, imágenes 2:3 a CDN y CSV Mirakl-ready. De tu Excel al marketplace sin tocar nada.', stat: '~ 2 min por catálogo' },
                     f2: { title: 'Actualización de Precios', desc: 'CSV de precios y descuentos listo para importar. Gestiona promociones y precios base en segundos.', stat: 'Bulk updates ilimitados' },
                     f3: { title: 'Sincronización de Stock', desc: 'Actualiza stock directamente desde tu Excel. Evita overselling y mantente siempre al día.', stat: 'Actualización en tiempo real' },
-                    f4: { title: 'Validación Pre-Upload', desc: 'Valida EAN, imágenes y campos obligatorios antes de subir. Cero rechazos, cero sorpresas.', stat: '98.2% tasa de aprobación' }
+                    f4: { title: 'Validación Pre-Upload', desc: 'Valida EAN, imágenes y campos obligatorios antes de subir. Cero rechazos, cero sorpresas.', stat: '98.2% tasa de aprobación' },
+                    f5: { title: 'Repricing Inteligente', desc: 'Compara tus precios con los de la competencia y genera recomendaciones automáticas para maximizar ventas y márgenes.', stat: 'Análisis competitivo en segundos' },
+                    f6: { title: 'Portal Marketplace', desc: 'Panel de administración para marketplaces. Gestiona vendedores, monitoriza su actividad, controla suscripciones y onboarding desde un solo lugar.', stat: 'Gestión centralizada' }
                 },
                 integrations: { tag: 'Integraciones', title: 'Compatible con los principales marketplaces', desc: 'Genera archivos listos para importar en cualquier plataforma Mirakl.', extra: 'Y cualquier marketplace basado en Mirakl' },
                 trust: { ssl: 'Cifrado SSL', gdpr: 'GDPR compliant', uptime: '99.9% uptime', eu: 'Servidores en la UE' },
                 pricing: {
-                    tag: 'Precios', title: 'Precio adaptado a tu negocio', desc: 'Sin planes genéricos. Tu negocio es único y tu solución también.',
-                    plan: 'Plan personalizado', planDesc: 'Adaptado a tu volumen y necesidades',
-                    items: ['Las 4 herramientas incluidas', 'Productos ilimitados', 'Soporte prioritario', 'Integraciones a medida'],
-                    cta: 'Solicitar presupuesto',
-                    micro: 'Sin compromiso · Respuesta en 24h'
+                    tag: 'Precios', title: 'Simple, transparente, sin sorpresas', desc: 'Suscripción mensual con acceso completo. Actívate en minutos con pago seguro por Stripe.',
+                    plan: 'Acceso completo', planDesc: 'Todo lo que necesitas para automatizar tu catálogo',
+                    items: ['Las 5 herramientas incluidas', 'Productos ilimitados', 'Repricing inteligente', 'Historial y archivos guardados', 'Panel de marketplace admin', 'Soporte prioritario', 'Pago seguro con Stripe'],
+                    cta: 'Solicitar demo',
+                    micro: 'Sin compromiso · Cancela cuando quieras'
                 },
                 faq: {
                     tag: 'FAQ', title: 'Preguntas frecuentes', desc: 'Resolvemos todas tus dudas antes de empezar.',
@@ -1088,7 +1103,8 @@
                         { q: '¿Cuánto tarda el procesamiento?', a: 'Un catálogo típico de 500 productos se procesa en menos de 2 minutos, incluyendo la conversión de imágenes al formato 2:3 y la validación completa de todos los campos. Catálogos más grandes (5.000+ SKUs) se procesan en menos de 10 minutos.' },
                         { q: '¿Qué pasa con las imágenes de mis productos?', a: 'Katalync convierte automáticamente todas tus imágenes al formato 2:3 requerido por los marketplaces, las optimiza para web, y las sube a un CDN de alta velocidad. Recibes las URLs listas para incluir directamente en tu CSV de productos.' },
                         { q: '¿Necesito conocimientos técnicos?', a: 'No. Si sabes usar Excel, sabes usar Katalync. Subes tu archivo, revisas el resultado y descargas el CSV. Sin código, sin configuración compleja, sin curva de aprendizaje. Además, nuestro equipo te ayuda con el onboarding.' },
-                        { q: '¿Puedo probar antes de contratar?', a: 'Sí. Ofrecemos una demostración personalizada donde procesamos una muestra real de tu catálogo para que veas los resultados con tus propios datos. Sin compromiso y sin coste. Solicita tu demo y te respondemos en menos de 24 horas.' }
+                        { q: '¿Puedo probar antes de contratar?', a: 'Sí. Ofrecemos una demostración personalizada donde procesamos una muestra real de tu catálogo para que veas los resultados con tus propios datos. Sin compromiso y sin coste. Solicita tu demo y te respondemos en menos de 24 horas.' },
+                        { q: '¿Cómo funciona el pago?', a: 'Pago mensual seguro a través de Stripe. Tu marketplace te da de alta, pagas tu suscripción con tarjeta, y accedes inmediatamente a todas las herramientas. Puedes gestionar tu facturación, cambiar de tarjeta o cancelar en cualquier momento desde tu portal de facturación.' }
                     ]
                 },
                 cta: { title: '¿Listo para automatizar tu catálogo?', sub: 'Empieza hoy. Dedica tu tiempo a vender, no a formatear Excel.' },
@@ -1129,24 +1145,26 @@
                     saved: 'Horas poupadas por mês'
                 },
                 how: {
-                    tag: 'Processo', title: 'Do seu Excel ao marketplace', desc: 'Quatro passos simples. Sem configuração complexa.',
-                    step: 'Passo', s1: 'Envie seu Excel', s2: 'A IA valida e formata', s3: 'Imagens otimizadas para CDN', s4: 'Baixe CSV para Mirakl'
+                    tag: 'Processo', title: 'Do seu Excel ao marketplace', desc: 'Quatro passos simples. Sem configuração complexa. O seu marketplace regista-o e começa a trabalhar.',
+                    step: 'Passo', s1: 'O marketplace regista-o', s2: 'Ative a sua assinatura', s3: 'Envie seu Excel', s4: 'Baixe CSV pronto para Mirakl'
                 },
                 feat: {
-                    tag: 'Ferramentas', title: 'Tudo que você precisa num só lugar', desc: 'Quatro ferramentas desenhadas para sellers que querem resultados, não trabalho extra.',
+                    tag: 'Ferramentas', title: 'Tudo que você precisa num só lugar', desc: 'Cinco ferramentas + painel de gestão desenhadas para sellers e marketplaces que querem resultados, não trabalho extra.',
                     f1: { title: 'Conversor de Catálogo', desc: 'Títulos, descrições, imagens 2:3 para CDN e CSV Mirakl-ready. Do seu Excel ao marketplace sem tocar em nada.', stat: '~ 2 min por catálogo' },
                     f2: { title: 'Atualização de Preços', desc: 'CSV de preços e descontos pronto para importar. Gerencie promoções e preços base em segundos.', stat: 'Bulk updates ilimitados' },
                     f3: { title: 'Sincronização de Stock', desc: 'Atualize stock diretamente do seu Excel. Evite overselling e mantenha-se sempre atualizado.', stat: 'Atualização em tempo real' },
-                    f4: { title: 'Validação Pre-Upload', desc: 'Valide EAN, imagens e campos obrigatórios antes de enviar. Zero rejeições, zero surpresas.', stat: '98.2% taxa de aprovação' }
+                    f4: { title: 'Validação Pre-Upload', desc: 'Valide EAN, imagens e campos obrigatórios antes de enviar. Zero rejeições, zero surpresas.', stat: '98.2% taxa de aprovação' },
+                    f5: { title: 'Repricing Inteligente', desc: 'Compare seus preços com os da concorrência e gere recomendações automáticas para maximizar vendas e margens.', stat: 'Análise competitiva em segundos' },
+                    f6: { title: 'Portal Marketplace', desc: 'Painel de administração para marketplaces. Gerencie vendedores, monitore sua atividade, controle assinaturas e onboarding de um só lugar.', stat: 'Gestão centralizada' }
                 },
                 integrations: { tag: 'Integrações', title: 'Compatível com os principais marketplaces', desc: 'Gere arquivos prontos para importar em qualquer plataforma Mirakl.', extra: 'E qualquer marketplace baseado em Mirakl' },
                 trust: { ssl: 'Encriptação SSL', gdpr: 'GDPR compliant', uptime: '99.9% uptime', eu: 'Servidores na UE' },
                 pricing: {
-                    tag: 'Preços', title: 'Preço adaptado ao seu negócio', desc: 'Sem planos genéricos. Seu negócio é único e sua solução também.',
-                    plan: 'Plano personalizado', planDesc: 'Adaptado ao seu volume e necessidades',
-                    items: ['As 4 ferramentas incluídas', 'Produtos ilimitados', 'Suporte prioritário', 'Integrações sob medida'],
-                    cta: 'Solicitar orçamento',
-                    micro: 'Sem compromisso · Resposta em 24h'
+                    tag: 'Preços', title: 'Simples, transparente, sem surpresas', desc: 'Assinatura mensal com acesso completo. Ative-se em minutos com pagamento seguro via Stripe.',
+                    plan: 'Acesso completo', planDesc: 'Tudo que precisa para automatizar seu catálogo',
+                    items: ['As 5 ferramentas incluídas', 'Produtos ilimitados', 'Repricing inteligente', 'Histórico e arquivos guardados', 'Painel de marketplace admin', 'Suporte prioritário', 'Pagamento seguro com Stripe'],
+                    cta: 'Solicitar demo',
+                    micro: 'Sem compromisso · Cancele quando quiser'
                 },
                 faq: {
                     tag: 'FAQ', title: 'Perguntas frequentes', desc: 'Resolvemos todas as suas dúvidas antes de começar.',
@@ -1158,7 +1176,8 @@
                         { q: 'Quanto tempo demora o processamento?', a: 'Um catálogo típico de 500 produtos é processado em menos de 2 minutos, incluindo a conversão de imagens ao formato 2:3 e a validação completa de todos os campos. Catálogos maiores (5.000+ SKUs) são processados em menos de 10 minutos.' },
                         { q: 'O que acontece com as imagens dos meus produtos?', a: 'Katalync converte automaticamente todas as suas imagens ao formato 2:3 requerido pelos marketplaces, otimiza-as para web, e envia-as para um CDN de alta velocidade. Recebe as URLs prontas para incluir diretamente no seu CSV de produtos.' },
                         { q: 'Preciso de conhecimentos técnicos?', a: 'Não. Se sabe usar Excel, sabe usar Katalync. Envia o seu arquivo, revisa o resultado e descarrega o CSV. Sem código, sem configuração complexa, sem curva de aprendizagem. Além disso, a nossa equipa ajuda-o com o onboarding.' },
-                        { q: 'Posso experimentar antes de contratar?', a: 'Sim. Oferecemos uma demonstração personalizada onde processamos uma amostra real do seu catálogo para que veja os resultados com os seus próprios dados. Sem compromisso e sem custo. Solicite a sua demo e respondemos em menos de 24 horas.' }
+                        { q: 'Posso experimentar antes de contratar?', a: 'Sim. Oferecemos uma demonstração personalizada onde processamos uma amostra real do seu catálogo para que veja os resultados com os seus próprios dados. Sem compromisso e sem custo. Solicite a sua demo e respondemos em menos de 24 horas.' },
+                        { q: 'Como funciona o pagamento?', a: 'Pagamento mensal seguro através do Stripe. O seu marketplace dá-lhe alta, paga a sua assinatura com cartão, e acede imediatamente a todas as ferramentas. Pode gerir a sua faturação, trocar de cartão ou cancelar a qualquer momento a partir do seu portal de faturação.' }
                     ]
                 },
                 cta: { title: 'Pronto para automatizar seu catálogo?', sub: 'Comece hoje. Dedique seu tempo a vender, não a formatar Excel.' },
@@ -1269,7 +1288,7 @@
                     if (res.ok && data.token) {
                         localStorage.setItem('authToken', data.token);
                         this.loginPassword = '';
-                        window.location.href = '/app.html';
+                        window.location.href = '/app';
                     } else {
                         this.loginError = this.t.login.error;
                         this.loginPassword = '';
