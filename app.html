@@ -237,7 +237,7 @@
   </div>
 
   <!-- ==================== SUBSCRIPTION PENDING SCREEN ==================== -->
-  <div x-show="currentUser && !showOnboarding && subscriptionPending" class="min-h-screen flex items-center justify-center p-4 bg-gray-50" :class="{ 'dark': darkMode }">
+  <div x-show="currentUser && !showOnboarding && currentUser.subscription_status === 'pending_payment' && currentUser.role !== 'super_admin' && currentUser.role !== 'admin'" class="min-h-screen flex items-center justify-center p-4 bg-gray-50" :class="{ 'dark': darkMode }">
     <div class="w-full max-w-lg">
       <div class="bg-white rounded-2xl shadow-xl p-8 fade-in border border-gray-100">
         <div class="text-center mb-8">
@@ -278,7 +278,7 @@
   </div>
 
   <!-- ==================== SUBSCRIPTION SUSPENDED SCREEN ==================== -->
-  <div x-show="currentUser && !showOnboarding && subscriptionSuspended" class="min-h-screen flex items-center justify-center p-4 bg-gray-50" :class="{ 'dark': darkMode }">
+  <div x-show="currentUser && !showOnboarding && (currentUser.subscription_status === 'suspended' || currentUser.subscription_status === 'cancelled') && currentUser.role !== 'super_admin' && currentUser.role !== 'admin'" class="min-h-screen flex items-center justify-center p-4 bg-gray-50" :class="{ 'dark': darkMode }">
     <div class="w-full max-w-lg">
       <div class="bg-white rounded-2xl shadow-xl p-8 fade-in border border-red-100">
         <div class="text-center mb-8">
@@ -304,7 +304,7 @@
   </div>
 
   <!-- ==================== MAIN APP ==================== -->
-  <div x-show="currentUser && !showOnboarding && subscriptionActive">
+  <div x-show="currentUser && !showOnboarding && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.subscription_status === 'active')">
 
   <!-- Header -->
   <header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
