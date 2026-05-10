@@ -452,6 +452,9 @@ function app() {
     browserNotifs: safeGetBrowserNotifs(),
     t(key) { return (TRANSLATIONS[this.lang] || TRANSLATIONS.es)[key] || (TRANSLATIONS.es)[key] || key; },
 
+    toastMsg: '', toastType: 'success', toastVisible: false,
+    showToast(msg, type) { this.toastMsg = msg; this.toastType = type || 'success'; this.toastVisible = true; setTimeout(() => { this.toastVisible = false; }, 4000); },
+
     authPage: 'login', authEmail: '', authPassword: '', authName: '', authError: '', authBusy: false, authLoading: true,
     currentUser: null, authToken: null, showLoginPass: false, showRegisterPass: false, showPwdCurrent: false, showPwdNew: false,
 
@@ -756,10 +759,10 @@ function app() {
         if (data.success && data.checkout_url) {
           window.location.href = data.checkout_url;
         } else {
-          this.showNotification(data.error || 'Error al crear sesión de pago', 'error');
+          this.showToast(data.error || 'Error al crear sesión de pago', 'error');
         }
       } catch(e) {
-        this.showNotification('Error de conexión con el servidor de pagos', 'error');
+        this.showToast('Error de conexión con el servidor de pagos', 'error');
       }
     },
 
@@ -774,10 +777,10 @@ function app() {
         if (data.success && data.portal_url) {
           window.location.href = data.portal_url;
         } else {
-          this.showNotification(data.error || this.t('billing_portal_error'), 'error');
+          this.showToast(data.error || this.t('billing_portal_error'), 'error');
         }
       } catch(e) {
-        this.showNotification(this.t('billing_portal_error'), 'error');
+        this.showToast(this.t('billing_portal_error'), 'error');
       }
     },
 
@@ -830,7 +833,7 @@ function app() {
       if (!this.adminNewName || !this.adminNewEmail || this.adminNewPassword.length < 8) return;
       this.adminCreateBusy = true; this.adminCreateMsg = '';
       try {
-        const role = this.isMarketplaceAdmin ? 'user' : this.adminNewRole;
+        const role = this.isMarketplaceAdmin ? (this.adminNewRole === 'marketplace_admin' ? 'marketplace_admin' : 'user') : this.adminNewRole;
         const marketplace_id = this.isMarketplaceAdmin ? this.currentUser.marketplace_id : this.adminNewMarketplace;
         const payload = { name: this.adminNewName, email: this.adminNewEmail, password: this.adminNewPassword, adminToken: this.authToken, role, marketplace_id };
         const resp = await fetch(N8N_BASE + '/webhook/auth-register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });

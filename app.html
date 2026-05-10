@@ -80,6 +80,15 @@
 </script>
 <body class="bg-gray-50 min-h-screen" x-data="app()" x-cloak :class="{ 'dark': darkMode }">
 
+  <!-- Global Toast -->
+  <div x-show="toastVisible" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100 translate-y-0" x-transition:leave-end="opacity-0 translate-y-2" class="fixed bottom-6 right-6 z-[9999] max-w-sm" @click="toastVisible = false">
+    <div class="rounded-xl shadow-lg border px-4 py-3 flex items-center gap-3 cursor-pointer" :class="toastType === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'">
+      <svg x-show="toastType === 'error'" class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+      <svg x-show="toastType !== 'error'" class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+      <span class="text-sm font-medium" x-text="toastMsg"></span>
+    </div>
+  </div>
+
   <!-- ==================== AUTH SCREEN (redirect to landing) ==================== -->
   <div x-show="!currentUser && !authLoading" class="auth-bg min-h-screen flex items-center justify-center p-4" x-init="if (!currentUser && !authLoading) window.location.href = 'index.html'">
     <div class="auth-card rounded-2xl shadow-2xl p-8 w-full max-w-md fade-in relative">
@@ -1386,12 +1395,12 @@
             <label class="block text-xs font-medium text-gray-600 mb-1" x-text="t('password')"></label>
             <input type="password" x-model="adminNewPassword" class="input-auth w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none" :placeholder="t('min_chars')">
           </div>
-          <div x-show="currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin')">
+          <div x-show="canAccessAdmin">
             <label class="block text-xs font-medium text-gray-600 mb-1" x-text="t('admin_assign_role')"></label>
             <select x-model="adminNewRole" class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none bg-white">
               <option value="user" x-text="t('role_user')"></option>
               <option value="marketplace_admin" x-text="t('role_marketplace_admin')"></option>
-              <option value="super_admin" x-text="t('role_super_admin')"></option>
+              <option x-show="currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin')" value="super_admin" x-text="t('role_super_admin')"></option>
             </select>
           </div>
           <div x-show="currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin')">
@@ -1447,7 +1456,7 @@
                         <p class="text-sm font-medium text-gray-900" x-text="user.name"></p>
                         <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full" :class="getRoleBadge(user.role).class" x-text="getRoleBadge(user.role).label"></span>
                         <span x-show="user.marketplace_id" class="text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-teal-50 text-teal-700 border border-teal-200" x-text="user.marketplace_id ? user.marketplace_id.charAt(0).toUpperCase() + user.marketplace_id.slice(1) : ''"></span>
-                        <span x-show="user.subscription_status && user.subscription_status !== 'active' && (currentUser.role === 'super_admin' || currentUser.role === 'admin')" class="text-[9px] font-bold px-1.5 py-0.5 rounded-full" :class="getSubStatusBadge(user.subscription_status).class" x-text="getSubStatusBadge(user.subscription_status).label"></span>
+                        <span x-show="user.subscription_status && user.subscription_status !== 'active' && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'marketplace_admin')" class="text-[9px] font-bold px-1.5 py-0.5 rounded-full" :class="getSubStatusBadge(user.subscription_status).class" x-text="getSubStatusBadge(user.subscription_status).label"></span>
                       </div>
                       <p class="text-xs text-gray-500" x-text="user.email"></p>
                       <p x-show="user.company" class="text-[10px] text-brand-600" x-text="user.company"></p>
@@ -1476,6 +1485,16 @@
                               <option value="cancelled" x-text="t('sub_status_cancelled')"></option>
                             </select>
                             <button @click="adminConfirmDelete = user.email" class="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-all" x-text="t('delete')"></button>
+                          </div>
+                        </template>
+                        <template x-if="currentUser.role === 'marketplace_admin'">
+                          <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-[10px] font-semibold px-2 py-1 rounded-full" :class="{
+                              'bg-green-100 text-green-700': (user.subscription_status || 'active') === 'active',
+                              'bg-amber-100 text-amber-700': user.subscription_status === 'pending_payment',
+                              'bg-red-100 text-red-700': user.subscription_status === 'suspended' || user.subscription_status === 'cancelled'
+                            }" x-text="getSubStatusBadge(user.subscription_status || 'active').label"></span>
+                            <span class="text-[10px] text-gray-400 px-1.5 py-0.5 rounded bg-gray-100" x-text="user.role === 'marketplace_admin' ? t('role_marketplace_admin') : t('role_user')"></span>
                           </div>
                         </template>
                       </div>
@@ -1609,6 +1628,6 @@
 
   </div>
 
-  <script src="app.js?v=20260510e"></script>
+  <script src="app.js?v=20260510f"></script>
 </body>
 </html>
