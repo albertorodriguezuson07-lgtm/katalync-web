@@ -838,6 +838,7 @@ function app() {
         if (data.success) {
           this.adminCreateMsg = this.t('user_created') + this.adminNewEmail;
           this.adminCreateOk = true;
+          fetch(N8N_BASE + '/webhook/katalync-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: 'welcome', email: this.adminNewEmail, name: this.adminNewName }) }).catch(() => {});
           this.adminNewName = ''; this.adminNewEmail = ''; this.adminNewPassword = ''; this.adminNewRole = 'user'; this.adminNewMarketplace = '';
           this.loadAdminUsers();
         } else { this.adminCreateMsg = data.error || 'Error'; this.adminCreateOk = false; }
