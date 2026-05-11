@@ -1666,10 +1666,11 @@ ${recsHtml ? '<h2 style="font-size:18px;margin-bottom:12px;">Recomendaciones</h2
       }
 
       try {
+        const appContext = this._buildChatContext();
         const resp = await fetch(N8N_BASE + '/webhook/katalync-chat-ai', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question: q, history: this.chatHistory.slice(-10), lang: this.lang, token: this.authToken || '' })
+          body: JSON.stringify({ question: q, history: this.chatHistory.slice(-10), lang: this.lang, token: this.authToken || '', appContext })
         });
         const raw = await resp.json();
         const data = Array.isArray(raw) ? raw[0] : raw;
@@ -1803,6 +1804,34 @@ ${recsHtml ? '<h2 style="font-size:18px;margin-bottom:12px;">Recomendaciones</h2
           a: { es: 'Katalync es una plataforma SaaS para automatizar la preparación de catálogos para Sprinter y otros marketplaces Mirakl. Incluye 5 herramientas:\n\n1. Conversor de Catálogo — genera DOS archivos XLSX (Productos 42 cols + Ofertas 27 cols) listos para importar en Mirakl\n2. Actualización de Precios — genera XLSX formato Ofertas con precios y descuentos\n3. Sincronización de Stock — actualiza cantidades con XLSX formato Mirakl\n4. Validación Pre-Upload — verifica los 19 campos obligatorios de Productos y 8 de Ofertas\n5. Repricing — ajusta precios vs competencia\n\nSubes UN Excel simplificado y Katalync genera los archivos que Mirakl necesita.',
                pt: 'O Katalync é uma plataforma SaaS para automatizar a preparação de catálogos para Sprinter e outros marketplaces Mirakl. Inclui 5 ferramentas:\n\n1. Conversor de Catálogo — gera DOIS arquivos XLSX (Produtos 42 cols + Ofertas 27 cols) prontos para importar no Mirakl\n2. Atualização de Preços — gera XLSX formato Ofertas com preços e descontos\n3. Sincronização de Estoque — atualiza quantidades com XLSX formato Mirakl\n4. Validação Pre-Upload — verifica os 19 campos obrigatórios de Produtos e 8 de Ofertas\n5. Repricing — ajusta preços vs concorrência\n\nCarrega UM Excel simplificado e o Katalync gera os arquivos que o Mirakl precisa.' }}
       ];
+    },
+
+    _buildChatContext() {
+      const parts = [];
+      if (this.healthReport) {
+        const r = this.healthReport;
+        const lines = [`Último informe de salud: score ${r.score}/100, ${r.successProducts} productos OK, ${r.errorProducts} con errores.`];
+        if (r.img2Pct !== undefined) lines.push(`Imagen 2: ${r.img2Pct}%, Imagen 3: ${r.img3Pct}%.`);
+        if (r.checks && r.checks.length > 0) {
+          const missing = r.checks.filter(c => c.status === 'missing').map(c => c.field);
+          const warn = r.checks.filter(c => c.status === 'warn' || c.status === 'error').map(c => `${c.field} (${c.pct}%)`);
+          if (missing.length > 0) lines.push('Campos ausentes: ' + missing.join(', ') + '.');
+          if (warn.length > 0) lines.push('Campos incompletos: ' + warn.join(', ') + '.');
+        }
+        if (r.recommendations && r.recommendations.length > 0) {
+          lines.push('Recomendaciones: ' + r.recommendations.map(rec => rec.text).join(' | '));
+        }
+        parts.push(lines.join(' '));
+      }
+      if (this.historyJobs && this.historyJobs.length > 0) {
+        const recent = this.historyJobs.slice(0, 5).map(j => {
+          const toolName = j.tool === 'catalog' ? 'Conversor' : j.tool === 'prices' ? 'Precios' : j.tool === 'stock' ? 'Stock' : j.tool;
+          return `${toolName}: ${j.filename} (${j.count} productos, ${j.date}, marketplace: ${j.marketplace || 'N/A'})`;
+        });
+        parts.push('Historial reciente: ' + recent.join(' | '));
+      }
+      parts.push('Productos totales procesados: ' + this.totalProductsProcessed + '. Media por proceso: ' + this.avgProductsPerJob + '.');
+      return parts.length > 0 ? parts.join('\n') : '';
     },
   };
 }
