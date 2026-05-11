@@ -1201,8 +1201,9 @@ function app() {
     },
 
     buildSprinterXlsx(headerRows, dataRows) {
-      const ws = XLSX.utils.aoa_to_sheet([headerRows[0], headerRows[1]]);
+      const displayNames = headerRows[0];
       const apiCodes = headerRows[1];
+      const ws = XLSX.utils.aoa_to_sheet([displayNames]);
       for (const row of dataRows) {
         const arr = apiCodes.map(code => row[code] || '');
         XLSX.utils.sheet_add_aoa(ws, [arr], { origin: -1 });
