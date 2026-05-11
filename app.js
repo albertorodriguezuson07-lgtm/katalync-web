@@ -1317,6 +1317,7 @@ function app() {
       this.createServerNotification(this.t('notif_catalog_done') + ': ' + totalSuccess + ' ' + this.t('products_ok'));
       const combinedResult = { success: totalSuccess, errors: totalErrors, sprinterProductRows: allProductRows, sprinterOfferRows: allOfferRows, products: allPreviews, errorList: allErrors };
       this.healthReport = this.generateHealthReport(combinedResult, normalizedRows);
+      try { localStorage.setItem('kt_last_health', JSON.stringify(this.healthReport)); } catch(e) {}
       this.catalogStep = 'results';
     },
     resetCatalog() { this.catalogStep = 'upload'; this.catalogFile = null; this.catalogRows = []; this.catalogCols = []; this.catalogTotalProducts = 0; this.catalogLog = []; this.showCatalogErrors = false; this.healthReport = null; this.showHealthDetail = false; this.catalogBatchCurrent = 0; this.catalogBatchTotal = 0; this.catalogProgress = 0; this.catalogResults = { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '', productsUrl: '', productsFilename: '', offersUrl: '', offersFilename: '' }; },
@@ -1808,8 +1809,10 @@ ${recsHtml ? '<h2 style="font-size:18px;margin-bottom:12px;">Recomendaciones</h2
 
     _buildChatContext() {
       const parts = [];
-      if (this.healthReport) {
-        const r = this.healthReport;
+      let hr = this.healthReport;
+      if (!hr) { try { hr = JSON.parse(localStorage.getItem('kt_last_health')); } catch(e) {} }
+      if (hr) {
+        const r = hr;
         const lines = [`Último informe de salud: score ${r.score}/100, ${r.successProducts} productos OK, ${r.errorProducts} con errores.`];
         if (r.img2Pct !== undefined) lines.push(`Imagen 2: ${r.img2Pct}%, Imagen 3: ${r.img3Pct}%.`);
         if (r.checks && r.checks.length > 0) {
