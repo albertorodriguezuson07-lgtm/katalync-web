@@ -832,6 +832,15 @@
             <h2 class="text-2xl font-bold text-gray-900" x-text="t('processing_catalog')"></h2>
             <p class="mt-2 text-gray-500"><span class="font-semibold text-brand-600" x-text="catalogTotalProducts"></span> <span x-text="t('products_lc')"></span></p>
           </div>
+          <div x-show="catalogBatchTotal > 1" class="max-w-md mx-auto mt-4 mb-2">
+            <div class="flex justify-between text-xs text-gray-500 mb-1">
+              <span>Lote <span x-text="catalogBatchCurrent"></span> / <span x-text="catalogBatchTotal"></span></span>
+              <span x-text="catalogProgress + '%'"></span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700">
+              <div class="flame-gradient h-2.5 rounded-full transition-all duration-300" :style="'width: ' + catalogProgress + '%'"></div>
+            </div>
+          </div>
           <div class="bg-gray-900 rounded-xl p-4 h-52 overflow-y-auto font-mono text-xs" x-ref="catalogLogContainer">
             <template x-for="(entry, i) in catalogLog" :key="i"><div class="py-0.5" :class="entry.type === 'error' ? 'text-red-400' : entry.type === 'warn' ? 'text-yellow-400' : 'text-green-400'"><span class="text-gray-500" x-text="entry.time"></span> <span x-text="entry.message"></span></div></template>
             <div x-show="catalogLog.length === 0" class="text-gray-500" x-text="t('waiting')"></div>

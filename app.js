@@ -60,7 +60,30 @@ const SPRINTER_INPUT_MAP = {
   'informacion-tecnica-pt': 'informacion-tecnica-pt', 'material-composicion-pt': 'material-composicion-pt',
   'video': 'video', 'guia-de-tallas': 'guia-de-tallas',
   'material-composicion': 'material-composicion', 'talla': 'talla', 'genero': 'genero', 'ean': 'ean',
-  'variant_group_code': 'variant_group_code'
+  'variant_group_code': 'variant_group_code',
+  'Categorías': 'categorias', 'Sku de vendedor': 'sku-de-vendedor', 'Nombre del articulo': 'nombre-del-articulo',
+  'PT - Nombre Del Articulo': 'nombre-del-articulo-pt', 'Subtitulo de Productos': 'subtitulo-de-productos',
+  'GPSR - Pais Fabricacion': 'pais-fabricante', 'Marcas': 'marcas', 'Genero': 'genero',
+  'Descripcion del producto': 'descripion-del-producto', 'Imagen  1': 'imagenes-1', 'Imagen 1': 'imagenes-1',
+  'Imagenes 2': 'imagenes-2', 'Imagenes 3': 'imagenes-3', 'Imagenes 4': 'imagenes-4',
+  'Video': 'video', 'Guia de Tallas': 'guia-de-tallas', 'PT - Cuidados': 'cuidados-pt',
+  'PT - Descripción Del Producto': 'descripion-del-producto-pt',
+  'GPSR - PT - País Fabricación': 'pais-fabricante-pt', 'PT - Subtitulo de productos': 'subtitulo-de-productos-pt',
+  'GPSR - Nombre Del Fabricante': 'nombre-del-fabricante',
+  'GPSR - Nombre Comercial Registrado Del Fabricante': 'nombre-comercial-registrado-del-fabricante',
+  'GPSR - Dirección Del Fabricante': 'direccion-del-fabricante',
+  'GPSR - Correo Electrónico Del Fabricante': 'correo-electronico-del-fabricante',
+  'GPSR - Nombre de la Persona Responsable en la EU': 'nombre-persona-responsable-en-eu',
+  'GPSR - Dirección de la Persona Responsable': 'direccion-de-la-persona-responsable',
+  'GPSR - Correo Electrónico De La Persona Responsable': 'correo-electronico-de-la-persona-responsable',
+  'GPSR - Foto De La Etiqueta Del Producto': 'foto-etiqueta-del-producto',
+  'GPSR - Avisos y/o Manual de Seguridad Del Producto': 'manual-de-seguridad-del-producto',
+  'Colores': 'colores', 'Talla': 'talla', 'Colecciones': 'colecciones',
+  'Material Composicion': 'material-composicion', 'Variant Group Code': 'variant_group_code',
+  'Consejos de Utilizacion': 'consejos-de-utilizacion', 'Impermeable': 'impermeable',
+  'Informacion Tecnica': 'informacion-tecnica', 'PT - Consejos de uso': 'consejos-de-utilizacion-pt',
+  'PT - Información Tecnica': 'informacion-tecnica-pt', 'PT - Composición Del Material': 'material-composicion-pt',
+  'PT - Colecciones': 'colecciones-pt'
 };
 
 const TRANSLATIONS = {
@@ -1203,47 +1226,99 @@ function app() {
     catalogShipmentOrigin: 'ES', catalogVatPct: 'ES-21%,PT-23%', catalogOfferState: 'Nuevo',
     catalogFile: null, catalogRows: [], catalogCols: [], catalogTotalProducts: 0, catalogLog: [],
     showCatalogErrors: false, healthReport: null, showHealthDetail: false,
+    catalogBatchCurrent: 0, catalogBatchTotal: 0, catalogProgress: 0,
     catalogResults: { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '', productsUrl: '', productsFilename: '', offersUrl: '', offersFilename: '' },
     handleCatalogDrop(event) { event.currentTarget.classList.remove('dragover'); const file = event.dataTransfer.files[0]; if (file && this.isValidExcel(file)) { this.catalogFile = file; this.loadCatalogExcel(file); } },
     handleCatalogSelect(event) { const file = event.target.files[0]; if (file) { this.catalogFile = file; this.loadCatalogExcel(file); } },
     async loadCatalogExcel(file) { const rows = await this.parseExcel(file); this.catalogRows = rows; this.catalogCols = rows.length > 0 ? Object.keys(rows[0]) : []; },
+    _normalizeRows(rows) {
+      const apiCodeValues = new Set(SPRINTER_PRODUCTS_HEADERS[1]);
+      return rows.filter(row => {
+        const vals = Object.values(row).map(v => String(v).trim());
+        const matchCount = vals.filter(v => apiCodeValues.has(v)).length;
+        return matchCount < 10;
+      }).map(row => {
+        const mapped = {};
+        for (const [key, val] of Object.entries(row)) {
+          const target = SPRINTER_INPUT_MAP[key] || key;
+          mapped[target] = val;
+        }
+        return mapped;
+      });
+    },
     async startCatalogProcessing() {
       if (!this.catalogFile || this.catalogRows.length === 0) return;
-      if (this.catalogRows.length > MAX_PRODUCTS_PER_REQUEST) { this.addLog(this.catalogLog, 'catalogLogContainer', 'error', this.t('max_products_error').replace('{max}', MAX_PRODUCTS_PER_REQUEST).replace('{count}', this.catalogRows.length)); return; }
       this.requestNotifPermission();
-      this.catalogStep = 'processing'; this.catalogLog = []; this.catalogTotalProducts = this.catalogRows.length;
-      this.addLog(this.catalogLog, 'catalogLogContainer', 'info', this.catalogRows.length + ' ' + this.t('log_products_read'));
+      this.catalogStep = 'processing'; this.catalogLog = [];
+      const normalizedRows = this._normalizeRows(this.catalogRows);
+      this.catalogTotalProducts = normalizedRows.length;
+      if (normalizedRows.length === 0) { this.addLog(this.catalogLog, 'catalogLogContainer', 'error', this.t('no_valid_products') || 'No valid products found'); return; }
+      if (normalizedRows.length > MAX_PRODUCTS_PER_REQUEST) { this.addLog(this.catalogLog, 'catalogLogContainer', 'error', this.t('max_products_error').replace('{max}', MAX_PRODUCTS_PER_REQUEST).replace('{count}', normalizedRows.length)); return; }
+      this.addLog(this.catalogLog, 'catalogLogContainer', 'info', normalizedRows.length + ' ' + this.t('log_products_read'));
       this.addLog(this.catalogLog, 'catalogLogContainer', 'info', this.t('log_marketplace') + ' ' + this.catalogMarketplace + ' | Ratio: ' + this.catalogRatio);
-      this.addLog(this.catalogLog, 'catalogLogContainer', 'info', this.t('log_sending'));
-      try {
-        const resp = await fetch(N8N_BASE + '/webhook/catalog-process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, marketplace: this.catalogMarketplace, ratio: this.catalogRatio, generateDescriptions: this.catalogGenDesc, generateTitles: this.catalogGenTitle, convertImages: this.catalogConvertImages, removeBg: this.catalogRemoveBg, shipmentOrigin: this.catalogShipmentOrigin, vatPct: this.catalogVatPct, offerState: this.catalogOfferState, outputFormat: 'sprinter_mirakl', products: this.catalogRows }) });
-        if (!resp.ok) throw new Error(this.t('log_server_error'));
-        const result = await resp.json();
-        if (result.status === 'error') throw new Error(result.message || this.t('log_server_error'));
-        this.addLog(this.catalogLog, 'catalogLogContainer', 'info', result.message || this.t('log_completed'));
-        if (result.errors > 0) this.addLog(this.catalogLog, 'catalogLogContainer', 'error', result.errors + ' ' + this.t('log_products_with_errors'));
-        const xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
-        let excelUrl = '#'; if (result.csvBase64) excelUrl = this.makeBlobUrl(result.csvBase64);
-        let productsUrl = '#', productsB64 = '';
-        let offersUrl = '#', offersB64 = '';
-        if (result.sprinterProductRows && result.sprinterProductRows.length > 0) {
-          productsB64 = this.buildSprinterXlsx(SPRINTER_PRODUCTS_HEADERS, result.sprinterProductRows);
-          productsUrl = this.makeBlobUrl(productsB64, xlsxMime);
+      const BATCH_SIZE = 50;
+      const batches = [];
+      for (let i = 0; i < normalizedRows.length; i += BATCH_SIZE) batches.push(normalizedRows.slice(i, i + BATCH_SIZE));
+      this.catalogBatchTotal = batches.length;
+      this.catalogBatchCurrent = 0;
+      this.catalogProgress = 0;
+      let allProductRows = [], allOfferRows = [], allPreviews = [], allErrors = [];
+      let totalSuccess = 0, totalErrors = 0;
+      let csvFilename = '', productsFilename = '', offersFilename = '', lastCsvBase64 = '';
+      this.addLog(this.catalogLog, 'catalogLogContainer', 'info', this.t('log_sending') + (batches.length > 1 ? (' (' + batches.length + ' lotes)') : ''));
+      for (let b = 0; b < batches.length; b++) {
+        this.catalogBatchCurrent = b + 1;
+        this.catalogProgress = Math.round((b / batches.length) * 100);
+        if (batches.length > 1) this.addLog(this.catalogLog, 'catalogLogContainer', 'info', (this.lang === 'pt' ? 'Lote' : 'Lote') + ' ' + (b + 1) + '/' + batches.length + ' (' + batches[b].length + ' productos)...');
+        try {
+          const resp = await fetch(N8N_BASE + '/webhook/catalog-process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, marketplace: this.catalogMarketplace, ratio: this.catalogRatio, generateDescriptions: this.catalogGenDesc, generateTitles: this.catalogGenTitle, convertImages: this.catalogConvertImages, removeBg: this.catalogRemoveBg, shipmentOrigin: this.catalogShipmentOrigin, vatPct: this.catalogVatPct, offerState: this.catalogOfferState, outputFormat: 'sprinter_mirakl', products: batches[b] }) });
+          if (!resp.ok) throw new Error('Server error ' + resp.status);
+          const result = await resp.json();
+          if (result.status === 'error') throw new Error(result.message || 'Server error');
+          if (result.sprinterProductRows) allProductRows.push(...result.sprinterProductRows);
+          if (result.sprinterOfferRows) allOfferRows.push(...result.sprinterOfferRows);
+          if (result.products) allPreviews.push(...result.products);
+          if (result.errorList) allErrors.push(...result.errorList);
+          totalSuccess += result.success || 0;
+          totalErrors += result.errors || 0;
+          if (result.productsFilename) productsFilename = result.productsFilename;
+          if (result.offersFilename) offersFilename = result.offersFilename;
+          if (result.csvFilename) csvFilename = result.csvFilename;
+          if (result.csvBase64) lastCsvBase64 = result.csvBase64;
+          if (batches.length > 1) this.addLog(this.catalogLog, 'catalogLogContainer', 'info', '✓ ' + (this.lang === 'pt' ? 'Lote' : 'Lote') + ' ' + (b + 1) + ': ' + (result.success || 0) + ' OK' + (result.errors > 0 ? (', ' + result.errors + ' errores') : ''));
+        } catch (err) {
+          totalErrors += batches[b].length;
+          this.addLog(this.catalogLog, 'catalogLogContainer', 'error', '✗ ' + (this.lang === 'pt' ? 'Lote' : 'Lote') + ' ' + (b + 1) + ': ' + err.message);
         }
-        if (result.sprinterOfferRows && result.sprinterOfferRows.length > 0) {
-          offersB64 = this.buildSprinterXlsx(SPRINTER_OFFERS_HEADERS, result.sprinterOfferRows);
-          offersUrl = this.makeBlobUrl(offersB64, xlsxMime);
-        }
-        this.catalogResults = { success: result.success || 0, errors: result.errors || 0, previews: result.products || [], errorList: result.errorList || [], excelUrl, csvFilename: result.csvFilename || 'catalogo.csv', productsUrl, productsFilename: result.productsFilename || 'productos_sprinter.xlsx', offersUrl, offersFilename: result.offersFilename || 'ofertas_sprinter.xlsx' };
-        this.saveToHistory('catalog', result.productsFilename || result.csvFilename, result.success, productsUrl !== '#' ? productsUrl : excelUrl, this.catalogMarketplace);
-        this.saveFileToAccount('catalog', result.productsFilename || result.csvFilename, result.success, productsB64 || result.csvBase64, this.catalogMarketplace);
-        this.sendBrowserNotif(this.t('notif_catalog_done'), (result.success || 0) + ' ' + this.t('products_ok'));
-        this.createServerNotification(this.t('notif_catalog_done') + ': ' + (result.success || 0) + ' ' + this.t('products_ok'));
-        this.healthReport = this.generateHealthReport(result, this.catalogRows);
-        this.catalogStep = 'results';
-      } catch (err) { this.addLog(this.catalogLog, 'catalogLogContainer', 'error', 'Error: ' + err.message); }
+      }
+      this.catalogProgress = 100;
+      this.addLog(this.catalogLog, 'catalogLogContainer', 'info', (this.t('log_completed') || 'Completed') + ': ' + totalSuccess + ' OK, ' + totalErrors + ' errors');
+      if (totalErrors > 0) this.addLog(this.catalogLog, 'catalogLogContainer', 'error', totalErrors + ' ' + this.t('log_products_with_errors'));
+      const xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      let excelUrl = '#'; if (lastCsvBase64) excelUrl = this.makeBlobUrl(lastCsvBase64);
+      let productsUrl = '#', productsB64 = '';
+      let offersUrl = '#', offersB64 = '';
+      if (allProductRows.length > 0) {
+        productsB64 = this.buildSprinterXlsx(SPRINTER_PRODUCTS_HEADERS, allProductRows);
+        productsUrl = this.makeBlobUrl(productsB64, xlsxMime);
+      }
+      if (allOfferRows.length > 0) {
+        offersB64 = this.buildSprinterXlsx(SPRINTER_OFFERS_HEADERS, allOfferRows);
+        offersUrl = this.makeBlobUrl(offersB64, xlsxMime);
+      }
+      productsFilename = productsFilename || 'productos_sprinter.xlsx';
+      offersFilename = offersFilename || 'ofertas_sprinter.xlsx';
+      csvFilename = csvFilename || 'catalogo.csv';
+      this.catalogResults = { success: totalSuccess, errors: totalErrors, previews: allPreviews, errorList: allErrors, excelUrl, csvFilename, productsUrl, productsFilename, offersUrl, offersFilename };
+      this.saveToHistory('catalog', productsFilename, totalSuccess, productsUrl !== '#' ? productsUrl : excelUrl, this.catalogMarketplace);
+      this.saveFileToAccount('catalog', productsFilename, totalSuccess, productsB64 || lastCsvBase64, this.catalogMarketplace);
+      this.sendBrowserNotif(this.t('notif_catalog_done'), totalSuccess + ' ' + this.t('products_ok'));
+      this.createServerNotification(this.t('notif_catalog_done') + ': ' + totalSuccess + ' ' + this.t('products_ok'));
+      const combinedResult = { success: totalSuccess, errors: totalErrors, sprinterProductRows: allProductRows, sprinterOfferRows: allOfferRows, products: allPreviews, errorList: allErrors };
+      this.healthReport = this.generateHealthReport(combinedResult, normalizedRows);
+      this.catalogStep = 'results';
     },
-    resetCatalog() { this.catalogStep = 'upload'; this.catalogFile = null; this.catalogRows = []; this.catalogCols = []; this.catalogTotalProducts = 0; this.catalogLog = []; this.showCatalogErrors = false; this.healthReport = null; this.showHealthDetail = false; this.catalogResults = { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '', productsUrl: '', productsFilename: '', offersUrl: '', offersFilename: '' }; },
+    resetCatalog() { this.catalogStep = 'upload'; this.catalogFile = null; this.catalogRows = []; this.catalogCols = []; this.catalogTotalProducts = 0; this.catalogLog = []; this.showCatalogErrors = false; this.healthReport = null; this.showHealthDetail = false; this.catalogBatchCurrent = 0; this.catalogBatchTotal = 0; this.catalogProgress = 0; this.catalogResults = { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '', productsUrl: '', productsFilename: '', offersUrl: '', offersFilename: '' }; },
 
     generateHealthReport(result, inputRows) {
       const total = inputRows.length || 1;
