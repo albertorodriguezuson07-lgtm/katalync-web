@@ -1248,27 +1248,40 @@ function app() {
     generateHealthReport(result, inputRows) {
       const total = inputRows.length || 1;
       const checks = [];
-      const mandatory = ['sku', 'ean', 'marca', 'nombre', 'categoria', 'genero', 'talla', 'material', 'imagen', 'pais_fabricacion', 'pais fabricacion', 'fabricante_nombre', 'fabricante_nombre_comercial', 'fabricante_direccion', 'fabricante_email'];
-      const mandatoryLabels = { sku: 'SKU', ean: 'EAN', marca: 'Marca', nombre: 'Nombre', categoria: 'Categoría', genero: 'Género', talla: 'Talla', material: 'Material', imagen: 'Imagen principal', pais_fabricacion: 'País fabricación', 'pais fabricacion': 'País fabricación', fabricante_nombre: 'Fabricante nombre', fabricante_nombre_comercial: 'Fabricante nombre comercial', fabricante_direccion: 'Fabricante dirección', fabricante_email: 'Fabricante email' };
-      const imgFields = ['imagen', 'imagen_2', 'imagen_3', 'image_url', 'imageUrl', 'foto', 'URL Imagen'];
+      const mandatory = [
+        { key: 'sku', label: 'SKU', aliases: ['sku', 'SKU', 'referencia', 'sku-de-vendedor'] },
+        { key: 'ean', label: 'EAN', aliases: ['ean', 'EAN', 'ean13', 'product-id'] },
+        { key: 'marca', label: 'Marca', aliases: ['marca', 'brand', 'marcas'] },
+        { key: 'nombre', label: 'Nombre', aliases: ['nombre', 'name', 'product_name', 'nombre-del-articulo'] },
+        { key: 'categoria', label: 'Categoría', aliases: ['categoria', 'category', 'categorias', 'Tipo de producto'] },
+        { key: 'genero', label: 'Género', aliases: ['genero', 'gender', 'Sexo'] },
+        { key: 'talla', label: 'Talla', aliases: ['talla', 'size'] },
+        { key: 'material', label: 'Material', aliases: ['material', 'composicion', 'material-composicion'] },
+        { key: 'imagen', label: 'Imagen principal', aliases: ['imagen', 'image_url', 'imageUrl', 'foto', 'URL Imagen', 'imagenes-1'] },
+        { key: 'pais', label: 'País fabricación', aliases: ['pais_fabricacion', 'pais fabricacion', 'pais-fabricante'] },
+        { key: 'fab_nombre', label: 'Fabricante nombre', aliases: ['fabricante_nombre', 'nombre-del-fabricante'] },
+        { key: 'fab_nombre_com', label: 'Fabricante nombre comercial', aliases: ['fabricante_nombre_comercial', 'nombre-comercial-registrado-del-fabricante'] },
+        { key: 'fab_direccion', label: 'Fabricante dirección', aliases: ['fabricante_direccion', 'direccion-del-fabricante'] },
+        { key: 'fab_email', label: 'Fabricante email', aliases: ['fabricante_email', 'correo-electronico-del-fabricante'] },
+      ];
       let score = 100;
       const recommendations = [];
-      const availableKeys = inputRows.length > 0 ? Object.keys(inputRows[0]).map(k => k.toLowerCase().trim()) : [];
+      const availableKeys = inputRows.length > 0 ? Object.keys(inputRows[0]) : [];
+      const availableKeysLow = availableKeys.map(k => k.toLowerCase().trim());
       for (const field of mandatory) {
-        const fieldLow = field.toLowerCase();
-        const hasKey = availableKeys.some(k => k === fieldLow || k.replace(/[\s_-]/g, '') === fieldLow.replace(/[\s_-]/g, ''));
-        if (!hasKey) {
-          checks.push({ field: mandatoryLabels[field] || field, status: 'missing', count: 0, total, pct: 0 });
+        const matchedKey = availableKeys.find(ak => field.aliases.some(alias => ak.toLowerCase().trim() === alias.toLowerCase()));
+        if (!matchedKey) {
+          checks.push({ field: field.label, status: 'missing', count: 0, total, pct: 0 });
           score -= 5;
           continue;
         }
         let filled = 0;
         for (const row of inputRows) {
-          const val = Object.entries(row).find(([k]) => k.toLowerCase().trim() === fieldLow || k.toLowerCase().replace(/[\s_-]/g, '') === fieldLow.replace(/[\s_-]/g, ''));
-          if (val && val[1] && String(val[1]).trim()) filled++;
+          const val = row[matchedKey];
+          if (val && String(val).trim()) filled++;
         }
         const pct = Math.round((filled / total) * 100);
-        checks.push({ field: mandatoryLabels[field] || field, status: pct === 100 ? 'ok' : pct >= 80 ? 'warn' : 'error', count: filled, total, pct });
+        checks.push({ field: field.label, status: pct === 100 ? 'ok' : pct >= 80 ? 'warn' : 'error', count: filled, total, pct });
         if (pct < 100) score -= Math.round((100 - pct) / 20);
       }
       let withImg2 = 0, withImg3 = 0;
@@ -1293,12 +1306,17 @@ function app() {
         const descPct = Math.round((withDesc / total) * 100);
         if (descPct < 80) recommendations.push({ impact: 'medium', text: this.lang === 'es' ? `Completa la descripción en ${total - withDesc} productos — Mirakl lo muestra en la ficha` : `Complete a descrição em ${total - withDesc} produtos — Mirakl mostra-a na ficha` });
       }
-      const gpsrFields = ['responsable_ue_nombre', 'responsable_ue_direccion', 'responsable_ue_email'];
-      let gpsrMissing = 0;
-      for (const gf of gpsrFields) {
-        if (!availableKeys.some(k => k.replace(/[\s_-]/g, '') === gf.replace(/[\s_-]/g, ''))) gpsrMissing++;
+      const gpsrResponsable = ['nombre-persona-responsable-en-eu', 'direccion-de-la-persona-responsable', 'correo-electronico-de-la-persona-responsable', 'responsable_ue_nombre', 'responsable_ue_direccion', 'responsable_ue_email'];
+      let gpsrFound = 0;
+      for (const gf of ['nombre-persona-responsable-en-eu', 'direccion-de-la-persona-responsable', 'correo-electronico-de-la-persona-responsable']) {
+        if (availableKeysLow.some(k => k === gf || k.replace(/[\s_-]/g, '') === gf.replace(/[\s_-]/g, ''))) gpsrFound++;
       }
-      if (gpsrMissing > 0) recommendations.push({ impact: 'medium', text: this.lang === 'es' ? `Falta GPSR Responsable UE en ${gpsrMissing} campos — obligatorio para campañas y promociones` : `Falta GPSR Responsável UE em ${gpsrMissing} campos — obrigatório para campanhas e promoções` });
+      if (gpsrFound === 0) {
+        for (const gf of ['responsable_ue_nombre', 'responsable_ue_direccion', 'responsable_ue_email']) {
+          if (availableKeysLow.some(k => k.replace(/[\s_-]/g, '') === gf.replace(/[\s_-]/g, ''))) gpsrFound++;
+        }
+      }
+      if (gpsrFound < 3) recommendations.push({ impact: 'medium', text: this.lang === 'es' ? `Falta GPSR Responsable UE (${3 - gpsrFound} campos) — obligatorio para campañas y promociones` : `Falta GPSR Responsável UE (${3 - gpsrFound} campos) — obrigatório para campanhas e promoções` });
       score = Math.max(0, Math.min(100, score));
       return { score, checks, recommendations: recommendations.slice(0, 5), totalProducts: total, successProducts: result.success || 0, errorProducts: result.errors || 0, img2Pct, img3Pct };
     },
@@ -1572,13 +1590,14 @@ ${recsHtml ? '<h2 style="font-size:18px;margin-bottom:12px;">Recomendaciones</h2
       }
 
       try {
-        const resp = await fetch(N8N_WEBHOOK_BASE + '/webhook/katalync-chat-ai', {
+        const resp = await fetch(N8N_BASE + '/webhook/katalync-chat-ai', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (this.authToken || '') },
-          body: JSON.stringify({ question: q, history: this.chatHistory.slice(-10), lang: this.lang })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q, history: this.chatHistory.slice(-10), lang: this.lang, token: this.authToken || '' })
         });
-        const data = await resp.json();
-        if (resp.ok && data.answer) {
+        const raw = await resp.json();
+        const data = Array.isArray(raw) ? raw[0] : raw;
+        if (resp.ok && data && data.answer) {
           this.chatHistory.push({ role: 'user', content: q }, { role: 'assistant', content: data.answer });
           this.chatMessages.push({ role: 'bot', text: data.answer });
         } else {
