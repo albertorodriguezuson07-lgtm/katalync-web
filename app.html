@@ -138,7 +138,7 @@
             <span x-show="authBusy" class="flex items-center justify-center gap-2"><svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> <span x-text="t('logging_in')"></span></span>
           </button>
         </form>
-        <p class="text-center text-gray-400 mt-6 text-xs" x-text="t('login_invite_only')"></p>
+        <p class="text-center text-gray-500 mt-6 text-xs" x-text="t('login_invite_only')"></p>
       </div>
     </div>
   </div>
@@ -337,11 +337,11 @@
           </button>
 
           <div class="flex items-center justify-center gap-4 mt-4">
-            <div class="flex items-center gap-1 text-[11px] text-gray-400"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg><span x-text="lang === 'pt' ? 'Pagamento seguro com Stripe' : 'Pago seguro con Stripe'"></span></div>
-            <div class="flex items-center gap-1 text-[11px] text-gray-400"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg><span x-text="lang === 'pt' ? 'Cancele quando quiser' : 'Cancela cuando quieras'"></span></div>
+            <div class="flex items-center gap-1 text-[11px] text-gray-500"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg><span x-text="lang === 'pt' ? 'Pagamento seguro com Stripe' : 'Pago seguro con Stripe'"></span></div>
+            <div class="flex items-center gap-1 text-[11px] text-gray-500"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg><span x-text="lang === 'pt' ? 'Cancele quando quiser' : 'Cancela cuando quieras'"></span></div>
           </div>
 
-          <p class="text-center text-xs text-gray-400 mt-5" x-text="t('sub_pending_contact')"></p>
+          <p class="text-center text-xs text-gray-500 mt-5" x-text="t('sub_pending_contact')"></p>
 
           <div class="mt-4 pt-4 border-t border-gray-100 text-center">
             <button @click="doLogout()" class="text-xs text-gray-400 hover:text-gray-600 transition-colors" x-text="t('logout')"></button>
@@ -368,7 +368,7 @@
           <span x-text="t('sub_suspended_renew')"></span>
         </button>
 
-        <p class="text-center text-xs text-gray-400 mt-4" x-text="t('sub_suspended_contact')"></p>
+        <p class="text-center text-xs text-gray-500 mt-4" x-text="t('sub_suspended_contact')"></p>
 
         <div class="mt-6 pt-4 border-t border-gray-100 text-center">
           <button @click="doLogout()" class="text-xs text-gray-400 hover:text-gray-600 transition-colors" x-text="t('logout')"></button>
@@ -415,7 +415,7 @@
             <div class="max-h-72 overflow-y-auto">
               <div x-show="notifications.length === 0" class="p-8 text-center">
                 <svg class="w-10 h-10 text-gray-200 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
-                <p class="text-xs text-gray-400" x-text="t('no_notifications')"></p>
+                <p class="text-xs text-gray-500" x-text="t('no_notifications')"></p>
               </div>
               <template x-for="(n, i) in notifications" :key="i">
                 <div @click="markNotifRead(n.id)" class="px-4 py-3 border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer" :class="!n.read ? 'bg-brand-50/30' : ''">
@@ -423,14 +423,14 @@
                     <div class="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" :class="!n.read ? 'bg-brand-500 pulse-dot' : 'bg-gray-200'"></div>
                     <div class="flex-1 min-w-0">
                       <p class="text-sm text-gray-800" :class="!n.read ? 'font-medium' : ''" x-text="n.message"></p>
-                      <p class="text-[11px] text-gray-400 mt-0.5" x-text="n.time"></p>
+                      <p class="text-[11px] text-gray-500 mt-0.5" x-text="n.time"></p>
                     </div>
                   </div>
                 </div>
               </template>
             </div>
             <div x-show="notifications.length > 0" class="px-4 py-2 border-t border-gray-100">
-              <button @click="clearNotifications()" class="text-[11px] text-gray-400 hover:text-red-500 transition-colors" x-text="t('clear_all')"></button>
+              <button @click="clearNotifications()" class="text-[11px] text-gray-500 hover:text-red-500 transition-colors" x-text="t('clear_all')"></button>
             </div>
           </div>
         </div>
@@ -460,7 +460,7 @@
           <div x-show="showUserMenu" @click.away="showUserMenu = false" x-transition class="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl border border-gray-200 shadow-lg z-50 py-1.5 overflow-hidden">
             <div class="px-3 py-2 border-b border-gray-100">
               <p class="text-xs font-medium text-gray-800" x-text="currentUser?.name"></p>
-              <p class="text-[11px] text-gray-400 truncate" x-text="currentUser?.email"></p>
+              <p class="text-[11px] text-gray-500 truncate" x-text="currentUser?.email"></p>
               <span x-show="currentUser?.company" class="text-[10px] text-brand-600 font-medium" x-text="currentUser?.company"></span>
             </div>
             <button @click="page = 'profile'; showUserMenu = false" class="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
@@ -500,7 +500,7 @@
       </div>
       <div x-show="historyJobs.length === 0" class="text-center py-8">
         <svg class="w-12 h-12 text-gray-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-        <p class="text-sm text-gray-400" x-text="t('no_files_yet')"></p>
+        <p class="text-sm text-gray-500" x-text="t('no_files_yet')"></p>
         <p class="text-xs text-gray-300 mt-1" x-text="t('no_files_hint')"></p>
       </div>
       <div class="space-y-2">
@@ -509,8 +509,8 @@
             <div class="flex items-center flex-wrap gap-2">
               <span class="inline-block px-2 py-0.5 rounded text-[10px] font-semibold" :class="job.tool === 'catalog' ? 'bg-brand-100 text-brand-700' : job.tool === 'prices' ? 'bg-blue-100 text-blue-700' : job.tool === 'stock' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'" x-text="job.tool === 'catalog' ? t('tag_catalog') : job.tool === 'prices' ? t('tag_prices') : job.tool === 'stock' ? t('tag_stock_upper') : t('tag_validation')"></span>
               <span class="font-medium text-gray-700" x-text="job.filename"></span>
-              <span class="text-gray-400" x-text="job.date"></span>
-              <span class="text-gray-400" x-text="job.count + ' ' + t('products_lc')"></span>
+              <span class="text-gray-500" x-text="job.date"></span>
+              <span class="text-gray-500" x-text="job.count + ' ' + t('products_lc')"></span>
             </div>
             <a x-show="job.url" :href="job.url" :download="job.filename" class="text-brand-600 hover:text-brand-700 font-medium text-xs flex-shrink-0 ml-3" x-text="t('download')"></a>
           </div>
@@ -528,9 +528,9 @@
             <h2 class="text-xl sm:text-2xl font-bold text-gray-900">
               <span x-text="t('greeting')"></span><span x-text="currentUser ? currentUser.name : ''"></span>
             </h2>
-            <p class="mt-0.5 text-xs text-gray-400" x-text="t('home_sub')"></p>
+            <p class="mt-0.5 text-xs text-gray-500" x-text="t('home_sub')"></p>
           </div>
-          <p class="text-[11px] text-gray-400 tabular-nums" x-text="new Date().toLocaleDateString(lang === 'pt' ? 'pt-PT' : 'es-ES', {weekday:'long', year:'numeric', month:'long', day:'numeric'})"></p>
+          <p class="text-[11px] text-gray-500 tabular-nums" x-text="new Date().toLocaleDateString(lang === 'pt' ? 'pt-PT' : 'es-ES', {weekday:'long', year:'numeric', month:'long', day:'numeric'})"></p>
         </div>
       </div>
 
@@ -543,7 +543,7 @@
             </div>
             <div class="min-w-0">
               <p class="text-lg font-bold text-gray-900 leading-tight tabular-nums" x-text="historyJobs.length">0</p>
-              <p class="text-[10px] text-gray-400 truncate" x-text="t('stat_files')"></p>
+              <p class="text-[10px] text-gray-500 truncate" x-text="t('stat_files')"></p>
             </div>
           </div>
         </div>
@@ -554,7 +554,7 @@
             </div>
             <div class="min-w-0">
               <p class="text-lg font-bold text-gray-900 leading-tight tabular-nums" x-text="totalProductsProcessed">0</p>
-              <p class="text-[10px] text-gray-400 truncate" x-text="t('stat_products')"></p>
+              <p class="text-[10px] text-gray-500 truncate" x-text="t('stat_products')"></p>
             </div>
           </div>
         </div>
@@ -564,8 +564,8 @@
               <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             </div>
             <div class="min-w-0">
-              <p class="text-lg font-bold text-gray-900 leading-tight tabular-nums"><span x-text="successRate">0</span><span class="text-sm text-gray-400">%</span></p>
-              <p class="text-[10px] text-gray-400 truncate" x-text="t('stat_success')"></p>
+              <p class="text-lg font-bold text-gray-900 leading-tight tabular-nums"><span x-text="successRate">0</span><span class="text-sm text-gray-500">%</span></p>
+              <p class="text-[10px] text-gray-500 truncate" x-text="t('stat_success')"></p>
             </div>
           </div>
         </div>
@@ -576,7 +576,7 @@
             </div>
             <div class="min-w-0">
               <p class="text-lg font-bold text-gray-900 leading-tight tabular-nums" x-text="avgProductsPerJob">0</p>
-              <p class="text-[10px] text-gray-400 truncate" x-text="t('stat_avg')"></p>
+              <p class="text-[10px] text-gray-500 truncate" x-text="t('stat_avg')"></p>
             </div>
           </div>
         </div>
@@ -589,35 +589,35 @@
             <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
           </div>
           <h3 class="text-xs font-bold text-gray-900 mb-0.5" x-text="t('tool_catalog')"></h3>
-          <p class="text-[10px] text-gray-400 leading-snug line-clamp-2" x-text="t('tool_catalog_desc')"></p>
+          <p class="text-[10px] text-gray-500 leading-snug line-clamp-2" x-text="t('tool_catalog_desc')"></p>
         </div>
         <div @click="page = 'prices'" class="card-hover bg-white border border-gray-200 rounded-xl p-4 cursor-pointer group hover:border-blue-200 hover:shadow-md transition-all">
           <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
             <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           </div>
           <h3 class="text-xs font-bold text-gray-900 mb-0.5" x-text="t('tool_prices')"></h3>
-          <p class="text-[10px] text-gray-400 leading-snug line-clamp-2" x-text="t('tool_prices_desc')"></p>
+          <p class="text-[10px] text-gray-500 leading-snug line-clamp-2" x-text="t('tool_prices_desc')"></p>
         </div>
         <div @click="page = 'validate'" class="card-hover bg-white border border-gray-200 rounded-xl p-4 cursor-pointer group hover:border-emerald-200 hover:shadow-md transition-all">
           <div class="w-9 h-9 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
             <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
           </div>
           <h3 class="text-xs font-bold text-gray-900 mb-0.5" x-text="t('tool_validate')"></h3>
-          <p class="text-[10px] text-gray-400 leading-snug line-clamp-2" x-text="t('tool_validate_desc')"></p>
+          <p class="text-[10px] text-gray-500 leading-snug line-clamp-2" x-text="t('tool_validate_desc')"></p>
         </div>
         <div @click="page = 'stock'" class="card-hover bg-white border border-gray-200 rounded-xl p-4 cursor-pointer group hover:border-amber-200 hover:shadow-md transition-all">
           <div class="w-9 h-9 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
             <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
           </div>
           <h3 class="text-xs font-bold text-gray-900 mb-0.5" x-text="t('tool_stock')"></h3>
-          <p class="text-[10px] text-gray-400 leading-snug line-clamp-2" x-text="t('tool_stock_desc')"></p>
+          <p class="text-[10px] text-gray-500 leading-snug line-clamp-2" x-text="t('tool_stock_desc')"></p>
         </div>
         <div @click="page = 'repricing'" class="card-hover bg-white border border-gray-200 rounded-xl p-4 cursor-pointer group hover:border-rose-200 hover:shadow-md transition-all">
           <div class="w-9 h-9 bg-gradient-to-br from-rose-500 to-pink-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
             <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
           </div>
           <h3 class="text-xs font-bold text-gray-900 mb-0.5" x-text="t('tool_repricing')"></h3>
-          <p class="text-[10px] text-gray-400 leading-snug line-clamp-2" x-text="t('tool_repricing_desc')"></p>
+          <p class="text-[10px] text-gray-500 leading-snug line-clamp-2" x-text="t('tool_repricing_desc')"></p>
         </div>
       </div>
 
@@ -679,14 +679,14 @@
                 <div class="flex items-center gap-2 py-2 border-l-2 pl-2.5 -ml-0.5" :class="job.tool === 'catalog' ? 'border-orange-400' : job.tool === 'prices' ? 'border-blue-400' : job.tool === 'stock' ? 'border-amber-400' : job.tool === 'repricing' ? 'border-rose-400' : 'border-emerald-400'">
                   <div class="flex-1 min-w-0">
                     <p class="text-[11px] font-medium text-gray-800 truncate" x-text="job.filename"></p>
-                    <p class="text-[10px] text-gray-400"><span x-text="job.count"></span> prod. &middot; <span x-text="job.date"></span></p>
+                    <p class="text-[10px] text-gray-500"><span x-text="job.count"></span> prod. &middot; <span x-text="job.date"></span></p>
                   </div>
                   <span class="px-1.5 py-0.5 rounded text-[9px] font-semibold flex-shrink-0"
                     :class="job.tool === 'catalog' ? 'bg-orange-50 text-orange-600' : job.tool === 'prices' ? 'bg-blue-50 text-blue-600' : job.tool === 'stock' ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'"
                     x-text="job.tool === 'catalog' ? t('tag_catalog') : job.tool === 'prices' ? t('tag_prices') : job.tool === 'stock' ? t('tag_stock_upper') : t('tag_validation')"></span>
                 </div>
               </template>
-              <div x-show="recentActivity.length === 0" class="text-[11px] text-gray-400 text-center py-3" x-text="t('no_activity')"></div>
+              <div x-show="recentActivity.length === 0" class="text-[11px] text-gray-500 text-center py-3" x-text="t('no_activity')"></div>
             </div>
           </div>
 
@@ -696,7 +696,7 @@
       <div class="max-w-5xl mx-auto px-4">
         <div class="bg-white border border-gray-200 rounded-xl px-4 py-3">
           <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-            <h3 class="text-[10px] font-semibold text-gray-400 uppercase tracking-wider flex-shrink-0" x-text="t('templates_title')"></h3>
+            <h3 class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider flex-shrink-0" x-text="t('templates_title')"></h3>
             <div class="flex flex-wrap items-center gap-1.5 flex-1">
               <button @click="downloadTemplate('catalog')" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full border border-gray-200 text-[10px] font-medium text-gray-500 hover:bg-orange-50 hover:border-orange-200 hover:text-orange-700 transition-all">
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
@@ -746,7 +746,7 @@
 
     <!-- ==================== CATALOG TOOL ==================== -->
     <div x-show="page === 'catalog'" x-transition>
-      <div class="flex items-center gap-2 text-xs text-gray-400 mb-6">
+      <div class="flex items-center gap-2 text-xs text-gray-500 mb-6">
         <button @click="page = 'home'" class="hover:text-brand-600 transition-colors" x-text="t('home')"></button>
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         <span class="text-gray-600 font-medium" x-text="t('tool_catalog')"></span>
@@ -1000,7 +1000,7 @@
 
     <!-- ==================== PRICES TOOL ==================== -->
     <div x-show="page === 'prices'" x-transition>
-      <div class="flex items-center gap-2 text-xs text-gray-400 mb-6">
+      <div class="flex items-center gap-2 text-xs text-gray-500 mb-6">
         <button @click="page = 'home'" class="hover:text-brand-600 transition-colors" x-text="t('home')"></button>
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         <span class="text-gray-600 font-medium" x-text="t('tool_prices')"></span>
@@ -1058,7 +1058,7 @@
 
     <!-- ==================== VALIDATION TOOL ==================== -->
     <div x-show="page === 'validate'" x-transition>
-      <div class="flex items-center gap-2 text-xs text-gray-400 mb-6">
+      <div class="flex items-center gap-2 text-xs text-gray-500 mb-6">
         <button @click="page = 'home'" class="hover:text-brand-600 transition-colors" x-text="t('home')"></button>
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         <span class="text-gray-600 font-medium" x-text="t('tool_validate')"></span>
@@ -1105,7 +1105,7 @@
 
     <!-- ==================== STOCK TOOL ==================== -->
     <div x-show="page === 'stock'" x-transition>
-      <div class="flex items-center gap-2 text-xs text-gray-400 mb-6">
+      <div class="flex items-center gap-2 text-xs text-gray-500 mb-6">
         <button @click="page = 'home'" class="hover:text-brand-600 transition-colors" x-text="t('home')"></button>
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         <span class="text-gray-600 font-medium" x-text="t('tool_stock')"></span>
@@ -1154,7 +1154,7 @@
 
     <!-- ==================== REPRICING TOOL ==================== -->
     <div x-show="page === 'repricing'" x-transition>
-      <div class="flex items-center gap-2 text-xs text-gray-400 mb-6">
+      <div class="flex items-center gap-2 text-xs text-gray-500 mb-6">
         <button @click="page = 'home'" class="hover:text-brand-600 transition-colors" x-text="t('home')"></button>
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         <span class="text-gray-600 font-medium" x-text="t('tool_repricing')"></span>
@@ -1222,7 +1222,7 @@
           <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
             <div class="bg-white border border-gray-200 rounded-xl p-3 text-center"><p class="text-lg font-bold text-rose-600" x-text="repricingResults.summary.lower"></p><p class="text-[10px] text-gray-500" x-text="t('repricing_products_lower')"></p></div>
             <div class="bg-white border border-gray-200 rounded-xl p-3 text-center"><p class="text-lg font-bold text-green-600" x-text="repricingResults.summary.keep"></p><p class="text-[10px] text-gray-500" x-text="t('repricing_products_keep')"></p></div>
-            <div class="bg-white border border-gray-200 rounded-xl p-3 text-center"><p class="text-lg font-bold text-gray-400" x-text="repricingResults.summary.noComp"></p><p class="text-[10px] text-gray-500" x-text="t('repricing_products_no_comp')"></p></div>
+            <div class="bg-white border border-gray-200 rounded-xl p-3 text-center"><p class="text-lg font-bold text-gray-500" x-text="repricingResults.summary.noComp"></p><p class="text-[10px] text-gray-500" x-text="t('repricing_products_no_comp')"></p></div>
             <div class="bg-white border border-gray-200 rounded-xl p-3 text-center"><p class="text-lg font-bold text-brand-600" x-text="repricingResults.summary.avgMargin + '%'"></p><p class="text-[10px] text-gray-500" x-text="t('repricing_avg_margin')"></p></div>
             <div class="bg-white border border-gray-200 rounded-xl p-3 text-center"><p class="text-lg font-bold text-blue-600" x-text="repricingResults.summary.totalSavings + '€'"></p><p class="text-[10px] text-gray-500" x-text="t('repricing_potential_savings')"></p></div>
           </div>
@@ -1266,7 +1266,7 @@
     <!-- ==================== IMAGES PAGE ==================== -->
     <!-- ==================== PROFILE PAGE ==================== -->
     <div x-show="page === 'profile'" x-transition>
-      <div class="flex items-center gap-2 text-xs text-gray-400 mb-6">
+      <div class="flex items-center gap-2 text-xs text-gray-500 mb-6">
         <button @click="page = 'home'" class="hover:text-brand-600 transition-colors" x-text="t('home')"></button>
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         <span class="text-gray-600 font-medium" x-text="t('my_profile')"></span>
@@ -1324,7 +1324,7 @@
 
     <!-- ==================== SAVED FILES PAGE ==================== -->
     <div x-show="page === 'files'" x-transition>
-      <div class="flex items-center gap-2 text-xs text-gray-400 mb-6">
+      <div class="flex items-center gap-2 text-xs text-gray-500 mb-6">
         <button @click="page = 'home'" class="hover:text-brand-600 transition-colors" x-text="t('home')"></button>
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         <span class="text-gray-600 font-medium" x-text="t('saved_files')"></span>
@@ -1344,7 +1344,7 @@
 
         <div x-show="!savedFilesLoading && savedFiles.length === 0" class="text-center py-12">
           <svg class="w-16 h-16 text-gray-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>
-          <p class="text-sm text-gray-400" x-text="t('no_saved_files')"></p>
+          <p class="text-sm text-gray-500" x-text="t('no_saved_files')"></p>
         </div>
 
         <div x-show="!savedFilesLoading && savedFiles.length > 0" class="space-y-3">
@@ -1357,8 +1357,8 @@
                 <div>
                   <p class="text-sm font-medium text-gray-700" x-text="sf.filename"></p>
                   <div class="flex items-center gap-3 mt-0.5">
-                    <span class="text-[11px] text-gray-400" x-text="sf.date"></span>
-                    <span class="text-[11px] text-gray-400" x-text="sf.count + ' ' + t('products_lc')"></span>
+                    <span class="text-[11px] text-gray-500" x-text="sf.date"></span>
+                    <span class="text-[11px] text-gray-500" x-text="sf.count + ' ' + t('products_lc')"></span>
                     <span class="text-[11px] text-brand-500 font-medium" x-text="t('expires_in') + ' ' + sf.daysLeft + ' ' + t('days')"></span>
                   </div>
                 </div>
@@ -1372,7 +1372,7 @@
 
     <!-- ==================== SUPPORT ==================== -->
     <div x-show="page === 'support'" x-transition>
-      <div class="flex items-center gap-2 text-xs text-gray-400 mb-6">
+      <div class="flex items-center gap-2 text-xs text-gray-500 mb-6">
         <button @click="page = 'home'" class="hover:text-brand-600 transition-colors" x-text="t('home')"></button>
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         <span class="text-gray-600 font-medium" x-text="t('support')"></span>
@@ -1424,7 +1424,7 @@
 
     <!-- ==================== ADMIN PANEL ==================== -->
     <div x-show="page === 'admin' && currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'marketplace_admin')" x-transition>
-      <div class="flex items-center gap-2 text-xs text-gray-400 mb-6">
+      <div class="flex items-center gap-2 text-xs text-gray-500 mb-6">
         <button @click="page = 'home'" class="hover:text-brand-600 transition-colors" x-text="t('home')"></button>
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
         <span class="text-gray-600 font-medium" x-text="t('admin_panel')"></span>
@@ -1485,7 +1485,7 @@
                   </div>
                 </div>
               </template>
-              <div x-show="adminDashboard.byTool.length === 0" class="text-xs text-gray-400 text-center py-4" x-text="t('admin_no_activity')"></div>
+              <div x-show="adminDashboard.byTool.length === 0" class="text-xs text-gray-500 text-center py-4" x-text="t('admin_no_activity')"></div>
             </div>
           </div>
 
@@ -1498,16 +1498,16 @@
                     <div class="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flame-gradient" x-text="u.name.charAt(0).toUpperCase()"></div>
                     <div>
                       <p class="text-xs font-medium text-gray-900" x-text="u.name"></p>
-                      <p class="text-[10px] text-gray-400" x-text="u.email"></p>
+                      <p class="text-[10px] text-gray-500" x-text="u.email"></p>
                     </div>
                   </div>
                   <div class="text-right">
                     <p class="text-sm font-bold text-purple-600" x-text="u.jobs"></p>
-                    <p class="text-[10px] text-gray-400" x-text="u.products + ' prod.'"></p>
+                    <p class="text-[10px] text-gray-500" x-text="u.products + ' prod.'"></p>
                   </div>
                 </div>
               </template>
-              <div x-show="adminDashboard.byUser.length === 0" class="text-xs text-gray-400 text-center py-4" x-text="t('admin_no_activity')"></div>
+              <div x-show="adminDashboard.byUser.length === 0" class="text-xs text-gray-500 text-center py-4" x-text="t('admin_no_activity')"></div>
             </div>
           </div>
         </div>
@@ -1525,7 +1525,7 @@
             <div x-show="adminDashboard.loading" class="p-8 text-center"><div class="skeleton h-4 w-32 rounded mx-auto mb-3"></div></div>
             <div x-show="!adminDashboard.loading && adminDashboard.recentActivity.length === 0" class="p-8 text-center">
               <svg class="w-12 h-12 text-gray-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-              <p class="text-sm text-gray-400" x-text="t('admin_no_activity_log')"></p>
+              <p class="text-sm text-gray-500" x-text="t('admin_no_activity_log')"></p>
             </div>
             <div class="divide-y divide-gray-100">
               <template x-for="(act, i) in adminDashboard.recentActivity" :key="i">
@@ -1537,10 +1537,10 @@
                     </div>
                     <div>
                       <p class="text-xs font-medium text-gray-900"><span x-text="act.userName"></span> <span class="text-gray-400">·</span> <span class="text-gray-500" x-text="act.toolLabel"></span></p>
-                      <p class="text-[10px] text-gray-400"><span x-text="act.filename"></span> <span class="text-gray-300">·</span> <span x-text="act.count + ' ' + t('productos')"></span></p>
+                      <p class="text-[10px] text-gray-500"><span x-text="act.filename"></span> <span class="text-gray-300">·</span> <span x-text="act.count + ' ' + t('productos')"></span></p>
                     </div>
                   </div>
-                  <span class="text-[10px] text-gray-400 whitespace-nowrap" x-text="act.timeAgo"></span>
+                  <span class="text-[10px] text-gray-500 whitespace-nowrap" x-text="act.timeAgo"></span>
                 </div>
               </template>
             </div>
@@ -1670,12 +1670,12 @@
                               'bg-amber-100 text-amber-700': user.subscription_status === 'pending_payment',
                               'bg-red-100 text-red-700': user.subscription_status === 'suspended' || user.subscription_status === 'cancelled'
                             }" x-text="getSubStatusBadge(user.subscription_status || 'active').label"></span>
-                            <span class="text-[10px] text-gray-400 px-1.5 py-0.5 rounded bg-gray-100" x-text="user.role === 'marketplace_admin' ? t('role_marketplace_admin') : t('role_user')"></span>
+                            <span class="text-[10px] text-gray-500 px-1.5 py-0.5 rounded bg-gray-100" x-text="user.role === 'marketplace_admin' ? t('role_marketplace_admin') : t('role_user')"></span>
                           </div>
                         </template>
                       </div>
                     </template>
-                    <template x-if="user.email === currentUser.email"><span class="text-[10px] text-gray-400 italic" x-text="t('your_account')"></span></template>
+                    <template x-if="user.email === currentUser.email"><span class="text-[10px] text-gray-500 italic" x-text="t('your_account')"></span></template>
                   </div>
                 </div>
               </template>
@@ -1717,7 +1717,7 @@
               <h3 class="text-sm font-semibold text-gray-900" x-text="t('admin_marketplaces')"></h3>
             </div>
             <div x-show="adminMarketplaces.length === 0" class="p-8 text-center">
-              <p class="text-sm text-gray-400" x-text="t('admin_no_marketplaces')"></p>
+              <p class="text-sm text-gray-500" x-text="t('admin_no_marketplaces')"></p>
             </div>
             <div class="divide-y divide-gray-100">
               <template x-for="mp in adminMarketplaces" :key="mp">
@@ -1726,7 +1726,7 @@
                     <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center text-white text-sm font-bold" x-text="mp.charAt(0).toUpperCase()"></div>
                     <div>
                       <p class="text-sm font-medium text-gray-900" x-text="mp.charAt(0).toUpperCase() + mp.slice(1)"></p>
-                      <p class="text-[10px] text-gray-400" x-text="adminUsers.filter(u => u.marketplace_id === mp).length + ' ' + t('users').toLowerCase()"></p>
+                      <p class="text-[10px] text-gray-500" x-text="adminUsers.filter(u => u.marketplace_id === mp).length + ' ' + t('users').toLowerCase()"></p>
                     </div>
                   </div>
                   <button @click="removeMarketplace(mp)" class="text-xs px-2.5 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-all" x-text="t('admin_remove_marketplace')"></button>
@@ -1741,7 +1741,7 @@
   </main>
 
   <footer class="border-t border-gray-200 mt-16">
-    <div class="max-w-6xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-400">
+    <div class="max-w-6xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-gray-500">
       <div class="flex items-center gap-2">
         <span class="text-flame font-brand font-bold tracking-wide">KATALYNC</span>
         <span>&middot;</span>
