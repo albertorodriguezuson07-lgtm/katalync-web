@@ -762,6 +762,10 @@
                   </button>
                 </template>
               </div>
+              <div class="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                <div><p class="text-sm font-medium text-gray-700" x-text="t('remove_bg')"></p><p class="text-xs text-gray-500 mt-0.5" x-text="t('remove_bg_hint')"></p></div>
+                <button @click="catalogRemoveBg = !catalogRemoveBg" :class="catalogRemoveBg ? 'bg-brand-500' : 'bg-gray-300'" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full transition-colors duration-200"><span :class="catalogRemoveBg ? 'translate-x-5' : 'translate-x-0.5'" class="pointer-events-none inline-block h-5 w-5 translate-y-0.5 rounded-full bg-white shadow transition-transform duration-200"></span></button>
+              </div>
             </div>
           </div>
           <div>
@@ -1628,6 +1632,6 @@
 
   </div>
 
-  <script src="app.js?v=20260510k"></script>
+  <script src="app.js?v=20260511a"></script>
 </body>
 </html>

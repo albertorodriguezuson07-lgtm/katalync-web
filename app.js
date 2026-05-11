@@ -37,9 +37,10 @@ const TRANSLATIONS = {
     no_activity: 'Sin actividad reciente', home: 'Inicio',
     catalog_title: 'Convierte tu catálogo para marketplace', catalog_sub: 'Sube tu Excel con los datos de producto. Formateamos títulos, descripciones e imágenes.',
     marketplace_label: 'Marketplace destino', other_marketplace: 'Otro marketplace', image_format: 'Formato de imagen',
-    gen_title: 'Formatear títulos', gen_title_hint: 'Genera título estandarizado: Categoría Marca Color',
+    gen_title: 'Formatear títulos', gen_title_hint: 'Genera título estandarizado: Categoría Marca Modelo',
     gen_desc: 'Generar descripciones', gen_desc_hint: 'Genera descripción con marca, modelo, categoría, material...',
     convert_images: 'Convertir imágenes a CDN', convert_images_hint: 'Convierte a 2:3, sube a CDN y genera URLs públicas para Mirakl',
+    remove_bg: 'Eliminar fondo', remove_bg_hint: 'Elimina el fondo de la imagen con IA y lo convierte en blanco',
     customize_label: 'Personalizar salida',
     excel_file: 'Archivo Excel', drop_excel: 'Arrastra tu Excel o haz clic', remove: 'Quitar',
     products_detected: 'productos detectados', columns: 'Columnas', process: 'Procesar',
@@ -245,9 +246,10 @@ const TRANSLATIONS = {
     no_activity: 'Sem atividade recente', home: 'Início',
     catalog_title: 'Converta seu catálogo para marketplace', catalog_sub: 'Carregue seu Excel com dados do produto. Formatamos títulos, descrições e imagens.',
     marketplace_label: 'Marketplace destino', other_marketplace: 'Outro marketplace', image_format: 'Formato de imagem',
-    gen_title: 'Formatar títulos', gen_title_hint: 'Gera título padronizado: Categoria Marca Cor',
+    gen_title: 'Formatar títulos', gen_title_hint: 'Gera título padronizado: Categoria Marca Modelo',
     gen_desc: 'Gerar descrições', gen_desc_hint: 'Gera descrição com marca, modelo, categoria, material...',
     convert_images: 'Converter imagens para CDN', convert_images_hint: 'Converte para 2:3, envia ao CDN e gera URLs públicas para Mirakl',
+    remove_bg: 'Remover fundo', remove_bg_hint: 'Remove o fundo da imagem com IA e converte em branco',
     customize_label: 'Personalizar saída',
     excel_file: 'Arquivo Excel', drop_excel: 'Arraste seu Excel ou clique', remove: 'Remover',
     products_detected: 'produtos detectados', columns: 'Colunas', process: 'Processar',
@@ -989,7 +991,7 @@ function app() {
     },
     makeBlobUrl(base64) { const raw = atob(base64); const bytes = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i); return URL.createObjectURL(new Blob([bytes], { type: 'text/csv;charset=utf-8' })); },
 
-    catalogStep: 'upload', catalogMarketplace: 'sprinter_es', catalogRatio: '2:3', catalogGenDesc: true, catalogGenTitle: true, catalogConvertImages: true,
+    catalogStep: 'upload', catalogMarketplace: 'sprinter_es', catalogRatio: '2:3', catalogGenDesc: true, catalogGenTitle: true, catalogConvertImages: true, catalogRemoveBg: false,
     catalogFile: null, catalogRows: [], catalogCols: [], catalogTotalProducts: 0, catalogLog: [],
     showCatalogErrors: false, catalogResults: { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '' },
     handleCatalogDrop(event) { event.currentTarget.classList.remove('dragover'); const file = event.dataTransfer.files[0]; if (file && this.isValidExcel(file)) { this.catalogFile = file; this.loadCatalogExcel(file); } },
@@ -1004,7 +1006,7 @@ function app() {
       this.addLog(this.catalogLog, 'catalogLogContainer', 'info', this.t('log_marketplace') + ' ' + this.catalogMarketplace + ' | Ratio: ' + this.catalogRatio);
       this.addLog(this.catalogLog, 'catalogLogContainer', 'info', this.t('log_sending'));
       try {
-        const resp = await fetch(N8N_BASE + '/webhook/catalog-process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, marketplace: this.catalogMarketplace, ratio: this.catalogRatio, generateDescriptions: this.catalogGenDesc, generateTitles: this.catalogGenTitle, convertImages: this.catalogConvertImages, products: this.catalogRows }) });
+        const resp = await fetch(N8N_BASE + '/webhook/catalog-process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, marketplace: this.catalogMarketplace, ratio: this.catalogRatio, generateDescriptions: this.catalogGenDesc, generateTitles: this.catalogGenTitle, convertImages: this.catalogConvertImages, removeBg: this.catalogRemoveBg, products: this.catalogRows }) });
         if (!resp.ok) throw new Error(this.t('log_server_error'));
         const result = await resp.json();
         if (result.status === 'error') throw new Error(result.message || this.t('log_server_error'));
