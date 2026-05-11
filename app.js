@@ -35,7 +35,32 @@ const SPRINTER_INPUT_MAP = {
   'cuidados': 'cuidados', 'Cuidados': 'cuidados', 'care': 'cuidados',
   'offer-sku': '_offer-sku', 'offer_sku': '_offer-sku',
   'discount-price': 'discount-price', 'discount_price': 'discount-price', 'precio_descuento': 'discount-price',
-  'discount-start-date': 'discount-start-date', 'discount-end-date': 'discount-end-date'
+  'discount-start-date': 'discount-start-date', 'discount-end-date': 'discount-end-date',
+  'categorias': 'categorias', 'sku-de-vendedor': 'sku-de-vendedor',
+  'nombre-del-articulo': 'nombre-del-articulo', 'nombre-del-articulo-pt': 'nombre-del-articulo-pt',
+  'subtitulo-de-productos': 'subtitulo-de-productos', 'subtitulo-de-productos-pt': 'subtitulo-de-productos-pt',
+  'pais-fabricante': 'pais-fabricante', 'pais-fabricante-pt': 'pais-fabricante-pt',
+  'marcas': 'marcas', 'descripion-del-producto': 'descripion-del-producto',
+  'imagenes-1': 'imagenes-1', 'imagenes-2': 'imagenes-2', 'imagenes-3': 'imagenes-3', 'imagenes-4': 'imagenes-4',
+  'colores': 'colores', 'tipos-de-deportes': 'tipos-de-deportes',
+  'nombre-del-fabricante': 'nombre-del-fabricante',
+  'nombre-comercial-registrado-del-fabricante': 'nombre-comercial-registrado-del-fabricante',
+  'direccion-del-fabricante': 'direccion-del-fabricante',
+  'correo-electronico-del-fabricante': 'correo-electronico-del-fabricante',
+  'cuidados': 'cuidados', 'cuidados-pt': 'cuidados-pt',
+  'descripion-del-producto-pt': 'descripion-del-producto-pt',
+  'nombre-persona-responsable-en-eu': 'nombre-persona-responsable-en-eu',
+  'direccion-de-la-persona-responsable': 'direccion-de-la-persona-responsable',
+  'correo-electronico-de-la-persona-responsable': 'correo-electronico-de-la-persona-responsable',
+  'foto-etiqueta-del-producto': 'foto-etiqueta-del-producto',
+  'manual-de-seguridad-del-producto': 'manual-de-seguridad-del-producto',
+  'colecciones': 'colecciones', 'colecciones-pt': 'colecciones-pt',
+  'consejos-de-utilizacion': 'consejos-de-utilizacion', 'consejos-de-utilizacion-pt': 'consejos-de-utilizacion-pt',
+  'impermeable': 'impermeable', 'informacion-tecnica': 'informacion-tecnica',
+  'informacion-tecnica-pt': 'informacion-tecnica-pt', 'material-composicion-pt': 'material-composicion-pt',
+  'video': 'video', 'guia-de-tallas': 'guia-de-tallas',
+  'material-composicion': 'material-composicion', 'talla': 'talla', 'genero': 'genero', 'ean': 'ean',
+  'variant_group_code': 'variant_group_code'
 };
 
 const TRANSLATIONS = {
@@ -151,6 +176,10 @@ const TRANSLATIONS = {
     repricing_help_competitors: 'Columnas: offer-sku, price (precio del competidor), shipping (coste envío)',
     dark_mode: 'Modo oscuro',
     templates_title: 'Plantillas de ejemplo', download_template: 'Descargar plantilla',
+    tpl_smart_title: 'Plantilla inteligente por categoría', tpl_smart_desc: 'Selecciona tu categoría para una plantilla con ejemplos reales y validaciones',
+    tpl_cat_calzado: 'Calzado', tpl_cat_ropa: 'Ropa', tpl_cat_accesorios: 'Accesorios', tpl_cat_equipamiento: 'Equipamiento',
+    tpl_sheet_instructions: 'Instrucciones', tpl_download_smart: 'Descargar plantilla inteligente',
+    hr_title: 'Salud del catálogo', hr_score_label: 'Puntuación', hr_of: 'de', hr_show_detail: 'Ver informe completo', hr_hide_detail: 'Ocultar informe', hr_download: 'Descargar informe', hr_checks_title: 'Checklist de campos obligatorios', hr_recs_title: 'Recomendaciones', hr_field: 'Campo', hr_completeness: 'Completitud', hr_detail: 'Detalle', hr_products_ok: 'Productos OK', hr_products_error: 'Con errores', hr_with_img2: 'Con imagen 2', hr_with_img3: 'Con imagen 3', hr_missing: 'No encontrado',
     browser_notifs: 'Notificaciones del navegador', notif_enabled: 'Activadas', notif_disabled: 'Desactivadas',
     notif_catalog_done: 'Catálogo procesado', notif_prices_done: 'Precios generados',
     notif_stock_done: 'Stock actualizado', notif_validate_done: 'Validación completada',
@@ -217,7 +246,7 @@ const TRANSLATIONS = {
     support_send: 'Enviar mensaje',
     support_contact: 'También puedes escribirnos directamente a:',
     chat_title: 'Ana · Asistente',
-    chat_placeholder: 'Escribe tu pregunta...',
+    chat_placeholder: 'Escribe tu pregunta...', chat_thinking: 'Ana está pensando...',
     chat_welcome: '¡Hola! Soy Ana, tu asistente de Katalync. Puedo ayudarte con:\n\n- Cómo subir y procesar archivos\n- Formatos y columnas requeridas\n- Suscripción, pagos y facturación\n- Errores comunes y soluciones\n- Repricing y estrategias de precio\n\n¿En qué puedo ayudarte?',
     chat_no_match: 'No he encontrado una respuesta específica. Puedes contactar con soporte desde el menú de usuario para asistencia personalizada.',
     chat_blocked: 'Solo puedo responder preguntas sobre el uso de Katalync.',
@@ -229,11 +258,11 @@ const TRANSLATIONS = {
     log_warnings_found: 'avisos',
     sub_pending_title: 'Activa tu suscripción',
     sub_pending_sub: 'Para acceder a las herramientas de Katalync necesitas activar tu plan.',
-    sub_pending_plan_vendor: 'Plan Vendedor',
-    sub_pending_plan_admin: 'Plan Marketplace Partner',
+    sub_pending_plan_vendor: 'Plan Katalync',
+    sub_pending_plan_admin: 'Plan Katalync Partner',
     sub_pending_price_vendor: '39€/mes',
-    sub_pending_price_admin: '99€/mes',
-    sub_pending_features: 'Incluye todas las herramientas: Conversor, Precios, Stock, Validación y Repricing',
+    sub_pending_price_admin: '499€/mes',
+    sub_pending_features: 'Incluye todas las herramientas: Conversor dual XLSX, Precios, Stock, Validación GPSR, Repricing, Chatbot IA, Informe de Salud y Plantillas inteligentes',
     sub_pending_activate: 'Activar suscripción',
     sub_pending_contact: 'Si tienes dudas, contacta con tu administrador de marketplace.',
     sub_suspended_title: 'Suscripción suspendida',
@@ -366,6 +395,10 @@ const TRANSLATIONS = {
     repricing_help_competitors: 'Colunas: offer-sku, price (preço do concorrente), shipping (custo envio)',
     dark_mode: 'Modo escuro',
     templates_title: 'Modelos de exemplo', download_template: 'Baixar modelo',
+    tpl_smart_title: 'Template inteligente por categoria', tpl_smart_desc: 'Selecione sua categoria para um template com exemplos reais e validações',
+    tpl_cat_calzado: 'Calçado', tpl_cat_ropa: 'Roupa', tpl_cat_accesorios: 'Acessórios', tpl_cat_equipamiento: 'Equipamento',
+    tpl_sheet_instructions: 'Instruções', tpl_download_smart: 'Baixar template inteligente',
+    hr_title: 'Saúde do catálogo', hr_score_label: 'Pontuação', hr_of: 'de', hr_show_detail: 'Ver relatório completo', hr_hide_detail: 'Ocultar relatório', hr_download: 'Baixar relatório', hr_checks_title: 'Checklist de campos obrigatórios', hr_recs_title: 'Recomendações', hr_field: 'Campo', hr_completeness: 'Completude', hr_detail: 'Detalhe', hr_products_ok: 'Produtos OK', hr_products_error: 'Com erros', hr_with_img2: 'Com imagem 2', hr_with_img3: 'Com imagem 3', hr_missing: 'Não encontrado',
     browser_notifs: 'Notificações do navegador', notif_enabled: 'Ativadas', notif_disabled: 'Desativadas',
     notif_catalog_done: 'Catálogo processado', notif_prices_done: 'Preços gerados',
     notif_stock_done: 'Estoque atualizado', notif_validate_done: 'Validação concluída',
@@ -432,7 +465,7 @@ const TRANSLATIONS = {
     support_send: 'Enviar mensagem',
     support_contact: 'Também pode escrever diretamente para:',
     chat_title: 'Ana · Assistente',
-    chat_placeholder: 'Escreva sua pergunta...',
+    chat_placeholder: 'Escreva sua pergunta...', chat_thinking: 'Ana está a pensar...',
     chat_welcome: 'Olá! Sou a Ana, sua assistente do Katalync. Posso ajudá-lo com:\n\n- Como carregar e processar arquivos\n- Formatos e colunas necessárias\n- Assinatura, pagamentos e faturação\n- Erros comuns e soluções\n- Repricing e estratégias de preço\n\nComo posso ajudá-lo?',
     chat_no_match: 'Não encontrei uma resposta específica. Pode contactar o suporte no menu do usuário para assistência personalizada.',
     chat_blocked: 'Só posso responder perguntas sobre o uso do Katalync.',
@@ -444,11 +477,11 @@ const TRANSLATIONS = {
     log_warnings_found: 'avisos',
     sub_pending_title: 'Ative sua assinatura',
     sub_pending_sub: 'Para acessar as ferramentas do Katalync você precisa ativar seu plano.',
-    sub_pending_plan_vendor: 'Plano Vendedor',
-    sub_pending_plan_admin: 'Plano Marketplace Partner',
+    sub_pending_plan_vendor: 'Plano Katalync',
+    sub_pending_plan_admin: 'Plano Katalync Partner',
     sub_pending_price_vendor: '39€/mês',
-    sub_pending_price_admin: '99€/mês',
-    sub_pending_features: 'Inclui todas as ferramentas: Conversor, Preços, Estoque, Validação e Repricing',
+    sub_pending_price_admin: '499€/mês',
+    sub_pending_features: 'Inclui todas as ferramentas: Conversor dual XLSX, Preços, Estoque, Validação GPSR, Repricing, Chatbot IA, Relatório de Saúde e Templates inteligentes',
     sub_pending_activate: 'Ativar assinatura',
     sub_pending_contact: 'Se tiver dúvidas, contacte seu administrador de marketplace.',
     sub_suspended_title: 'Assinatura suspensa',
@@ -999,6 +1032,118 @@ function app() {
       XLSX.writeFile(wb, tpl.filename);
     },
 
+    buildSmartTemplate() {
+      const cat = this.templateCategory;
+      const headers = ['sku', 'ean', 'marca', 'nombre', 'modelo', 'categoria', 'genero', 'color', 'talla', 'material', 'imagen', 'imagen_2', 'imagen_3', 'precio', 'stock', 'descripcion', 'variant_group_code', 'pais_fabricacion', 'fabricante_nombre', 'fabricante_nombre_comercial', 'fabricante_direccion', 'fabricante_email', 'responsable_ue_nombre', 'responsable_ue_direccion', 'responsable_ue_email', 'coleccion', 'cuidados'];
+      const instructions = {
+        sku: 'Tu referencia interna. Ej: MITIENDA-AIR90-42-NGR',
+        ean: 'Código de barras EAN-13 (13 dígitos). OBLIGATORIO',
+        marca: 'Marca del producto. OBLIGATORIO',
+        nombre: 'Nombre del producto. OBLIGATORIO',
+        modelo: 'Modelo específico (se usa para generar título)',
+        categoria: 'Calzado / Ropa / Accesorios / Equipamiento. OBLIGATORIO',
+        genero: 'Hombre / Mujer / Unisex / Niño / Niña. OBLIGATORIO',
+        color: 'Color del producto. Usar colores estándar Sprinter',
+        talla: 'Talla del producto. OBLIGATORIO',
+        material: 'Composición del material. OBLIGATORIO',
+        imagen: 'URL pública de la imagen principal (2:3). OBLIGATORIO',
+        imagen_2: 'URL imagen secundaria (opcional)',
+        imagen_3: 'URL imagen terciaria (opcional)',
+        precio: 'Precio con IVA incluido. Usar punto decimal',
+        stock: 'Unidades disponibles',
+        descripcion: 'Descripción del producto (se autogenera si vacía)',
+        variant_group_code: 'Código para agrupar tallas/colores del mismo producto',
+        pais_fabricacion: 'País de fabricación (GPSR). OBLIGATORIO',
+        fabricante_nombre: 'Nombre del fabricante (GPSR). OBLIGATORIO',
+        fabricante_nombre_comercial: 'Nombre comercial registrado (GPSR). OBLIGATORIO',
+        fabricante_direccion: 'Dirección completa del fabricante (GPSR). OBLIGATORIO',
+        fabricante_email: 'Email del fabricante (GPSR). OBLIGATORIO',
+        responsable_ue_nombre: 'Persona responsable en la UE (GPSR)',
+        responsable_ue_direccion: 'Dirección del responsable UE (GPSR)',
+        responsable_ue_email: 'Email del responsable UE (GPSR)',
+        coleccion: 'Colección (opcional)',
+        cuidados: 'Instrucciones de cuidado (opcional)'
+      };
+      const examples = {
+        calzado: [
+          { sku: 'TIENDA-RUN01-42-NGR', ean: '8412345678901', marca: 'Nike', nombre: 'Revolution 6', modelo: 'Revolution 6', categoria: 'Calzado', genero: 'Hombre', color: 'Negro', talla: '42', material: 'Sintetico/Caucho', imagen: 'https://ejemplo.com/rev6-negro.jpg', imagen_2: '', imagen_3: '', precio: '69.99', stock: '45', descripcion: '', variant_group_code: 'REV6-NGR', pais_fabricacion: 'Vietnam', fabricante_nombre: 'Nike Inc', fabricante_nombre_comercial: 'Nike', fabricante_direccion: 'One Bowerman Dr, Beaverton, OR 97005, USA', fabricante_email: 'contact@nike.com', responsable_ue_nombre: 'Nike European Operations Netherlands BV', responsable_ue_direccion: 'Colosseum 1, 1213NL Hilversum, Netherlands', responsable_ue_email: 'eu-compliance@nike.com', coleccion: 'SS2026', cuidados: 'Limpiar con paño húmedo' },
+          { sku: 'TIENDA-TRAIL01-40-AZL', ean: '8412345678902', marca: 'Salomon', nombre: 'Speedcross 6', modelo: 'Speedcross 6', categoria: 'Calzado', genero: 'Mujer', color: 'Azul', talla: '40', material: 'Textile/Caucho', imagen: 'https://ejemplo.com/sc6-azul.jpg', imagen_2: 'https://ejemplo.com/sc6-azul-2.jpg', imagen_3: '', precio: '139.99', stock: '20', descripcion: '', variant_group_code: 'SC6-AZL', pais_fabricacion: 'Vietnam', fabricante_nombre: 'Salomon SAS', fabricante_nombre_comercial: 'Salomon', fabricante_direccion: 'Lieu dit les Gléteins, 74370 Metz-Tessy, France', fabricante_email: 'info@salomon.com', responsable_ue_nombre: 'Salomon SAS', responsable_ue_direccion: 'Lieu dit les Gléteins, 74370 Metz-Tessy, France', responsable_ue_email: 'eu@salomon.com', coleccion: 'Trail SS2026', cuidados: 'No lavar en lavadora' },
+          { sku: 'TIENDA-SAND01-38-BLC', ean: '8412345678903', marca: 'Adidas', nombre: 'Adilette Comfort', modelo: 'Adilette Comfort', categoria: 'Calzado', genero: 'Unisex', color: 'Blanco', talla: '38', material: 'EVA/Sintetico', imagen: 'https://ejemplo.com/adilette-blc.jpg', imagen_2: '', imagen_3: '', precio: '29.99', stock: '100', descripcion: '', variant_group_code: 'ADIL-BLC', pais_fabricacion: 'China', fabricante_nombre: 'adidas AG', fabricante_nombre_comercial: 'adidas', fabricante_direccion: 'Adi-Dassler-Str. 1, 91074 Herzogenaurach, Germany', fabricante_email: 'contact@adidas.com', responsable_ue_nombre: 'adidas AG', responsable_ue_direccion: 'Adi-Dassler-Str. 1, 91074 Herzogenaurach, Germany', responsable_ue_email: 'eu-compliance@adidas.com', coleccion: '', cuidados: 'Lavar con agua' }
+        ],
+        ropa: [
+          { sku: 'TIENDA-CAM01-M-NGR', ean: '8412345679001', marca: 'Under Armour', nombre: 'Tech 2.0', modelo: 'Tech 2.0 SS', categoria: 'Ropa', genero: 'Hombre', color: 'Negro', talla: 'M', material: '100% Poliéster', imagen: 'https://ejemplo.com/ua-tech-negro.jpg', imagen_2: '', imagen_3: '', precio: '29.99', stock: '80', descripcion: '', variant_group_code: 'UATECH-NGR', pais_fabricacion: 'Jordan', fabricante_nombre: 'Under Armour Inc', fabricante_nombre_comercial: 'Under Armour', fabricante_direccion: '1020 Hull St, Baltimore, MD 21230, USA', fabricante_email: 'info@underarmour.com', responsable_ue_nombre: 'Under Armour Europe BV', responsable_ue_direccion: 'Stadionplein 10, 1076 CM Amsterdam, Netherlands', responsable_ue_email: 'eu@underarmour.com', coleccion: 'Training SS2026', cuidados: 'Lavar a máquina 30°' },
+          { sku: 'TIENDA-PANT01-L-GRS', ean: '8412345679002', marca: 'Nike', nombre: 'Dri-FIT Challenger', modelo: 'Challenger 7"', categoria: 'Ropa', genero: 'Hombre', color: 'Gris', talla: 'L', material: '92% Poliéster / 8% Elastano', imagen: 'https://ejemplo.com/nike-short-gris.jpg', imagen_2: 'https://ejemplo.com/nike-short-gris-2.jpg', imagen_3: '', precio: '39.99', stock: '50', descripcion: '', variant_group_code: 'CHALL-GRS', pais_fabricacion: 'Vietnam', fabricante_nombre: 'Nike Inc', fabricante_nombre_comercial: 'Nike', fabricante_direccion: 'One Bowerman Dr, Beaverton, OR 97005, USA', fabricante_email: 'contact@nike.com', responsable_ue_nombre: 'Nike European Operations Netherlands BV', responsable_ue_direccion: 'Colosseum 1, 1213NL Hilversum, Netherlands', responsable_ue_email: 'eu-compliance@nike.com', coleccion: 'Running SS2026', cuidados: 'Lavar a máquina 30°, no usar secadora' },
+          { sku: 'TIENDA-CHAQ01-S-AZL', ean: '8412345679003', marca: 'The North Face', nombre: 'Quest Jacket', modelo: 'Quest', categoria: 'Ropa', genero: 'Mujer', color: 'Azul marino', talla: 'S', material: '100% Nylon DryVent', imagen: 'https://ejemplo.com/tnf-quest-azul.jpg', imagen_2: '', imagen_3: '', precio: '119.99', stock: '15', descripcion: '', variant_group_code: 'QUEST-AZL', pais_fabricacion: 'Bangladesh', fabricante_nombre: 'The North Face (VF Corp)', fabricante_nombre_comercial: 'The North Face', fabricante_direccion: '1551 Wewatta St, Denver, CO 80202, USA', fabricante_email: 'info@thenorthface.com', responsable_ue_nombre: 'VF Northern Europe Ltd', responsable_ue_direccion: '6th Floor, 1 Tudor St, London EC4Y 0AH, UK', responsable_ue_email: 'eu@vfc.com', coleccion: 'Outdoor AW2026', cuidados: 'Lavar a máquina 30°, reaplicar DWR' }
+        ],
+        accesorios: [
+          { sku: 'TIENDA-MOCH01-NGR', ean: '8412345680001', marca: 'Puma', nombre: 'Phase Backpack', modelo: 'Phase', categoria: 'Accesorios', genero: 'Unisex', color: 'Negro', talla: 'Talla única', material: '100% Poliéster', imagen: 'https://ejemplo.com/puma-phase-negro.jpg', imagen_2: '', imagen_3: '', precio: '24.99', stock: '60', descripcion: '', variant_group_code: 'PHASE-NGR', pais_fabricacion: 'China', fabricante_nombre: 'PUMA SE', fabricante_nombre_comercial: 'Puma', fabricante_direccion: 'PUMA Way 1, 91074 Herzogenaurach, Germany', fabricante_email: 'contact@puma.com', responsable_ue_nombre: 'PUMA SE', responsable_ue_direccion: 'PUMA Way 1, 91074 Herzogenaurach, Germany', responsable_ue_email: 'eu@puma.com', coleccion: '', cuidados: 'Limpiar con paño húmedo' },
+          { sku: 'TIENDA-GORRA01-BLC', ean: '8412345680002', marca: 'Adidas', nombre: 'Baseball Cap', modelo: 'Aeroready Cap', categoria: 'Accesorios', genero: 'Unisex', color: 'Blanco', talla: 'Talla única', material: '100% Poliéster reciclado', imagen: 'https://ejemplo.com/adidas-cap-blanco.jpg', imagen_2: '', imagen_3: '', precio: '19.99', stock: '100', descripcion: '', variant_group_code: 'CAP-BLC', pais_fabricacion: 'China', fabricante_nombre: 'adidas AG', fabricante_nombre_comercial: 'adidas', fabricante_direccion: 'Adi-Dassler-Str. 1, 91074 Herzogenaurach, Germany', fabricante_email: 'contact@adidas.com', responsable_ue_nombre: 'adidas AG', responsable_ue_direccion: 'Adi-Dassler-Str. 1, 91074 Herzogenaurach, Germany', responsable_ue_email: 'eu-compliance@adidas.com', coleccion: '', cuidados: 'Lavado a mano' },
+          { sku: 'TIENDA-GUANT01-M-NGR', ean: '8412345680003', marca: 'Nike', nombre: 'Academy Therma-FIT', modelo: 'Academy Gloves', categoria: 'Accesorios', genero: 'Hombre', color: 'Negro', talla: 'M', material: '95% Poliéster / 5% Elastano', imagen: 'https://ejemplo.com/nike-guantes-negro.jpg', imagen_2: '', imagen_3: '', precio: '24.99', stock: '40', descripcion: '', variant_group_code: 'GLOVE-NGR', pais_fabricacion: 'China', fabricante_nombre: 'Nike Inc', fabricante_nombre_comercial: 'Nike', fabricante_direccion: 'One Bowerman Dr, Beaverton, OR 97005, USA', fabricante_email: 'contact@nike.com', responsable_ue_nombre: 'Nike European Operations Netherlands BV', responsable_ue_direccion: 'Colosseum 1, 1213NL Hilversum, Netherlands', responsable_ue_email: 'eu-compliance@nike.com', coleccion: 'Winter 2026', cuidados: 'Lavar a máquina 30°' }
+        ],
+        equipamiento: [
+          { sku: 'TIENDA-BALL01-5', ean: '8412345681001', marca: 'Adidas', nombre: 'Tiro League', modelo: 'Tiro League Ball', categoria: 'Equipamiento', genero: 'Unisex', color: 'Blanco/Negro', talla: '5', material: 'TPU/Caucho', imagen: 'https://ejemplo.com/adidas-tiro-ball.jpg', imagen_2: '', imagen_3: '', precio: '29.99', stock: '30', descripcion: '', variant_group_code: 'TIRO-BALL', pais_fabricacion: 'Pakistan', fabricante_nombre: 'adidas AG', fabricante_nombre_comercial: 'adidas', fabricante_direccion: 'Adi-Dassler-Str. 1, 91074 Herzogenaurach, Germany', fabricante_email: 'contact@adidas.com', responsable_ue_nombre: 'adidas AG', responsable_ue_direccion: 'Adi-Dassler-Str. 1, 91074 Herzogenaurach, Germany', responsable_ue_email: 'eu-compliance@adidas.com', coleccion: '', cuidados: 'Deshinchar para almacenar' },
+          { sku: 'TIENDA-YOGA01-NGR', ean: '8412345681002', marca: 'Nike', nombre: 'Fundamental Yoga Mat', modelo: 'Fundamental Mat 3mm', categoria: 'Equipamiento', genero: 'Unisex', color: 'Negro', talla: '3mm', material: 'PVC/Poliéster', imagen: 'https://ejemplo.com/nike-yoga-mat.jpg', imagen_2: '', imagen_3: '', precio: '24.99', stock: '25', descripcion: '', variant_group_code: 'YOGA-NGR', pais_fabricacion: 'Taiwan', fabricante_nombre: 'Nike Inc', fabricante_nombre_comercial: 'Nike', fabricante_direccion: 'One Bowerman Dr, Beaverton, OR 97005, USA', fabricante_email: 'contact@nike.com', responsable_ue_nombre: 'Nike European Operations Netherlands BV', responsable_ue_direccion: 'Colosseum 1, 1213NL Hilversum, Netherlands', responsable_ue_email: 'eu-compliance@nike.com', coleccion: '', cuidados: 'Limpiar con spray antibacteriano' },
+          { sku: 'TIENDA-BOTELLA01-BLC', ean: '8412345681003', marca: 'Under Armour', nombre: 'Playmaker Squeeze', modelo: 'Playmaker 950ml', categoria: 'Equipamiento', genero: 'Unisex', color: 'Blanco', talla: '950ml', material: 'Polipropileno / Silicona', imagen: 'https://ejemplo.com/ua-bottle-blanco.jpg', imagen_2: '', imagen_3: '', precio: '14.99', stock: '75', descripcion: '', variant_group_code: 'BOTTLE-BLC', pais_fabricacion: 'China', fabricante_nombre: 'Under Armour Inc', fabricante_nombre_comercial: 'Under Armour', fabricante_direccion: '1020 Hull St, Baltimore, MD 21230, USA', fabricante_email: 'info@underarmour.com', responsable_ue_nombre: 'Under Armour Europe BV', responsable_ue_direccion: 'Stadionplein 10, 1076 CM Amsterdam, Netherlands', responsable_ue_email: 'eu@underarmour.com', coleccion: '', cuidados: 'Lavaplatos seguro' }
+        ]
+      };
+      const rows = examples[cat] || examples.calzado;
+      const instructionRow = {};
+      headers.forEach(h => { instructionRow[h] = instructions[h] || ''; });
+      const wsData = [instructionRow, ...rows];
+      const ws = XLSX.utils.json_to_sheet(wsData, { header: headers });
+      const obligatorios = ['sku', 'ean', 'marca', 'nombre', 'categoria', 'genero', 'talla', 'material', 'imagen', 'pais_fabricacion', 'fabricante_nombre', 'fabricante_nombre_comercial', 'fabricante_direccion', 'fabricante_email'];
+      const colWidths = headers.map(h => ({ wch: Math.max(h.length + 2, 18) }));
+      ws['!cols'] = colWidths;
+      headers.forEach((h, i) => {
+        const col = XLSX.utils.encode_col(i);
+        const cellRef = col + '1';
+        if (!ws[cellRef]) ws[cellRef] = { t: 's', v: h };
+        if (obligatorios.includes(h)) {
+          ws[cellRef].s = { fill: { fgColor: { rgb: 'FFDDDD' } }, font: { bold: true, color: { rgb: 'CC0000' } } };
+        } else {
+          ws[cellRef].s = { fill: { fgColor: { rgb: 'DDFFDD' } }, font: { bold: true } };
+        }
+        const instrRef = col + '2';
+        if (ws[instrRef]) {
+          ws[instrRef].s = { font: { italic: true, color: { rgb: '666666' } }, fill: { fgColor: { rgb: 'FFF9E6' } } };
+        }
+      });
+      const instrWs = XLSX.utils.aoa_to_sheet([
+        ['INSTRUCCIONES — Plantilla Katalync para Sprinter'],
+        [''],
+        ['1. La fila 2 (amarilla) contiene instrucciones para cada columna. BÓRRALA antes de subir.'],
+        ['2. Las columnas con header ROJO son OBLIGATORIAS.'],
+        ['3. Las columnas con header VERDE son opcionales pero recomendadas.'],
+        ['4. Cada fila = una variante (talla/color). Agrupa variantes con variant_group_code.'],
+        ['5. Las imágenes deben ser URLs públicas (no Google Drive ni Dropbox).'],
+        ['6. Katalync convertirá las imágenes a formato 2:3 automáticamente.'],
+        ['7. Los campos GPSR (fabricante_*) son OBLIGATORIOS por normativa europea.'],
+        ['8. El EAN debe ser un código de barras válido de 13 dígitos.'],
+        ['9. Usa punto (.) como separador decimal en precios: 129.99'],
+        ['10. Puedes dejar vacío el campo descripcion — Katalync lo genera automáticamente.'],
+        [''],
+        ['Campos GPSR obligatorios:'],
+        ['- pais_fabricacion: País donde se fabrica el producto'],
+        ['- fabricante_nombre: Razón social del fabricante'],
+        ['- fabricante_nombre_comercial: Nombre comercial registrado'],
+        ['- fabricante_direccion: Dirección postal completa'],
+        ['- fabricante_email: Email de contacto del fabricante'],
+        [''],
+        ['Campos GPSR opcionales (necesarios para campañas/promociones):'],
+        ['- responsable_ue_nombre: Persona responsable en la UE'],
+        ['- responsable_ue_direccion: Dirección del responsable en la UE'],
+        ['- responsable_ue_email: Email del responsable en la UE'],
+        [''],
+        ['¿Dudas? Usa el chatbot Ana en la app o contacta alberto@prometeix.com']
+      ]);
+      instrWs['!cols'] = [{ wch: 80 }];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+      XLSX.utils.book_append_sheet(wb, instrWs, this.t('tpl_sheet_instructions'));
+      const catName = { calzado: 'calzado', ropa: 'ropa', accesorios: 'accesorios', equipamiento: 'equipamiento' };
+      XLSX.writeFile(wb, 'plantilla_katalync_' + (catName[cat] || cat) + '.xlsx');
+    },
+
     async saveFileToAccount(tool, filename, count, csvBase64, marketplace) {
       if (!this.authToken || !csvBase64) return;
       try {
@@ -1053,10 +1198,12 @@ function app() {
     },
     makeBlobUrl(base64, mime) { const raw = atob(base64); const bytes = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i); return URL.createObjectURL(new Blob([bytes], { type: mime || 'text/csv;charset=utf-8' })); },
 
+    templateCategory: 'calzado',
     catalogStep: 'upload', catalogMarketplace: 'sprinter_es', catalogRatio: '2:3', catalogGenDesc: true, catalogGenTitle: true, catalogConvertImages: true, catalogRemoveBg: false,
     catalogShipmentOrigin: 'ES', catalogVatPct: 'ES-21%,PT-23%', catalogOfferState: 'Nuevo',
     catalogFile: null, catalogRows: [], catalogCols: [], catalogTotalProducts: 0, catalogLog: [],
-    showCatalogErrors: false, catalogResults: { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '', productsUrl: '', productsFilename: '', offersUrl: '', offersFilename: '' },
+    showCatalogErrors: false, healthReport: null, showHealthDetail: false,
+    catalogResults: { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '', productsUrl: '', productsFilename: '', offersUrl: '', offersFilename: '' },
     handleCatalogDrop(event) { event.currentTarget.classList.remove('dragover'); const file = event.dataTransfer.files[0]; if (file && this.isValidExcel(file)) { this.catalogFile = file; this.loadCatalogExcel(file); } },
     handleCatalogSelect(event) { const file = event.target.files[0]; if (file) { this.catalogFile = file; this.loadCatalogExcel(file); } },
     async loadCatalogExcel(file) { const rows = await this.parseExcel(file); this.catalogRows = rows; this.catalogCols = rows.length > 0 ? Object.keys(rows[0]) : []; },
@@ -1092,10 +1239,95 @@ function app() {
         this.saveFileToAccount('catalog', result.productsFilename || result.csvFilename, result.success, productsB64 || result.csvBase64, this.catalogMarketplace);
         this.sendBrowserNotif(this.t('notif_catalog_done'), (result.success || 0) + ' ' + this.t('products_ok'));
         this.createServerNotification(this.t('notif_catalog_done') + ': ' + (result.success || 0) + ' ' + this.t('products_ok'));
+        this.healthReport = this.generateHealthReport(result, this.catalogRows);
         this.catalogStep = 'results';
       } catch (err) { this.addLog(this.catalogLog, 'catalogLogContainer', 'error', 'Error: ' + err.message); }
     },
-    resetCatalog() { this.catalogStep = 'upload'; this.catalogFile = null; this.catalogRows = []; this.catalogCols = []; this.catalogTotalProducts = 0; this.catalogLog = []; this.showCatalogErrors = false; this.catalogResults = { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '', productsUrl: '', productsFilename: '', offersUrl: '', offersFilename: '' }; },
+    resetCatalog() { this.catalogStep = 'upload'; this.catalogFile = null; this.catalogRows = []; this.catalogCols = []; this.catalogTotalProducts = 0; this.catalogLog = []; this.showCatalogErrors = false; this.healthReport = null; this.showHealthDetail = false; this.catalogResults = { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '', productsUrl: '', productsFilename: '', offersUrl: '', offersFilename: '' }; },
+
+    generateHealthReport(result, inputRows) {
+      const total = inputRows.length || 1;
+      const checks = [];
+      const mandatory = ['sku', 'ean', 'marca', 'nombre', 'categoria', 'genero', 'talla', 'material', 'imagen', 'pais_fabricacion', 'pais fabricacion', 'fabricante_nombre', 'fabricante_nombre_comercial', 'fabricante_direccion', 'fabricante_email'];
+      const mandatoryLabels = { sku: 'SKU', ean: 'EAN', marca: 'Marca', nombre: 'Nombre', categoria: 'Categoría', genero: 'Género', talla: 'Talla', material: 'Material', imagen: 'Imagen principal', pais_fabricacion: 'País fabricación', 'pais fabricacion': 'País fabricación', fabricante_nombre: 'Fabricante nombre', fabricante_nombre_comercial: 'Fabricante nombre comercial', fabricante_direccion: 'Fabricante dirección', fabricante_email: 'Fabricante email' };
+      const imgFields = ['imagen', 'imagen_2', 'imagen_3', 'image_url', 'imageUrl', 'foto', 'URL Imagen'];
+      let score = 100;
+      const recommendations = [];
+      const availableKeys = inputRows.length > 0 ? Object.keys(inputRows[0]).map(k => k.toLowerCase().trim()) : [];
+      for (const field of mandatory) {
+        const fieldLow = field.toLowerCase();
+        const hasKey = availableKeys.some(k => k === fieldLow || k.replace(/[\s_-]/g, '') === fieldLow.replace(/[\s_-]/g, ''));
+        if (!hasKey) {
+          checks.push({ field: mandatoryLabels[field] || field, status: 'missing', count: 0, total, pct: 0 });
+          score -= 5;
+          continue;
+        }
+        let filled = 0;
+        for (const row of inputRows) {
+          const val = Object.entries(row).find(([k]) => k.toLowerCase().trim() === fieldLow || k.toLowerCase().replace(/[\s_-]/g, '') === fieldLow.replace(/[\s_-]/g, ''));
+          if (val && val[1] && String(val[1]).trim()) filled++;
+        }
+        const pct = Math.round((filled / total) * 100);
+        checks.push({ field: mandatoryLabels[field] || field, status: pct === 100 ? 'ok' : pct >= 80 ? 'warn' : 'error', count: filled, total, pct });
+        if (pct < 100) score -= Math.round((100 - pct) / 20);
+      }
+      let withImg2 = 0, withImg3 = 0;
+      for (const row of inputRows) {
+        const keys = Object.keys(row);
+        const img2Key = keys.find(k => k.toLowerCase().match(/imagen.?2|image.?2|imagenes.?2/));
+        const img3Key = keys.find(k => k.toLowerCase().match(/imagen.?3|image.?3|imagenes.?3/));
+        if (img2Key && row[img2Key] && String(row[img2Key]).trim()) withImg2++;
+        if (img3Key && row[img3Key] && String(row[img3Key]).trim()) withImg3++;
+      }
+      const img2Pct = Math.round((withImg2 / total) * 100);
+      const img3Pct = Math.round((withImg3 / total) * 100);
+      if (img2Pct < 80) recommendations.push({ impact: 'high', text: this.lang === 'es' ? `Añade imagen 2 a ${total - withImg2} productos — mejora la conversión un 35% en Sprinter` : `Adicione imagem 2 a ${total - withImg2} produtos — melhora a conversão 35% no Sprinter` });
+      if (img3Pct < 50) recommendations.push({ impact: 'medium', text: this.lang === 'es' ? `Añade imagen 3 a ${total - withImg3} productos para una ficha más completa` : `Adicione imagem 3 a ${total - withImg3} produtos para uma ficha mais completa` });
+      if (result.errors > 0) {
+        score -= result.errors * 3;
+        recommendations.push({ impact: 'high', text: this.lang === 'es' ? `${result.errors} productos con errores — revisa los campos obligatorios antes de subir` : `${result.errors} produtos com erros — revise os campos obrigatórios antes de enviar` });
+      }
+      const descKey = inputRows.length > 0 ? Object.keys(inputRows[0]).find(k => k.toLowerCase().match(/desc/)) : null;
+      if (descKey) {
+        const withDesc = inputRows.filter(r => r[descKey] && String(r[descKey]).trim().length > 10).length;
+        const descPct = Math.round((withDesc / total) * 100);
+        if (descPct < 80) recommendations.push({ impact: 'medium', text: this.lang === 'es' ? `Completa la descripción en ${total - withDesc} productos — Mirakl lo muestra en la ficha` : `Complete a descrição em ${total - withDesc} produtos — Mirakl mostra-a na ficha` });
+      }
+      const gpsrFields = ['responsable_ue_nombre', 'responsable_ue_direccion', 'responsable_ue_email'];
+      let gpsrMissing = 0;
+      for (const gf of gpsrFields) {
+        if (!availableKeys.some(k => k.replace(/[\s_-]/g, '') === gf.replace(/[\s_-]/g, ''))) gpsrMissing++;
+      }
+      if (gpsrMissing > 0) recommendations.push({ impact: 'medium', text: this.lang === 'es' ? `Falta GPSR Responsable UE en ${gpsrMissing} campos — obligatorio para campañas y promociones` : `Falta GPSR Responsável UE em ${gpsrMissing} campos — obrigatório para campanhas e promoções` });
+      score = Math.max(0, Math.min(100, score));
+      return { score, checks, recommendations: recommendations.slice(0, 5), totalProducts: total, successProducts: result.success || 0, errorProducts: result.errors || 0, img2Pct, img3Pct };
+    },
+
+    downloadHealthReport() {
+      if (!this.healthReport) return;
+      const r = this.healthReport;
+      const scoreColor = r.score >= 80 ? '#10b981' : r.score >= 50 ? '#f59e0b' : '#ef4444';
+      const checksHtml = r.checks.map(c => {
+        const icon = c.status === 'ok' ? '&#10004;' : c.status === 'warn' ? '&#9888;' : '&#10008;';
+        const color = c.status === 'ok' ? '#10b981' : c.status === 'warn' ? '#f59e0b' : '#ef4444';
+        return `<tr><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;"><span style="color:${color};font-size:16px;margin-right:8px;">${icon}</span>${c.field}</td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;text-align:center;font-weight:600;">${c.pct}%</td><td style="padding:8px 12px;border-bottom:1px solid #f1f5f9;color:#64748b;">${c.count}/${c.total}</td></tr>`;
+      }).join('');
+      const recsHtml = r.recommendations.map(rec => `<div style="padding:12px 16px;background:#fffbeb;border-left:3px solid #f59e0b;border-radius:0 8px 8px 0;margin-bottom:8px;font-size:14px;color:#78350f;">${rec.text}</div>`).join('');
+      const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Informe de Salud — Katalync</title></head><body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;max-width:700px;margin:0 auto;padding:40px 24px;color:#0f172a;background:#fff;">
+<div style="text-align:center;margin-bottom:32px;"><h1 style="font-size:24px;margin:0 0 4px;">Informe de Salud del Catálogo</h1><p style="color:#64748b;font-size:14px;margin:0;">Generado por Katalync — ${new Date().toLocaleDateString()}</p></div>
+<div style="text-align:center;margin-bottom:32px;"><div style="display:inline-block;width:120px;height:120px;border-radius:50%;border:8px solid ${scoreColor};display:flex;align-items:center;justify-content:center;"><span style="font-size:42px;font-weight:700;color:${scoreColor};">${r.score}</span></div><p style="margin-top:8px;font-size:14px;color:#64748b;">/100</p></div>
+<div style="display:flex;gap:16px;margin-bottom:32px;justify-content:center;"><div style="text-align:center;padding:16px 24px;background:#f0fdf4;border-radius:12px;"><div style="font-size:24px;font-weight:700;color:#10b981;">${r.successProducts}</div><div style="font-size:12px;color:#64748b;">Productos OK</div></div><div style="text-align:center;padding:16px 24px;background:#fef2f2;border-radius:12px;"><div style="font-size:24px;font-weight:700;color:#ef4444;">${r.errorProducts}</div><div style="font-size:12px;color:#64748b;">Con errores</div></div><div style="text-align:center;padding:16px 24px;background:#f0f9ff;border-radius:12px;"><div style="font-size:24px;font-weight:700;color:#0ea5e9;">${r.img2Pct}%</div><div style="font-size:12px;color:#64748b;">Con imagen 2</div></div></div>
+<h2 style="font-size:18px;margin-bottom:12px;">Checklist de campos</h2>
+<table style="width:100%;border-collapse:collapse;margin-bottom:32px;"><thead><tr style="background:#f8fafc;"><th style="padding:10px 12px;text-align:left;font-size:13px;color:#64748b;">Campo</th><th style="padding:10px 12px;text-align:center;font-size:13px;color:#64748b;">Completitud</th><th style="padding:10px 12px;text-align:left;font-size:13px;color:#64748b;">Detalle</th></tr></thead><tbody>${checksHtml}</tbody></table>
+${recsHtml ? '<h2 style="font-size:18px;margin-bottom:12px;">Recomendaciones</h2>' + recsHtml : ''}
+<div style="text-align:center;margin-top:40px;padding-top:24px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px;">Generado por Katalync — katalync.com</div>
+</body></html>`;
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'informe_salud_katalync_' + new Date().toISOString().slice(0, 10) + '.html';
+      a.click(); URL.revokeObjectURL(url);
+    },
 
     priceStep: 'upload', priceMarketplace: 'sprinter_es', priceIncludeDiscount: false, pricePromoTag: '',
     priceFile: null, priceRows: [], priceCols: [], priceTotalProducts: 0, priceLog: [],
@@ -1315,25 +1547,50 @@ function app() {
     },
     resetRepricing() { this.repricingStep = 'upload'; this.repricingProductFile = null; this.repricingProductRows = []; this.repricingProductCols = []; this.repricingCompFile = null; this.repricingCompRows = []; this.repricingCompCols = []; this.repricingLog = []; this.repricingResults = { recommendations: [], summary: {}, csvUrl: '', csvFilename: '' }; },
 
-    chatOpen: false, chatInput: '', chatMessages: [], chatTyping: false,
+    chatOpen: false, chatInput: '', chatMessages: [], chatTyping: false, chatHistory: [],
 
     chatInit() {
       this.chatMessages = [{ role: 'bot', text: this.t('chat_welcome') }];
+      this.chatHistory = [];
     },
 
-    chatSend() {
+    async chatSend() {
       const q = this.chatInput.trim();
-      if (!q) return;
+      if (!q || this.chatTyping) return;
       this.chatMessages.push({ role: 'user', text: q });
       this.chatInput = '';
       this.chatTyping = true;
       this.$nextTick(() => { const el = this.$refs.chatBody; if (el) el.scrollTop = el.scrollHeight; });
-      setTimeout(() => {
-        const answer = this._chatAnswer(q);
-        this.chatMessages.push({ role: 'bot', text: answer });
-        this.chatTyping = false;
-        this.$nextTick(() => { const el = this.$refs.chatBody; if (el) el.scrollTop = el.scrollHeight; });
-      }, 400 + Math.random() * 400);
+
+      if (this._chatBlocked(q)) {
+        setTimeout(() => {
+          this.chatMessages.push({ role: 'bot', text: this.t('chat_blocked') });
+          this.chatTyping = false;
+          this.$nextTick(() => { const el = this.$refs.chatBody; if (el) el.scrollTop = el.scrollHeight; });
+        }, 300);
+        return;
+      }
+
+      try {
+        const resp = await fetch(N8N_WEBHOOK_BASE + '/webhook/katalync-chat-ai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (this.authToken || '') },
+          body: JSON.stringify({ question: q, history: this.chatHistory.slice(-10), lang: this.lang })
+        });
+        const data = await resp.json();
+        if (resp.ok && data.answer) {
+          this.chatHistory.push({ role: 'user', content: q }, { role: 'assistant', content: data.answer });
+          this.chatMessages.push({ role: 'bot', text: data.answer });
+        } else {
+          const fallback = this._chatAnswerStatic(q);
+          this.chatMessages.push({ role: 'bot', text: fallback });
+        }
+      } catch(e) {
+        const fallback = this._chatAnswerStatic(q);
+        this.chatMessages.push({ role: 'bot', text: fallback });
+      }
+      this.chatTyping = false;
+      this.$nextTick(() => { const el = this.$refs.chatBody; if (el) el.scrollTop = el.scrollHeight; });
     },
 
     _chatBlocked(q) {
@@ -1342,8 +1599,7 @@ function app() {
       return blocked.some(b => low.includes(b.normalize('NFD').replace(/[̀-ͯ]/g, '')));
     },
 
-    _chatAnswer(q) {
-      if (this._chatBlocked(q)) return this.t('chat_blocked');
+    _chatAnswerStatic(q) {
       const low = q.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
       const kb = this._chatKB();
       let bestMatch = null; let bestScore = 0;
@@ -1431,8 +1687,8 @@ function app() {
           a: { es: 'Para contactar con soporte:\n\n1. Ve al menú de usuario (arriba a la derecha)\n2. Pulsa "Soporte"\n3. Rellena el formulario con tu consulta\n4. Se abrirá tu cliente de correo para enviarlo\n\nTambién puedes escribir directamente a: albertorodriguezuson07@gmail.com',
                pt: 'Para contactar o suporte:\n\n1. Vá ao menu do usuário (canto superior direito)\n2. Clique em "Suporte"\n3. Preencha o formulário com sua consulta\n4. Abrirá seu cliente de email para enviar\n\nTambém pode escrever diretamente para: albertorodriguezuson07@gmail.com' }},
         { k: ['suscripcion', 'suscripción', 'plan', 'pagar', 'pago', 'activar suscripcion', 'precio', 'cuanto cuesta', 'coste', 'cuota', 'mensual'],
-          a: { es: 'Katalync tiene dos planes de suscripción:\n\n- Vendedor: 39€/mes — acceso completo a todas las herramientas (Conversor, Precios, Stock, Validación y Repricing)\n- Marketplace Partner: 99€/mes — todo lo anterior + dashboard de gestión de vendedores\n\nLa suscripción se activa tras el pago con tarjeta. Se renueva automáticamente cada mes y puedes cancelar en cualquier momento.',
-               pt: 'O Katalync tem dois planos de assinatura:\n\n- Vendedor: 39€/mês — acesso completo a todas as ferramentas (Conversor, Preços, Estoque, Validação e Repricing)\n- Marketplace Partner: 99€/mês — tudo acima + dashboard de gestão de vendedores\n\nA assinatura é ativada após o pagamento com cartão. Renova automaticamente a cada mês e pode cancelar a qualquer momento.' }},
+          a: { es: 'Katalync tiene dos planes:\n\n- Katalync: 39€/mes — acceso completo a todas las herramientas (Conversor dual XLSX, Precios, Stock, Validación GPSR, Repricing, Chatbot IA, Informe de Salud, Plantillas inteligentes). Self-service.\n\n- Katalync Partner: 499€/mes — todo lo anterior + gestión dedicada completa: onboarding personalizado, nosotros subimos y gestionamos tu catálogo, procesamiento profesional de imágenes, optimización de títulos, soporte prioritario WhatsApp/email, reporting mensual, formación de tu equipo. Tú vendes, nosotros nos encargamos del marketplace.\n\nLa suscripción se activa tras el pago con tarjeta. Se renueva automáticamente cada mes y puedes cancelar en cualquier momento.',
+               pt: 'O Katalync tem dois planos:\n\n- Katalync: 39€/mês — acesso completo a todas as ferramentas (Conversor dual XLSX, Preços, Estoque, Validação GPSR, Repricing, Chatbot IA, Relatório de Saúde, Templates inteligentes). Self-service.\n\n- Katalync Partner: 499€/mês — tudo acima + gestão dedicada completa: onboarding personalizado, nós enviamos e gerimos o seu catálogo, processamento profissional de imagens, otimização de títulos, suporte prioritário WhatsApp/email, reporting mensal, formação da sua equipa. Você vende, nós cuidamos do marketplace.\n\nA assinatura é ativada após o pagamento com cartão. Renova automaticamente a cada mês e pode cancelar a qualquer momento.' }},
         { k: ['facturacion', 'facturación', 'factura', 'recibo', 'cambiar tarjeta', 'metodo de pago', 'método de pago', 'cancelar suscripcion', 'cancelar plan', 'portal de facturacion', 'billing'],
           a: { es: 'Puedes gestionar tu suscripción desde el portal de facturación:\n\n1. Ve al menú de usuario (arriba a la derecha)\n2. Pulsa "Facturación"\n3. Desde ahí puedes:\n   - Ver tu historial de facturas\n   - Cambiar tu método de pago\n   - Cancelar tu suscripción\n\nLa cancelación se aplica al final del periodo de facturación actual, así que no pierdes días que ya has pagado.',
                pt: 'Pode gerir sua assinatura no portal de faturação:\n\n1. Vá ao menu do usuário (canto superior direito)\n2. Clique em "Faturação"\n3. A partir daí pode:\n   - Ver seu histórico de faturas\n   - Alterar seu método de pagamento\n   - Cancelar sua assinatura\n\nO cancelamento aplica-se no final do período de faturação atual, para não perder dias já pagos.' }},

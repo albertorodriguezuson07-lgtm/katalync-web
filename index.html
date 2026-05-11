@@ -294,7 +294,7 @@
         .step-card h3 { font-size: 15px; color: var(--text); font-weight: 600; }
 
         /* ═══════════════ FEATURES ═══════════════ */
-        .features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+        .features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
         .feature-card {
             background: var(--white); border: 1px solid var(--border);
             border-radius: var(--radius-lg); padding: 32px;
@@ -342,18 +342,25 @@
         .trust-icon { width: 20px; height: 20px; color: var(--primary); }
 
         /* ═══════════════ PRICING ═══════════════ */
+        .pricing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 900px; margin: 0 auto; }
         .pricing-card {
             background: var(--white); border: 2px solid var(--border);
-            border-radius: var(--radius-xl); padding: 48px;
-            max-width: 480px; margin: 0 auto; text-align: center;
+            border-radius: var(--radius-xl); padding: 40px;
+            text-align: center;
             transition: all var(--transition); position: relative;
         }
         .pricing-card:hover { border-color: var(--primary); box-shadow: 0 20px 60px rgba(13,148,136,0.1); }
+        .pricing-card.featured { border-color: var(--primary); background: linear-gradient(180deg, rgba(13,148,136,0.03) 0%, var(--white) 100%); }
+        .pricing-card.featured::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--gradient); border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+        .pricing-badge { display: inline-block; background: var(--gradient); color: white; font-size: 11px; font-weight: 700; padding: 4px 14px; border-radius: 100px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
         .pricing-card h3 { font-size: 22px; margin-bottom: 6px; }
-        .pricing-card .price-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 28px; }
+        .pricing-price { font-family: 'Space Grotesk', sans-serif; font-size: 42px; font-weight: 700; color: var(--text); line-height: 1; margin-bottom: 4px; }
+        .pricing-price span { font-size: 16px; font-weight: 500; color: var(--text-muted); }
+        .pricing-card .price-desc { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
         .pricing-list { list-style: none; text-align: left; margin-bottom: 32px; }
-        .pricing-list li { padding: 11px 0; border-bottom: 1px solid var(--surface); display: flex; align-items: center; gap: 12px; font-size: 14px; color: var(--text-secondary); }
-        .pricing-list li svg { width: 20px; height: 20px; color: var(--primary); flex-shrink: 0; }
+        .pricing-list li { padding: 10px 0; border-bottom: 1px solid var(--surface); display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--text-secondary); }
+        .pricing-list li svg { width: 20px; height: 20px; color: var(--primary); flex-shrink: 0; margin-top: 1px; }
+        @media (max-width: 768px) { .pricing-grid { grid-template-columns: 1fr; } }
 
         /* ═══════════════ FAQ ═══════════════ */
         .faq-item { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; overflow: hidden; transition: all var(--transition); }
@@ -516,7 +523,7 @@
             .metric-item:nth-child(2)::after { display: none; }
             .steps-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
             .steps-grid::before { display: none; }
-            .features-grid { grid-template-columns: 1fr 1fr; }
+            .features-grid { grid-template-columns: repeat(2, 1fr); }
             .transform-grid { grid-template-columns: 1fr; }
             .transform-arrow { transform: rotate(90deg); }
             .footer-inner { flex-direction: column; text-align: center; }
@@ -862,6 +869,18 @@
                     <p x-text="t.feat.f6.desc"></p>
                     <span class="feature-stat" x-text="t.feat.f6.stat"></span>
                 </div>
+                <div class="feature-card reveal stagger-3">
+                    <div class="feature-icon-wrap"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+                    <h3 x-text="t.feat.f7.title"></h3>
+                    <p x-text="t.feat.f7.desc"></p>
+                    <span class="feature-stat" x-text="t.feat.f7.stat"></span>
+                </div>
+                <div class="feature-card reveal stagger-4">
+                    <div class="feature-icon-wrap"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+                    <h3 x-text="t.feat.f8.title"></h3>
+                    <p x-text="t.feat.f8.desc"></p>
+                    <span class="feature-stat" x-text="t.feat.f8.stat"></span>
+                </div>
             </div>
         </div>
     </section>
@@ -905,19 +924,38 @@
             <span class="section-tag reveal" x-text="t.pricing.tag"></span>
             <h2 class="section-title reveal" x-text="t.pricing.title"></h2>
             <p class="section-desc reveal" x-text="t.pricing.desc"></p>
-            <div class="pricing-card reveal">
-                <h3 x-text="t.pricing.plan"></h3>
-                <p class="price-desc" x-text="t.pricing.planDesc"></p>
-                <ul class="pricing-list">
-                    <template x-for="item in t.pricing.items" :key="item">
-                        <li>
-                            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-                            <span x-text="item"></span>
-                        </li>
-                    </template>
-                </ul>
-                <a href="mailto:alberto@prometeix.com" class="btn btn-primary btn-lg" style="width:100%;" x-text="t.pricing.cta"></a>
-                <p class="pricing-micro" x-text="t.pricing.micro"></p>
+            <div class="pricing-grid">
+                <div class="pricing-card reveal">
+                    <h3 x-text="t.pricing.plan1Name"></h3>
+                    <div class="pricing-price">39€<span>/mes</span></div>
+                    <p class="price-desc" x-text="t.pricing.plan1Desc"></p>
+                    <ul class="pricing-list">
+                        <template x-for="item in t.pricing.plan1Items" :key="item">
+                            <li>
+                                <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                <span x-text="item"></span>
+                            </li>
+                        </template>
+                    </ul>
+                    <a href="mailto:alberto@prometeix.com" class="btn btn-primary btn-lg" style="width:100%;" x-text="t.pricing.cta"></a>
+                    <p class="pricing-micro" x-text="t.pricing.micro"></p>
+                </div>
+                <div class="pricing-card featured reveal">
+                    <span class="pricing-badge" x-text="t.pricing.popular"></span>
+                    <h3 x-text="t.pricing.plan2Name"></h3>
+                    <div class="pricing-price">499€<span>/mes</span></div>
+                    <p class="price-desc" x-text="t.pricing.plan2Desc"></p>
+                    <ul class="pricing-list">
+                        <template x-for="item in t.pricing.plan2Items" :key="item">
+                            <li>
+                                <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                                <span x-text="item"></span>
+                            </li>
+                        </template>
+                    </ul>
+                    <a href="mailto:alberto@prometeix.com" class="btn btn-primary btn-lg" style="width:100%;" x-text="t.pricing.cta2"></a>
+                    <p class="pricing-micro" x-text="t.pricing.micro"></p>
+                </div>
             </div>
         </div>
     </section>
@@ -1042,23 +1080,23 @@
             es: {
                 nav: { features: 'Funciones', how: 'Proceso', pricing: 'Precios', faq: 'FAQ', login: 'Iniciar sesión', demo: 'Solicitar demo' },
                 hero: {
-                    badge: 'Compatible con Sprinter y Sport Zone',
+                    badge: 'Especializado en Sprinter y marketplaces Mirakl',
                     h1a: 'Tu catálogo listo para marketplace',
                     h1b: 'en minutos, no en días.',
-                    sub: 'Katalync automatiza la conversión, validación y sincronización de productos para cualquier marketplace Mirakl. Menos errores. Más ventas.',
+                    sub: 'Katalync automatiza la conversión a XLSX dual (Productos + Ofertas), valida GPSR y EAN, procesa imágenes 2:3 y genera archivos Mirakl-ready. Menos errores. Más ventas.',
                     stat1: 'Productos procesados', stat2: 'Tasa de aprobación', stat3: 'Tiempo medio'
                 },
                 mockup: { products: 'Productos', validated: 'Validados', activity: 'Actividad reciente', processing: 'En proceso' },
                 metrics: { m1: 'Productos procesados', m2: 'Ahorradas al mes', m3: 'Tasa de aprobación', m4: 'Más rápido que manual' },
                 transform: {
                     tag: 'El problema',
-                    title: 'De Excel caótico a CSV perfecto',
+                    title: 'De Excel caótico a XLSX Mirakl perfecto',
                     desc: 'Mira la diferencia entre gestionar tu catálogo manualmente y hacerlo con Katalync.',
                     before: 'Sin Katalync', after: 'Con Katalync',
                     beforeTitle: 'Proceso manual',
                     afterTitle: 'Proceso automatizado',
-                    beforeList: ['4-8 horas reformateando Excel', 'Imágenes rechazadas por ratio incorrecto', 'EAN inválidos que bloquean la subida', 'Precios desincronizados con tu ERP', 'Rechazos constantes del marketplace'],
-                    afterList: ['Subida de Excel y descarga en 2 minutos', 'Imágenes convertidas a 2:3 automáticamente', 'Validación de EAN, SKU y campos en tiempo real', 'CSV listo para importar directamente', 'Tasa de aprobación del 98%+']
+                    beforeList: ['4-8 horas reformateando Excel', 'Imágenes rechazadas por ratio incorrecto', 'EAN inválidos que bloquean la subida', 'Campos GPSR incompletos = rechazo seguro', 'Rechazos constantes del marketplace'],
+                    afterList: ['Subida de Excel y descarga en 2 minutos', '2 archivos XLSX listos (Productos 42 cols + Ofertas 27 cols)', 'Validación GPSR automática + EAN-13 con checksum', 'Imágenes convertidas a 2:3 con CDN propio', 'Informe de salud del catálogo con score 0-100']
                 },
                 roi: {
                     tag: 'Calculadora ROI',
@@ -1072,39 +1110,47 @@
                     saved: 'Horas ahorradas al mes'
                 },
                 how: {
-                    tag: 'Proceso', title: 'De tu Excel al marketplace', desc: 'Cuatro pasos simples. Sin configuración compleja. Tu marketplace te da de alta y empiezas a trabajar.',
-                    step: 'Paso', s1: 'Tu marketplace te registra', s2: 'Activa tu suscripción', s3: 'Sube tu Excel', s4: 'Descarga CSV listo para Mirakl'
+                    tag: 'Proceso', title: 'De tu Excel al marketplace', desc: 'Cuatro pasos simples. Sin configuración compleja. Regístrate y empieza a trabajar.',
+                    step: 'Paso', s1: 'Crea tu cuenta', s2: 'Activa tu suscripción', s3: 'Sube tu Excel', s4: 'Descarga XLSX listo para Mirakl'
                 },
                 feat: {
-                    tag: 'Herramientas', title: 'Todo lo que necesitas en un solo lugar', desc: 'Cinco herramientas + panel de gestión diseñadas para sellers y marketplaces que quieren resultados, no trabajo extra.',
-                    f1: { title: 'Conversor de Catálogo', desc: 'Títulos, descripciones, imágenes 2:3 a CDN y CSV Mirakl-ready. De tu Excel al marketplace sin tocar nada.', stat: '~ 2 min por catálogo' },
-                    f2: { title: 'Actualización de Precios', desc: 'CSV de precios y descuentos listo para importar. Gestiona promociones y precios base en segundos.', stat: 'Bulk updates ilimitados' },
+                    tag: 'Herramientas', title: 'Todo lo que necesitas en un solo lugar', desc: 'Ocho herramientas diseñadas para sellers de Sprinter y marketplaces Mirakl que quieren resultados, no trabajo extra.',
+                    f1: { title: 'Conversor Dual XLSX', desc: 'Genera 2 archivos XLSX (Productos 42 columnas + Ofertas 27 columnas) con doble header row Mirakl. De tu Excel al marketplace sin tocar nada.', stat: '~ 2 min por catálogo' },
+                    f2: { title: 'Actualización de Precios', desc: 'XLSX de precios y descuentos listo para importar. Gestiona promociones y precios base en segundos.', stat: 'Bulk updates ilimitados' },
                     f3: { title: 'Sincronización de Stock', desc: 'Actualiza stock directamente desde tu Excel. Evita overselling y mantente siempre al día.', stat: 'Actualización en tiempo real' },
-                    f4: { title: 'Validación Pre-Upload', desc: 'Valida EAN, imágenes y campos obligatorios antes de subir. Cero rechazos, cero sorpresas.', stat: '98.2% tasa de aprobación' },
+                    f4: { title: 'Validación Pre-Upload', desc: 'Valida GPSR completo, EAN-13 con checksum, imágenes y campos obligatorios antes de subir. Cero rechazos.', stat: '98.2% tasa de aprobación' },
                     f5: { title: 'Repricing Inteligente', desc: 'Compara tus precios con los de la competencia y genera recomendaciones automáticas para maximizar ventas y márgenes.', stat: 'Análisis competitivo en segundos' },
-                    f6: { title: 'Portal Marketplace', desc: 'Panel de administración para marketplaces. Gestiona vendedores, monitoriza su actividad, controla suscripciones y onboarding desde un solo lugar.', stat: 'Gestión centralizada' }
+                    f6: { title: 'Portal Marketplace', desc: 'Panel de administración para marketplaces. Gestiona vendedores, monitoriza su actividad, controla suscripciones y onboarding desde un solo lugar.', stat: 'Gestión centralizada' },
+                    f7: { title: 'Chatbot IA Integrado', desc: 'Ana, tu asistente IA, responde preguntas sobre Sprinter, diagnostica errores de catálogo y guía vendedores novatos. Disponible 24/7.', stat: 'Respuestas instantáneas con IA' },
+                    f8: { title: 'Informe de Salud', desc: 'Score de calidad 0-100 tras cada procesamiento con checklist de campos obligatorios, métricas y recomendaciones concretas. Descargable como informe.', stat: 'Detección de errores antes de subir' }
                 },
-                integrations: { tag: 'Integraciones', title: 'Compatible con los principales marketplaces', desc: 'Genera archivos listos para importar en cualquier plataforma Mirakl.', extra: 'Y cualquier marketplace basado en Mirakl' },
+                integrations: { tag: 'Integraciones', title: 'Especializado en Sprinter y marketplaces Mirakl', desc: 'Genera archivos XLSX listos para importar con el formato exacto que exige cada plataforma Mirakl.', extra: 'Compatible con cualquier marketplace basado en Mirakl' },
                 trust: { ssl: 'Cifrado SSL', gdpr: 'GDPR compliant', uptime: '99.9% uptime', eu: 'Servidores en la UE' },
                 pricing: {
-                    tag: 'Precios', title: 'Simple, transparente, sin sorpresas', desc: 'Suscripción mensual con acceso completo. Actívate en minutos con pago seguro por Stripe.',
-                    plan: 'Acceso completo', planDesc: 'Todo lo que necesitas para automatizar tu catálogo',
-                    items: ['Las 5 herramientas incluidas', 'Productos ilimitados', 'Repricing inteligente', 'Historial y archivos guardados', 'Panel de marketplace admin', 'Soporte prioritario', 'Pago seguro con Stripe'],
-                    cta: 'Solicitar demo',
+                    tag: 'Precios', title: 'Dos planes, cero sorpresas', desc: 'Elige self-service o gestión dedicada. Pago seguro por Stripe, cancela cuando quieras.',
+                    popular: 'Más popular',
+                    plan1Name: 'Katalync', plan1Desc: 'Todas las herramientas, tú gestionas',
+                    plan1Items: ['Conversor dual XLSX (Productos + Ofertas)', 'Validador pre-upload con GPSR', 'Pipeline de imágenes 2:3 con CDN', 'Actualización de precios y stock', 'Chatbot IA (Ana)', 'Informe de salud del catálogo', 'Plantillas inteligentes por categoría', 'Repricing inteligente', 'Productos ilimitados', 'Soporte por email'],
+                    plan2Name: 'Katalync Partner', plan2Desc: 'Tú vendes, nosotros nos encargamos del marketplace',
+                    plan2Items: ['Todo lo de Katalync incluido', 'Onboarding personalizado con videollamada', 'Gestión dedicada de tu catálogo', 'Procesamiento profesional de imágenes', 'Optimización de títulos y descripciones', 'Soporte prioritario WhatsApp y email', 'Reporting mensual de salud', 'Formación de tu equipo'],
+                    cta: 'Empezar con Katalync',
+                    cta2: 'Solicitar Katalync Partner',
                     micro: 'Sin compromiso · Cancela cuando quieras'
                 },
                 faq: {
                     tag: 'FAQ', title: 'Preguntas frecuentes', desc: 'Resolvemos todas tus dudas antes de empezar.',
                     items: [
-                        { q: '¿Qué formatos de Excel soporta?', a: 'Soportamos archivos .xlsx y .xls con cualquier estructura de columnas. Nuestro motor de IA mapea automáticamente tus campos al formato requerido por el marketplace, sin importar cómo esté organizado tu archivo original. No necesitas adaptar tu Excel — nosotros nos encargamos.' },
-                        { q: '¿Cuántos productos puedo procesar?', a: 'No hay límite. Hemos procesado catálogos de más de 50.000 SKUs sin problemas. El sistema escala automáticamente según tu volumen. Tanto si tienes 100 productos como 100.000, Katalync se adapta.' },
-                        { q: '¿Mis datos están seguros?', a: 'Absolutamente. Los archivos se procesan en servidores europeos (UE) con cifrado SSL en tránsito y en reposo. No almacenamos tus datos más allá del tiempo de procesamiento. Cumplimos con la normativa GDPR y nunca compartimos información con terceros.' },
-                        { q: '¿Qué marketplaces son compatibles?', a: 'Cualquier marketplace basado en Mirakl: Sprinter, Sport Zone, Worten, Carrefour, El Corte Inglés, y muchos más. Si el marketplace usa la plataforma Mirakl, Katalync genera el CSV exacto que necesitas.' },
-                        { q: '¿Cuánto tarda el procesamiento?', a: 'Un catálogo típico de 500 productos se procesa en menos de 2 minutos, incluyendo la conversión de imágenes al formato 2:3 y la validación completa de todos los campos. Catálogos más grandes (5.000+ SKUs) se procesan en menos de 10 minutos.' },
-                        { q: '¿Qué pasa con las imágenes de mis productos?', a: 'Katalync convierte automáticamente todas tus imágenes al formato 2:3 requerido por los marketplaces, las optimiza para web, y las sube a un CDN de alta velocidad. Recibes las URLs listas para incluir directamente en tu CSV de productos.' },
-                        { q: '¿Necesito conocimientos técnicos?', a: 'No. Si sabes usar Excel, sabes usar Katalync. Subes tu archivo, revisas el resultado y descargas el CSV. Sin código, sin configuración compleja, sin curva de aprendizaje. Además, nuestro equipo te ayuda con el onboarding.' },
-                        { q: '¿Puedo probar antes de contratar?', a: 'Sí. Ofrecemos una demostración personalizada donde procesamos una muestra real de tu catálogo para que veas los resultados con tus propios datos. Sin compromiso y sin coste. Solicita tu demo y te respondemos en menos de 24 horas.' },
-                        { q: '¿Cómo funciona el pago?', a: 'Pago mensual seguro a través de Stripe. Tu marketplace te da de alta, pagas tu suscripción con tarjeta, y accedes inmediatamente a todas las herramientas. Puedes gestionar tu facturación, cambiar de tarjeta o cancelar en cualquier momento desde tu portal de facturación.' }
+                        { q: '¿Qué formatos de Excel soporta?', a: 'Soportamos archivos .xlsx y .xls con cualquier estructura de columnas, incluido el formato nativo Sprinter con códigos API de Mirakl. Nuestro motor mapea automáticamente tus campos al formato requerido. No necesitas adaptar tu Excel — nosotros nos encargamos.' },
+                        { q: '¿Qué archivos genera Katalync?', a: 'Genera 2 archivos XLSX independientes: Productos (42 columnas) y Ofertas (27 columnas), ambos con doble header row (nombre legible + código API Mirakl). Listos para importar directamente en el panel de Sprinter sin modificar nada.' },
+                        { q: '¿Cuántos productos puedo procesar?', a: 'No hay límite. Hemos procesado catálogos de más de 50.000 SKUs sin problemas. El sistema escala automáticamente según tu volumen.' },
+                        { q: '¿Mis datos están seguros?', a: 'Absolutamente. Los archivos se procesan en servidores europeos (UE) con cifrado SSL. No almacenamos tus datos más allá del procesamiento. Cumplimos GDPR.' },
+                        { q: '¿Qué es la validación GPSR?', a: 'GPSR (General Product Safety Regulation) es la normativa europea que exige datos del fabricante y del responsable en la UE en cada producto. Katalync valida automáticamente que todos los campos GPSR estén completos antes de subir, evitando rechazos por datos incompletos.' },
+                        { q: '¿Qué marketplaces son compatibles?', a: 'Actualmente especializado en Sprinter y Sport Zone. Compatible con cualquier marketplace basado en Mirakl: Worten, Carrefour, El Corte Inglés, y más.' },
+                        { q: '¿Qué pasa con las imágenes?', a: 'Katalync convierte automáticamente todas tus imágenes al formato 2:3 requerido por Sprinter, las optimiza y las sube a un CDN propio de alta velocidad. Recibes las URLs listas para tu XLSX.' },
+                        { q: '¿Necesito conocimientos técnicos?', a: 'No. Si sabes usar Excel, sabes usar Katalync. Sube tu archivo, revisa el resultado y descarga el XLSX. Además, el chatbot IA te guía paso a paso si tienes dudas.' },
+                        { q: '¿Qué incluye el plan Katalync Partner?', a: 'Gestión dedicada completa: nosotros subimos tu catálogo, procesamos imágenes, optimizamos títulos, validamos errores y te enviamos reportes mensuales. Tú solo te preocupas de vender. Incluye onboarding personalizado y soporte prioritario por WhatsApp.' },
+                        { q: '¿Puedo probar antes de contratar?', a: 'Sí. Ofrecemos una demo personalizada donde procesamos una muestra real de tu catálogo. Sin compromiso y sin coste. Solicita tu demo y te respondemos en menos de 24 horas.' },
+                        { q: '¿Cómo funciona el pago?', a: 'Pago mensual seguro a través de Stripe. Pagas tu suscripción con tarjeta y accedes inmediatamente. Puedes cancelar en cualquier momento desde tu portal de facturación.' }
                     ]
                 },
                 cta: { title: '¿Listo para automatizar tu catálogo?', sub: 'Empieza hoy. Dedica tu tiempo a vender, no a formatear Excel.' },
@@ -1115,23 +1161,23 @@
             pt: {
                 nav: { features: 'Funções', how: 'Processo', pricing: 'Preços', faq: 'FAQ', login: 'Iniciar sessão', demo: 'Solicitar demo' },
                 hero: {
-                    badge: 'Compatível com Sprinter e Sport Zone',
+                    badge: 'Especializado em Sprinter e marketplaces Mirakl',
                     h1a: 'Seu catálogo pronto para marketplace',
                     h1b: 'em minutos, não em dias.',
-                    sub: 'Katalync automatiza a conversão, validação e sincronização de produtos para qualquer marketplace Mirakl. Menos erros. Mais vendas.',
+                    sub: 'Katalync automatiza a conversão para XLSX dual (Produtos + Ofertas), valida GPSR e EAN, processa imagens 2:3 e gera arquivos Mirakl-ready. Menos erros. Mais vendas.',
                     stat1: 'Produtos processados', stat2: 'Taxa de aprovação', stat3: 'Tempo médio'
                 },
                 mockup: { products: 'Produtos', validated: 'Validados', activity: 'Atividade recente', processing: 'Processando' },
                 metrics: { m1: 'Produtos processados', m2: 'Poupadas por mês', m3: 'Taxa de aprovação', m4: 'Mais rápido que manual' },
                 transform: {
                     tag: 'O problema',
-                    title: 'De Excel caótico a CSV perfeito',
+                    title: 'De Excel caótico a XLSX Mirakl perfeito',
                     desc: 'Veja a diferença entre gerir seu catálogo manualmente e fazê-lo com Katalync.',
                     before: 'Sem Katalync', after: 'Com Katalync',
                     beforeTitle: 'Processo manual',
                     afterTitle: 'Processo automatizado',
-                    beforeList: ['4-8 horas reformatando Excel', 'Imagens rejeitadas por ratio incorreto', 'EAN inválidos que bloqueiam o upload', 'Preços dessincronizados com seu ERP', 'Rejeições constantes do marketplace'],
-                    afterList: ['Upload de Excel e download em 2 minutos', 'Imagens convertidas para 2:3 automaticamente', 'Validação de EAN, SKU e campos em tempo real', 'CSV pronto para importar diretamente', 'Taxa de aprovação de 98%+']
+                    beforeList: ['4-8 horas reformatando Excel', 'Imagens rejeitadas por ratio incorreto', 'EAN inválidos que bloqueiam o upload', 'Campos GPSR incompletos = rejeição certa', 'Rejeições constantes do marketplace'],
+                    afterList: ['Upload de Excel e download em 2 minutos', '2 arquivos XLSX prontos (Produtos 42 cols + Ofertas 27 cols)', 'Validação GPSR automática + EAN-13 com checksum', 'Imagens convertidas para 2:3 com CDN próprio', 'Relatório de saúde do catálogo com score 0-100']
                 },
                 roi: {
                     tag: 'Calculadora ROI',
@@ -1145,39 +1191,47 @@
                     saved: 'Horas poupadas por mês'
                 },
                 how: {
-                    tag: 'Processo', title: 'Do seu Excel ao marketplace', desc: 'Quatro passos simples. Sem configuração complexa. O seu marketplace regista-o e começa a trabalhar.',
-                    step: 'Passo', s1: 'O marketplace regista-o', s2: 'Ative a sua assinatura', s3: 'Envie seu Excel', s4: 'Baixe CSV pronto para Mirakl'
+                    tag: 'Processo', title: 'Do seu Excel ao marketplace', desc: 'Quatro passos simples. Sem configuração complexa. Registe-se e comece a trabalhar.',
+                    step: 'Passo', s1: 'Crie sua conta', s2: 'Ative a sua assinatura', s3: 'Envie seu Excel', s4: 'Baixe XLSX pronto para Mirakl'
                 },
                 feat: {
-                    tag: 'Ferramentas', title: 'Tudo que você precisa num só lugar', desc: 'Cinco ferramentas + painel de gestão desenhadas para sellers e marketplaces que querem resultados, não trabalho extra.',
-                    f1: { title: 'Conversor de Catálogo', desc: 'Títulos, descrições, imagens 2:3 para CDN e CSV Mirakl-ready. Do seu Excel ao marketplace sem tocar em nada.', stat: '~ 2 min por catálogo' },
-                    f2: { title: 'Atualização de Preços', desc: 'CSV de preços e descontos pronto para importar. Gerencie promoções e preços base em segundos.', stat: 'Bulk updates ilimitados' },
+                    tag: 'Ferramentas', title: 'Tudo que você precisa num só lugar', desc: 'Oito ferramentas desenhadas para sellers de Sprinter e marketplaces Mirakl que querem resultados, não trabalho extra.',
+                    f1: { title: 'Conversor Dual XLSX', desc: 'Gera 2 arquivos XLSX (Produtos 42 colunas + Ofertas 27 colunas) com double header row Mirakl. Do seu Excel ao marketplace sem tocar em nada.', stat: '~ 2 min por catálogo' },
+                    f2: { title: 'Atualização de Preços', desc: 'XLSX de preços e descontos pronto para importar. Gerencie promoções e preços base em segundos.', stat: 'Bulk updates ilimitados' },
                     f3: { title: 'Sincronização de Stock', desc: 'Atualize stock diretamente do seu Excel. Evite overselling e mantenha-se sempre atualizado.', stat: 'Atualização em tempo real' },
-                    f4: { title: 'Validação Pre-Upload', desc: 'Valide EAN, imagens e campos obrigatórios antes de enviar. Zero rejeições, zero surpresas.', stat: '98.2% taxa de aprovação' },
+                    f4: { title: 'Validação Pre-Upload', desc: 'Valide GPSR completo, EAN-13 com checksum, imagens e campos obrigatórios antes de enviar. Zero rejeições.', stat: '98.2% taxa de aprovação' },
                     f5: { title: 'Repricing Inteligente', desc: 'Compare seus preços com os da concorrência e gere recomendações automáticas para maximizar vendas e margens.', stat: 'Análise competitiva em segundos' },
-                    f6: { title: 'Portal Marketplace', desc: 'Painel de administração para marketplaces. Gerencie vendedores, monitore sua atividade, controle assinaturas e onboarding de um só lugar.', stat: 'Gestão centralizada' }
+                    f6: { title: 'Portal Marketplace', desc: 'Painel de administração para marketplaces. Gerencie vendedores, monitore sua atividade, controle assinaturas e onboarding de um só lugar.', stat: 'Gestão centralizada' },
+                    f7: { title: 'Chatbot IA Integrado', desc: 'Ana, sua assistente IA, responde perguntas sobre Sprinter, diagnostica erros de catálogo e guia vendedores novatos. Disponível 24/7.', stat: 'Respostas instantâneas com IA' },
+                    f8: { title: 'Relatório de Saúde', desc: 'Score de qualidade 0-100 após cada processamento com checklist de campos obrigatórios, métricas e recomendações concretas. Descarregável como relatório.', stat: 'Detecção de erros antes de enviar' }
                 },
-                integrations: { tag: 'Integrações', title: 'Compatível com os principais marketplaces', desc: 'Gere arquivos prontos para importar em qualquer plataforma Mirakl.', extra: 'E qualquer marketplace baseado em Mirakl' },
+                integrations: { tag: 'Integrações', title: 'Especializado em Sprinter e marketplaces Mirakl', desc: 'Gera arquivos XLSX prontos para importar com o formato exato que cada plataforma Mirakl exige.', extra: 'Compatível com qualquer marketplace baseado em Mirakl' },
                 trust: { ssl: 'Encriptação SSL', gdpr: 'GDPR compliant', uptime: '99.9% uptime', eu: 'Servidores na UE' },
                 pricing: {
-                    tag: 'Preços', title: 'Simples, transparente, sem surpresas', desc: 'Assinatura mensal com acesso completo. Ative-se em minutos com pagamento seguro via Stripe.',
-                    plan: 'Acesso completo', planDesc: 'Tudo que precisa para automatizar seu catálogo',
-                    items: ['As 5 ferramentas incluídas', 'Produtos ilimitados', 'Repricing inteligente', 'Histórico e arquivos guardados', 'Painel de marketplace admin', 'Suporte prioritário', 'Pagamento seguro com Stripe'],
-                    cta: 'Solicitar demo',
+                    tag: 'Preços', title: 'Dois planos, zero surpresas', desc: 'Escolha self-service ou gestão dedicada. Pagamento seguro via Stripe, cancele quando quiser.',
+                    popular: 'Mais popular',
+                    plan1Name: 'Katalync', plan1Desc: 'Todas as ferramentas, você gere',
+                    plan1Items: ['Conversor dual XLSX (Produtos + Ofertas)', 'Validador pre-upload com GPSR', 'Pipeline de imagens 2:3 com CDN', 'Atualização de preços e stock', 'Chatbot IA (Ana)', 'Relatório de saúde do catálogo', 'Templates inteligentes por categoria', 'Repricing inteligente', 'Produtos ilimitados', 'Suporte por email'],
+                    plan2Name: 'Katalync Partner', plan2Desc: 'Você vende, nós cuidamos do marketplace',
+                    plan2Items: ['Tudo do Katalync incluído', 'Onboarding personalizado com videochamada', 'Gestão dedicada do seu catálogo', 'Processamento profissional de imagens', 'Otimização de títulos e descrições', 'Suporte prioritário WhatsApp e email', 'Reporting mensal de saúde', 'Formação da sua equipa'],
+                    cta: 'Começar com Katalync',
+                    cta2: 'Solicitar Katalync Partner',
                     micro: 'Sem compromisso · Cancele quando quiser'
                 },
                 faq: {
                     tag: 'FAQ', title: 'Perguntas frequentes', desc: 'Resolvemos todas as suas dúvidas antes de começar.',
                     items: [
-                        { q: 'Que formatos de Excel suporta?', a: 'Suportamos arquivos .xlsx e .xls com qualquer estrutura de colunas. Nosso motor de IA mapeia automaticamente seus campos ao formato requerido pelo marketplace, independentemente de como o seu arquivo está organizado. Não precisa adaptar seu Excel — nós cuidamos disso.' },
-                        { q: 'Quantos produtos posso processar?', a: 'Não há limite. Processamos catálogos de mais de 50.000 SKUs sem problemas. O sistema escala automaticamente segundo seu volume. Tanto se tem 100 produtos como 100.000, Katalync adapta-se.' },
-                        { q: 'Os meus dados estão seguros?', a: 'Absolutamente. Os arquivos são processados em servidores europeus (UE) com cifragem SSL em trânsito e em repouso. Não armazenamos seus dados além do tempo de processamento. Cumprimos a normativa GDPR e nunca partilhamos informação com terceiros.' },
-                        { q: 'Que marketplaces são compatíveis?', a: 'Qualquer marketplace baseado em Mirakl: Sprinter, Sport Zone, Worten, Carrefour, El Corte Inglés, e muitos mais. Se o marketplace usa a plataforma Mirakl, Katalync gera o CSV exato que precisa.' },
-                        { q: 'Quanto tempo demora o processamento?', a: 'Um catálogo típico de 500 produtos é processado em menos de 2 minutos, incluindo a conversão de imagens ao formato 2:3 e a validação completa de todos os campos. Catálogos maiores (5.000+ SKUs) são processados em menos de 10 minutos.' },
-                        { q: 'O que acontece com as imagens dos meus produtos?', a: 'Katalync converte automaticamente todas as suas imagens ao formato 2:3 requerido pelos marketplaces, otimiza-as para web, e envia-as para um CDN de alta velocidade. Recebe as URLs prontas para incluir diretamente no seu CSV de produtos.' },
-                        { q: 'Preciso de conhecimentos técnicos?', a: 'Não. Se sabe usar Excel, sabe usar Katalync. Envia o seu arquivo, revisa o resultado e descarrega o CSV. Sem código, sem configuração complexa, sem curva de aprendizagem. Além disso, a nossa equipa ajuda-o com o onboarding.' },
-                        { q: 'Posso experimentar antes de contratar?', a: 'Sim. Oferecemos uma demonstração personalizada onde processamos uma amostra real do seu catálogo para que veja os resultados com os seus próprios dados. Sem compromisso e sem custo. Solicite a sua demo e respondemos em menos de 24 horas.' },
-                        { q: 'Como funciona o pagamento?', a: 'Pagamento mensal seguro através do Stripe. O seu marketplace dá-lhe alta, paga a sua assinatura com cartão, e acede imediatamente a todas as ferramentas. Pode gerir a sua faturação, trocar de cartão ou cancelar a qualquer momento a partir do seu portal de faturação.' }
+                        { q: 'Que formatos de Excel suporta?', a: 'Suportamos arquivos .xlsx e .xls com qualquer estrutura de colunas, incluindo o formato nativo Sprinter com códigos API de Mirakl. O nosso motor mapeia automaticamente os seus campos. Não precisa adaptar seu Excel — nós cuidamos disso.' },
+                        { q: 'Que arquivos gera o Katalync?', a: 'Gera 2 arquivos XLSX independentes: Produtos (42 colunas) e Ofertas (27 colunas), ambos com double header row (nome legível + código API Mirakl). Prontos para importar diretamente no painel do Sprinter.' },
+                        { q: 'Quantos produtos posso processar?', a: 'Sem limite. Processamos catálogos de mais de 50.000 SKUs sem problemas. O sistema escala automaticamente segundo seu volume.' },
+                        { q: 'Os meus dados estão seguros?', a: 'Absolutamente. Os arquivos são processados em servidores europeus (UE) com cifragem SSL. Não armazenamos seus dados além do processamento. Cumprimos GDPR.' },
+                        { q: 'O que é a validação GPSR?', a: 'GPSR (General Product Safety Regulation) é a normativa europeia que exige dados do fabricante e do responsável na UE em cada produto. Katalync valida automaticamente que todos os campos GPSR estejam completos, evitando rejeições.' },
+                        { q: 'Que marketplaces são compatíveis?', a: 'Atualmente especializado em Sprinter e Sport Zone. Compatível com qualquer marketplace baseado em Mirakl: Worten, Carrefour, El Corte Inglés, e mais.' },
+                        { q: 'O que acontece com as imagens?', a: 'Katalync converte automaticamente todas as suas imagens ao formato 2:3 requerido pelo Sprinter, otimiza-as e envia para um CDN próprio de alta velocidade. Recebe as URLs prontas para o seu XLSX.' },
+                        { q: 'Preciso de conhecimentos técnicos?', a: 'Não. Se sabe usar Excel, sabe usar Katalync. Envie o seu arquivo, revise o resultado e descarregue o XLSX. O chatbot IA guia-o passo a passo se tiver dúvidas.' },
+                        { q: 'O que inclui o plano Katalync Partner?', a: 'Gestão dedicada completa: nós enviamos o seu catálogo, processamos imagens, otimizamos títulos, validamos erros e enviamos relatórios mensais. Você só se preocupa em vender. Inclui onboarding personalizado e suporte prioritário por WhatsApp.' },
+                        { q: 'Posso experimentar antes de contratar?', a: 'Sim. Oferecemos uma demo personalizada onde processamos uma amostra real do seu catálogo. Sem compromisso e sem custo. Solicite a sua demo e respondemos em menos de 24 horas.' },
+                        { q: 'Como funciona o pagamento?', a: 'Pagamento mensal seguro através do Stripe. Paga a sua assinatura com cartão e acede imediatamente. Pode cancelar a qualquer momento a partir do seu portal de faturação.' }
                     ]
                 },
                 cta: { title: 'Pronto para automatizar seu catálogo?', sub: 'Comece hoje. Dedique seu tempo a vender, não a formatar Excel.' },
