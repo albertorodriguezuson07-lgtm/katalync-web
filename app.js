@@ -1,6 +1,43 @@
   window.__CT_API_BASE = 'https://api.katalync.com';
 const N8N_WEBHOOK_BASE = (window.__CT_API_BASE || '');
 
+const SPRINTER_PRODUCTS_HEADERS = [
+  ['Categorías','Sku de vendedor','Nombre del articulo','PT - Nombre Del Articulo','Subtitulo de Productos','GPSR - Pais Fabricacion','Marcas','Genero','EAN','Descripcion del producto','Cuidados','Imagen  1','Imagenes 2','Imagenes 3','Imagenes 4','Video','Guia de Tallas','PT - Cuidados','PT - Descripción Del Producto','GPSR - PT - País Fabricación','PT - Subtitulo de productos','GPSR - Nombre Del Fabricante','GPSR - Nombre Comercial Registrado Del Fabricante','GPSR - Dirección Del Fabricante','GPSR - Correo Electrónico Del Fabricante','GPSR - Nombre de la Persona Responsable en la EU','GPSR - Dirección de la Persona Responsable','GPSR - Correo Electrónico De La Persona Responsable','GPSR - Foto De La Etiqueta Del Producto','GPSR - Avisos y/o Manual de Seguridad Del Producto','Colores','Talla','Colecciones','Material Composicion','Variant Group Code','Consejos de Utilizacion','Impermeable','Informacion Tecnica','PT - Consejos de uso','PT - Información Tecnica','PT - Composición Del Material','PT - Colecciones'],
+  ['categorias','sku-de-vendedor','nombre-del-articulo','nombre-del-articulo-pt','subtitulo-de-productos','pais-fabricante','marcas','genero','ean','descripion-del-producto','cuidados','imagenes-1','imagenes-2','imagenes-3','imagenes-4','video','guia-de-tallas','cuidados-pt','descripion-del-producto-pt','pais-fabricante-pt','subtitulo-de-productos-pt','nombre-del-fabricante','nombre-comercial-registrado-del-fabricante','direccion-del-fabricante','correo-electronico-del-fabricante','nombre-persona-responsable-en-eu','direccion-de-la-persona-responsable','correo-electronico-de-la-persona-responsable','foto-etiqueta-del-producto','manual-de-seguridad-del-producto','colores','talla','colecciones','material-composicion','variant_group_code','consejos-de-utilizacion','impermeable','informacion-tecnica','consejos-de-utilizacion-pt','informacion-tecnica-pt','material-composicion-pt','colecciones-pt']
+];
+const SPRINTER_OFFERS_HEADERS = [
+  ['SKU de oferta','ID de producto','Tipo de ID de producto','Descripción de la oferta','Descripción interna de la oferta','Precio de la oferta','Información adicional sobre el precio de la oferta','Cantidad de la oferta','Alerta de cantidad mínima','Estado de la oferta','Fecha de inicio de la disponibilidad','Fecha de finalización de la disponibilidad','Clase logística','Rango de favorita','Precio de descuento','Fecha de inicio del descuento','Fecha de finalización del descuento','Rangos de descuento','Plazo de envío (en días)','Actualizar/Eliminar','Precio de oferta por canal INIT','Precio de descuento por canal INIT','Fecha de inicio del descuento para el canal INIT','Fecha de fin del descuento para el canal INIT','Rangos de descuentos para el canal INIT','Shipment Origin','% of VAT'],
+  ['sku','product-id','product-id-type','description','internal-description','price','price-additional-info','quantity','min-quantity-alert','state','available-start-date','available-end-date','logistic-class','favorite-rank','discount-price','discount-start-date','discount-end-date','discount-ranges','leadtime-to-ship','update-delete','price[channel=INIT]','discount-price[channel=INIT]','discount-start-date[channel=INIT]','discount-end-date[channel=INIT]','discount-ranges[channel=INIT]','shipment-origin','vat-percentage']
+];
+const SPRINTER_INPUT_MAP = {
+  'sku': 'sku-de-vendedor', 'SKU': 'sku-de-vendedor', 'Sku': 'sku-de-vendedor', 'referencia': 'sku-de-vendedor', 'Referencia': 'sku-de-vendedor',
+  'ean': 'ean', 'EAN': 'ean', 'ean13': 'ean', 'product-id': 'ean', 'product_id': 'ean', 'codigo_barras': 'ean',
+  'marca': 'marcas', 'Marca': 'marcas', 'brand': 'marcas', 'Brand': 'marcas',
+  'nombre': 'nombre-del-articulo', 'Nombre': 'nombre-del-articulo', 'product_name': 'nombre-del-articulo', 'name': 'nombre-del-articulo',
+  'modelo': '_model', 'Modelo': '_model', 'model': '_model', 'Model': '_model',
+  'categoria': 'categorias', 'Categoria': 'categorias', 'category': 'categorias', 'Category': 'categorias', 'Tipo de producto': 'categorias',
+  'genero': 'genero', 'Genero': 'genero', 'gender': 'genero', 'Gender': 'genero', 'Sexo': 'genero',
+  'color': 'colores', 'Color': 'colores',
+  'talla': 'talla', 'Talla': 'talla', 'size': 'talla', 'Size': 'talla',
+  'material': 'material-composicion', 'Material': 'material-composicion', 'composicion': 'material-composicion',
+  'imagen': 'imagenes-1', 'Imagen': 'imagenes-1', 'image_url': 'imagenes-1', 'imageUrl': 'imagenes-1', 'foto': 'imagenes-1', 'URL Imagen': 'imagenes-1',
+  'imagen_2': 'imagenes-2', 'image_url_2': 'imagenes-2', 'imagen_3': 'imagenes-3', 'image_url_3': 'imagenes-3',
+  'precio': 'price', 'Precio': 'price', 'price': 'price', 'Price': 'price', 'PVP': 'price',
+  'stock': 'quantity', 'Stock': 'quantity', 'quantity': 'quantity', 'Quantity': 'quantity', 'cantidad': 'quantity',
+  'descripcion': 'descripion-del-producto', 'Descripcion': 'descripion-del-producto', 'description': 'descripion-del-producto',
+  'variant_group_code': 'variant_group_code', 'grupo_variantes': 'variant_group_code',
+  'pais_fabricacion': 'pais-fabricante', 'pais fabricacion': 'pais-fabricante',
+  'fabricante_nombre': 'nombre-del-fabricante', 'fabricante_nombre_comercial': 'nombre-comercial-registrado-del-fabricante',
+  'fabricante_direccion': 'direccion-del-fabricante', 'fabricante_email': 'correo-electronico-del-fabricante',
+  'responsable_ue_nombre': 'nombre-persona-responsable-en-eu', 'responsable_ue_direccion': 'direccion-de-la-persona-responsable',
+  'responsable_ue_email': 'correo-electronico-de-la-persona-responsable',
+  'coleccion': 'colecciones', 'Coleccion': 'colecciones', 'collection': 'colecciones',
+  'cuidados': 'cuidados', 'Cuidados': 'cuidados', 'care': 'cuidados',
+  'offer-sku': '_offer-sku', 'offer_sku': '_offer-sku',
+  'discount-price': 'discount-price', 'discount_price': 'discount-price', 'precio_descuento': 'discount-price',
+  'discount-start-date': 'discount-start-date', 'discount-end-date': 'discount-end-date'
+};
+
 const TRANSLATIONS = {
   es: {
     auth_login_title: 'Iniciar sesión', auth_login_sub: 'Introduce tus credenciales para acceder',
@@ -47,6 +84,12 @@ const TRANSLATIONS = {
     processing_catalog: 'Procesando catálogo', waiting: 'Esperando...',
     catalog_done: 'Catálogo procesado', products_ok: 'productos OK', errors: 'errores',
     preview: 'Vista previa', title: 'Título', download_csv: 'Descargar CSV Mirakl-ready',
+    download_products_xlsx: 'Descargar Productos Sprinter', download_offers_xlsx: 'Descargar Ofertas Sprinter',
+    shipment_origin: 'Origen de envío', shipment_origin_hint: 'País desde el que se envían los productos',
+    vat_pct: 'IVA', offer_state: 'Estado de oferta',
+    gpsr_hint: 'Incluye las columnas GPSR del fabricante en tu Excel (obligatorias)',
+    variant_group_hint: 'Agrupa variantes de talla/color con el mismo código',
+    sprinter_output_info: 'Se generarán 2 archivos XLSX listos para importar en Mirakl',
     see: 'Ver', process_another: 'Procesar otro catálogo', back_home: 'Volver al inicio',
     prices_title: 'Actualizar precios en marketplace', prices_sub: 'Sube un Excel con SKU y nuevos precios. Generamos el CSV listo para importar.',
     include_discount: 'Incluir precio de descuento', include_discount_hint: 'Si tienes columna de precio rebajado / precio campaña',
@@ -256,6 +299,12 @@ const TRANSLATIONS = {
     processing_catalog: 'Processando catálogo', waiting: 'Aguardando...',
     catalog_done: 'Catálogo processado', products_ok: 'produtos OK', errors: 'erros',
     preview: 'Pré-visualização', title: 'Título', download_csv: 'Baixar CSV Mirakl-ready',
+    download_products_xlsx: 'Baixar Produtos Sprinter', download_offers_xlsx: 'Baixar Ofertas Sprinter',
+    shipment_origin: 'Origem de envio', shipment_origin_hint: 'País de onde os produtos são enviados',
+    vat_pct: 'IVA', offer_state: 'Estado da oferta',
+    gpsr_hint: 'Inclua as colunas GPSR do fabricante no seu Excel (obrigatórias)',
+    variant_group_hint: 'Agrupe variantes de tamanho/cor com o mesmo código',
+    sprinter_output_info: 'Serão gerados 2 ficheiros XLSX prontos para importar no Mirakl',
     see: 'Ver', process_another: 'Processar outro catálogo', back_home: 'Voltar ao início',
     prices_title: 'Atualizar preços no marketplace', prices_sub: 'Carregue um Excel com SKU e novos preços. Geramos o CSV pronto para importar.',
     include_discount: 'Incluir preço de desconto', include_discount_hint: 'Se tiver coluna de preço com desconto',
@@ -913,23 +962,23 @@ function app() {
 
     downloadTemplate(type) {
       const templates = {
-        catalog: { filename: this.t('tpl_filename_catalog'), headers: ['sku', 'product-id', 'product-id-type', 'description', 'price', 'quantity', 'state', 'leadtime-to-ship', 'logistic-class', 'discount-price', 'discount-start-date', 'discount-end-date', 'brand', 'product_name', 'category', 'gender', 'color', 'size', 'image_url'], rows: [
-          { 'sku': 'MI-TIENDA-001', 'product-id': '8412345678901', 'product-id-type': 'EAN', 'description': 'Zapatillas deportivas clasicas Nike Air Max 90', 'price': '129.99', 'quantity': '50', 'state': '11', 'leadtime-to-ship': '3', 'logistic-class': '', 'discount-price': '', 'discount-start-date': '', 'discount-end-date': '', 'brand': 'Nike', 'product_name': 'Air Max 90', 'category': 'Zapatillas', 'gender': 'Hombre', 'color': 'Negro', 'size': '42', 'image_url': 'https://ejemplo.com/img1.jpg' },
-          { 'sku': 'MI-TIENDA-002', 'product-id': '8412345678902', 'product-id-type': 'EAN', 'description': 'Zapatillas de running Adidas Ultraboost 22 con tecnologia Boost', 'price': '179.99', 'quantity': '30', 'state': '11', 'leadtime-to-ship': '3', 'logistic-class': '', 'discount-price': '149.99', 'discount-start-date': '2026-06-01', 'discount-end-date': '2026-06-30', 'brand': 'Adidas', 'product_name': 'Ultraboost 22', 'category': 'Running', 'gender': 'Mujer', 'color': 'Blanco', 'size': '38', 'image_url': 'https://ejemplo.com/img2.jpg' }
+        catalog: { filename: this.t('tpl_filename_catalog'), headers: ['sku', 'ean', 'marca', 'nombre', 'modelo', 'categoria', 'genero', 'color', 'talla', 'material', 'imagen', 'imagen_2', 'imagen_3', 'precio', 'stock', 'descripcion', 'variant_group_code', 'pais_fabricacion', 'fabricante_nombre', 'fabricante_nombre_comercial', 'fabricante_direccion', 'fabricante_email', 'responsable_ue_nombre', 'responsable_ue_direccion', 'responsable_ue_email', 'coleccion', 'cuidados'], rows: [
+          { 'sku': 'MI-TIENDA-AIR90-42-NGR', 'ean': '8412345678901', 'marca': 'Nike', 'nombre': 'Air Max 90', 'modelo': 'Air Max 90', 'categoria': 'Calzado', 'genero': 'Hombre', 'color': 'Negro', 'talla': '42', 'material': 'Sintetico/Caucho', 'imagen': 'https://ejemplo.com/img1.jpg', 'imagen_2': '', 'imagen_3': '', 'precio': '129.99', 'stock': '50', 'descripcion': '', 'variant_group_code': 'AIR90-NGR', 'pais_fabricacion': 'China', 'fabricante_nombre': 'Nike Inc', 'fabricante_nombre_comercial': 'Nike', 'fabricante_direccion': 'One Bowerman Dr, Beaverton, OR 97005, USA', 'fabricante_email': 'contact@nike.com', 'responsable_ue_nombre': 'Nike European Operations Netherlands BV', 'responsable_ue_direccion': 'Colosseum 1, 1213NL Hilversum, Netherlands', 'responsable_ue_email': 'eu-compliance@nike.com', 'coleccion': '', 'cuidados': '' },
+          { 'sku': 'MI-TIENDA-AIR90-43-NGR', 'ean': '8412345678902', 'marca': 'Nike', 'nombre': 'Air Max 90', 'modelo': 'Air Max 90', 'categoria': 'Calzado', 'genero': 'Hombre', 'color': 'Negro', 'talla': '43', 'material': 'Sintetico/Caucho', 'imagen': 'https://ejemplo.com/img1.jpg', 'imagen_2': '', 'imagen_3': '', 'precio': '129.99', 'stock': '30', 'descripcion': '', 'variant_group_code': 'AIR90-NGR', 'pais_fabricacion': 'China', 'fabricante_nombre': 'Nike Inc', 'fabricante_nombre_comercial': 'Nike', 'fabricante_direccion': 'One Bowerman Dr, Beaverton, OR 97005, USA', 'fabricante_email': 'contact@nike.com', 'responsable_ue_nombre': 'Nike European Operations Netherlands BV', 'responsable_ue_direccion': 'Colosseum 1, 1213NL Hilversum, Netherlands', 'responsable_ue_email': 'eu-compliance@nike.com', 'coleccion': '', 'cuidados': '' }
         ]},
-        prices: { filename: this.t('tpl_filename_prices'), headers: ['offer-sku', 'price', 'discount-price', 'discount-start-date', 'discount-end-date'], rows: [
-          { 'offer-sku': 'MI-TIENDA-001', 'price': '129.99', 'discount-price': '99.99', 'discount-start-date': '2026-06-01', 'discount-end-date': '2026-06-30' },
-          { 'offer-sku': 'MI-TIENDA-002', 'price': '179.99', 'discount-price': '149.99', 'discount-start-date': '2026-06-01', 'discount-end-date': '2026-06-30' },
-          { 'offer-sku': 'MI-TIENDA-003', 'price': '89.99', 'discount-price': '', 'discount-start-date': '', 'discount-end-date': '' }
+        prices: { filename: this.t('tpl_filename_prices'), headers: ['offer-sku', 'product-id', 'price', 'quantity', 'discount-price', 'discount-start-date', 'discount-end-date'], rows: [
+          { 'offer-sku': 'MI-TIENDA-AIR90-42-NGR', 'product-id': '8412345678901', 'price': '129.99', 'quantity': '50', 'discount-price': '99.99', 'discount-start-date': '2026-06-01', 'discount-end-date': '2026-06-30' },
+          { 'offer-sku': 'MI-TIENDA-AIR90-43-NGR', 'product-id': '8412345678902', 'price': '129.99', 'quantity': '30', 'discount-price': '', 'discount-start-date': '', 'discount-end-date': '' },
+          { 'offer-sku': 'MI-TIENDA-UB22-38-BLC', 'product-id': '8412345678903', 'price': '179.99', 'quantity': '20', 'discount-price': '149.99', 'discount-start-date': '2026-06-01', 'discount-end-date': '2026-06-30' }
         ]},
         stock: { filename: this.t('tpl_filename_stock'), headers: ['offer-sku', 'quantity'], rows: [
           { 'offer-sku': 'MI-TIENDA-001', 'quantity': '50' },
           { 'offer-sku': 'MI-TIENDA-002', 'quantity': '120' },
           { 'offer-sku': 'MI-TIENDA-003', 'quantity': '0' }
         ]},
-        validation: { filename: this.t('tpl_filename_validation'), headers: ['sku', 'product-id', 'product-id-type', 'price', 'quantity', 'state', 'leadtime-to-ship', 'brand', 'product_name', 'image_url', 'category'], rows: [
-          { 'sku': 'MI-TIENDA-001', 'product-id': '8412345678901', 'product-id-type': 'EAN', 'price': '129.99', 'quantity': '50', 'state': '11', 'leadtime-to-ship': '3', 'brand': 'Nike', 'product_name': 'Air Max 90', 'image_url': 'https://ejemplo.com/img1.jpg', 'category': 'Zapatillas' },
-          { 'sku': 'MI-TIENDA-002', 'product-id': '8412345678902', 'product-id-type': 'EAN', 'price': '179.99', 'quantity': '30', 'state': '11', 'leadtime-to-ship': '3', 'brand': 'Adidas', 'product_name': 'Ultraboost 22', 'image_url': 'https://ejemplo.com/img2.jpg', 'category': 'Running' }
+        validation: { filename: this.t('tpl_filename_validation'), headers: ['sku', 'ean', 'marca', 'nombre', 'categoria', 'genero', 'color', 'talla', 'material', 'imagen', 'precio', 'stock', 'variant_group_code'], rows: [
+          { 'sku': 'MI-TIENDA-AIR90-42-NGR', 'ean': '8412345678901', 'marca': 'Nike', 'nombre': 'Air Max 90', 'categoria': 'Calzado', 'genero': 'Hombre', 'color': 'Negro', 'talla': '42', 'material': 'Sintetico/Caucho', 'imagen': 'https://ejemplo.com/img1.jpg', 'precio': '129.99', 'stock': '50', 'variant_group_code': 'AIR90-NGR' },
+          { 'sku': 'MI-TIENDA-UB22-38-BLC', 'ean': '8412345678903', 'marca': 'Adidas', 'nombre': 'Ultraboost 22', 'categoria': 'Calzado', 'genero': 'Mujer', 'color': 'Blanco', 'talla': '38', 'material': 'Textile/Sintetico', 'imagen': 'https://ejemplo.com/img2.jpg', 'precio': '179.99', 'stock': '20', 'variant_group_code': 'UB22-BLC' }
         ]},
         repricing_products: { filename: this.lang === 'pt' ? 'modelo_repricing_produtos.xlsx' : 'modelo_repricing_productos.xlsx', headers: ['offer-sku', 'price', 'cost'], rows: [
           { 'offer-sku': 'MI-TIENDA-001', 'price': '129.99', 'cost': '65.00' },
@@ -983,17 +1032,31 @@ function app() {
       this.savedFilesLoading = false;
     },
 
+    buildSprinterXlsx(headerRows, dataRows) {
+      const ws = XLSX.utils.aoa_to_sheet([headerRows[0], headerRows[1]]);
+      const apiCodes = headerRows[1];
+      for (const row of dataRows) {
+        const arr = apiCodes.map(code => row[code] || '');
+        XLSX.utils.sheet_add_aoa(ws, [arr], { origin: -1 });
+      }
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Data');
+      const xlsxData = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+      return xlsxData;
+    },
+
     saveToHistory(tool, filename, count, url, marketplace) {
       const entry = { tool, filename: filename || 'archivo.csv', date: new Date().toLocaleDateString(this.lang === 'pt' ? 'pt-PT' : 'es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }), count: count || 0, url: url || '', marketplace: marketplace || '' };
       this.historyJobs.unshift(entry);
       if (this.historyJobs.length > 20) this.historyJobs = this.historyJobs.slice(0, 20);
       safeSaveHistory(this.historyJobs);
     },
-    makeBlobUrl(base64) { const raw = atob(base64); const bytes = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i); return URL.createObjectURL(new Blob([bytes], { type: 'text/csv;charset=utf-8' })); },
+    makeBlobUrl(base64, mime) { const raw = atob(base64); const bytes = new Uint8Array(raw.length); for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i); return URL.createObjectURL(new Blob([bytes], { type: mime || 'text/csv;charset=utf-8' })); },
 
     catalogStep: 'upload', catalogMarketplace: 'sprinter_es', catalogRatio: '2:3', catalogGenDesc: true, catalogGenTitle: true, catalogConvertImages: true, catalogRemoveBg: false,
+    catalogShipmentOrigin: 'ES', catalogVatPct: 'ES-21%,PT-23%', catalogOfferState: 'Nuevo',
     catalogFile: null, catalogRows: [], catalogCols: [], catalogTotalProducts: 0, catalogLog: [],
-    showCatalogErrors: false, catalogResults: { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '' },
+    showCatalogErrors: false, catalogResults: { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '', productsUrl: '', productsFilename: '', offersUrl: '', offersFilename: '' },
     handleCatalogDrop(event) { event.currentTarget.classList.remove('dragover'); const file = event.dataTransfer.files[0]; if (file && this.isValidExcel(file)) { this.catalogFile = file; this.loadCatalogExcel(file); } },
     handleCatalogSelect(event) { const file = event.target.files[0]; if (file) { this.catalogFile = file; this.loadCatalogExcel(file); } },
     async loadCatalogExcel(file) { const rows = await this.parseExcel(file); this.catalogRows = rows; this.catalogCols = rows.length > 0 ? Object.keys(rows[0]) : []; },
@@ -1006,22 +1069,33 @@ function app() {
       this.addLog(this.catalogLog, 'catalogLogContainer', 'info', this.t('log_marketplace') + ' ' + this.catalogMarketplace + ' | Ratio: ' + this.catalogRatio);
       this.addLog(this.catalogLog, 'catalogLogContainer', 'info', this.t('log_sending'));
       try {
-        const resp = await fetch(N8N_BASE + '/webhook/catalog-process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, marketplace: this.catalogMarketplace, ratio: this.catalogRatio, generateDescriptions: this.catalogGenDesc, generateTitles: this.catalogGenTitle, convertImages: this.catalogConvertImages, removeBg: this.catalogRemoveBg, products: this.catalogRows }) });
+        const resp = await fetch(N8N_BASE + '/webhook/catalog-process', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, marketplace: this.catalogMarketplace, ratio: this.catalogRatio, generateDescriptions: this.catalogGenDesc, generateTitles: this.catalogGenTitle, convertImages: this.catalogConvertImages, removeBg: this.catalogRemoveBg, shipmentOrigin: this.catalogShipmentOrigin, vatPct: this.catalogVatPct, offerState: this.catalogOfferState, outputFormat: 'sprinter_mirakl', products: this.catalogRows }) });
         if (!resp.ok) throw new Error(this.t('log_server_error'));
         const result = await resp.json();
         if (result.status === 'error') throw new Error(result.message || this.t('log_server_error'));
         this.addLog(this.catalogLog, 'catalogLogContainer', 'info', result.message || this.t('log_completed'));
         if (result.errors > 0) this.addLog(this.catalogLog, 'catalogLogContainer', 'error', result.errors + ' ' + this.t('log_products_with_errors'));
+        const xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
         let excelUrl = '#'; if (result.csvBase64) excelUrl = this.makeBlobUrl(result.csvBase64);
-        this.catalogResults = { success: result.success || 0, errors: result.errors || 0, previews: result.products || [], errorList: result.errorList || [], excelUrl, csvFilename: result.csvFilename || 'catalogo.csv' };
-        this.saveToHistory('catalog', result.csvFilename, result.success, excelUrl, this.catalogMarketplace);
-        this.saveFileToAccount('catalog', result.csvFilename, result.success, result.csvBase64, this.catalogMarketplace);
+        let productsUrl = '#', productsB64 = '';
+        let offersUrl = '#', offersB64 = '';
+        if (result.sprinterProductRows && result.sprinterProductRows.length > 0) {
+          productsB64 = this.buildSprinterXlsx(SPRINTER_PRODUCTS_HEADERS, result.sprinterProductRows);
+          productsUrl = this.makeBlobUrl(productsB64, xlsxMime);
+        }
+        if (result.sprinterOfferRows && result.sprinterOfferRows.length > 0) {
+          offersB64 = this.buildSprinterXlsx(SPRINTER_OFFERS_HEADERS, result.sprinterOfferRows);
+          offersUrl = this.makeBlobUrl(offersB64, xlsxMime);
+        }
+        this.catalogResults = { success: result.success || 0, errors: result.errors || 0, previews: result.products || [], errorList: result.errorList || [], excelUrl, csvFilename: result.csvFilename || 'catalogo.csv', productsUrl, productsFilename: result.productsFilename || 'productos_sprinter.xlsx', offersUrl, offersFilename: result.offersFilename || 'ofertas_sprinter.xlsx' };
+        this.saveToHistory('catalog', result.productsFilename || result.csvFilename, result.success, productsUrl !== '#' ? productsUrl : excelUrl, this.catalogMarketplace);
+        this.saveFileToAccount('catalog', result.productsFilename || result.csvFilename, result.success, productsB64 || result.csvBase64, this.catalogMarketplace);
         this.sendBrowserNotif(this.t('notif_catalog_done'), (result.success || 0) + ' ' + this.t('products_ok'));
         this.createServerNotification(this.t('notif_catalog_done') + ': ' + (result.success || 0) + ' ' + this.t('products_ok'));
         this.catalogStep = 'results';
       } catch (err) { this.addLog(this.catalogLog, 'catalogLogContainer', 'error', 'Error: ' + err.message); }
     },
-    resetCatalog() { this.catalogStep = 'upload'; this.catalogFile = null; this.catalogRows = []; this.catalogCols = []; this.catalogTotalProducts = 0; this.catalogLog = []; this.showCatalogErrors = false; this.catalogResults = { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '' }; },
+    resetCatalog() { this.catalogStep = 'upload'; this.catalogFile = null; this.catalogRows = []; this.catalogCols = []; this.catalogTotalProducts = 0; this.catalogLog = []; this.showCatalogErrors = false; this.catalogResults = { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '', productsUrl: '', productsFilename: '', offersUrl: '', offersFilename: '' }; },
 
     priceStep: 'upload', priceMarketplace: 'sprinter_es', priceIncludeDiscount: false, pricePromoTag: '',
     priceFile: null, priceRows: [], priceCols: [], priceTotalProducts: 0, priceLog: [],
@@ -1038,22 +1112,29 @@ function app() {
       this.addLog(this.priceLog, 'priceLogContainer', 'info', this.t('log_marketplace') + ' ' + this.priceMarketplace);
       this.addLog(this.priceLog, 'priceLogContainer', 'info', this.t('log_sending'));
       try {
-        const resp = await fetch(N8N_BASE + '/webhook/price-update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, marketplace: this.priceMarketplace, includeDiscount: this.priceIncludeDiscount, promoTag: this.pricePromoTag.trim(), products: this.priceRows }) });
+        const resp = await fetch(N8N_BASE + '/webhook/price-update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, marketplace: this.priceMarketplace, includeDiscount: this.priceIncludeDiscount, promoTag: this.pricePromoTag.trim(), shipmentOrigin: this.catalogShipmentOrigin, vatPct: this.catalogVatPct, outputFormat: 'sprinter_mirakl', products: this.priceRows }) });
         if (!resp.ok) throw new Error(this.t('log_server_error'));
         const result = await resp.json();
         if (result.status === 'error') throw new Error(result.message || this.t('log_server_error'));
         this.addLog(this.priceLog, 'priceLogContainer', 'info', result.message || this.t('log_completed'));
         if (result.errors > 0) this.addLog(this.priceLog, 'priceLogContainer', 'error', result.errors + ' ' + this.t('log_products_with_errors'));
         let excelUrl = '#'; if (result.csvBase64) excelUrl = this.makeBlobUrl(result.csvBase64);
-        this.priceResults = { success: result.success || 0, errors: result.errors || 0, previews: result.products || [], errorList: result.errorList || [], excelUrl, csvFilename: result.csvFilename || 'precios.csv' };
-        this.saveToHistory('prices', result.csvFilename, result.success, excelUrl, this.priceMarketplace);
+        let offersUrl = ''; let offersFilename = '';
+        const xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        if (result.sprinterOfferRows && result.sprinterOfferRows.length > 0) {
+          const b64 = this.buildSprinterXlsx(SPRINTER_OFFERS_HEADERS, result.sprinterOfferRows);
+          offersUrl = this.makeBlobUrl(b64, xlsxMime);
+          offersFilename = result.offersFilename || 'ofertas_sprinter.xlsx';
+        }
+        this.priceResults = { success: result.success || 0, errors: result.errors || 0, previews: result.products || [], errorList: result.errorList || [], excelUrl, csvFilename: result.csvFilename || 'precios.csv', offersUrl, offersFilename };
+        this.saveToHistory('prices', offersFilename || result.csvFilename, result.success, offersUrl || excelUrl, this.priceMarketplace);
         this.saveFileToAccount('prices', result.csvFilename, result.success, result.csvBase64, this.priceMarketplace);
         this.sendBrowserNotif(this.t('notif_prices_done'), (result.success || 0) + ' ' + this.t('products_ok'));
         this.createServerNotification(this.t('notif_prices_done') + ': ' + (result.success || 0) + ' ' + this.t('products_ok'));
         this.priceStep = 'results';
       } catch (err) { this.addLog(this.priceLog, 'priceLogContainer', 'error', 'Error: ' + err.message); }
     },
-    resetPrices() { this.priceStep = 'upload'; this.priceFile = null; this.priceRows = []; this.priceCols = []; this.priceTotalProducts = 0; this.priceLog = []; this.showPriceErrors = false; this.pricePromoTag = ''; this.priceResults = { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '' }; },
+    resetPrices() { this.priceStep = 'upload'; this.priceFile = null; this.priceRows = []; this.priceCols = []; this.priceTotalProducts = 0; this.priceLog = []; this.showPriceErrors = false; this.pricePromoTag = ''; this.priceResults = { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '', offersUrl: '', offersFilename: '' }; },
 
     stockStep: 'upload', stockMarketplace: 'sprinter_es',
     stockFile: null, stockRows: [], stockCols: [], stockTotalProducts: 0, stockLog: [],
@@ -1070,22 +1151,29 @@ function app() {
       this.addLog(this.stockLog, 'stockLogContainer', 'info', this.t('log_marketplace') + ' ' + this.stockMarketplace);
       this.addLog(this.stockLog, 'stockLogContainer', 'info', this.t('log_sending'));
       try {
-        const resp = await fetch(N8N_BASE + '/webhook/stock-update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, marketplace: this.stockMarketplace, products: this.stockRows }) });
+        const resp = await fetch(N8N_BASE + '/webhook/stock-update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, marketplace: this.stockMarketplace, outputFormat: 'sprinter_mirakl', shipmentOrigin: this.catalogShipmentOrigin, vatPct: this.catalogVatPct, products: this.stockRows }) });
         if (!resp.ok) throw new Error(this.t('log_server_error'));
         const result = await resp.json();
         if (result.status === 'error') throw new Error(result.message || this.t('log_server_error'));
         this.addLog(this.stockLog, 'stockLogContainer', 'info', result.message || this.t('log_completed'));
         if (result.errors > 0) this.addLog(this.stockLog, 'stockLogContainer', 'error', result.errors + ' ' + this.t('log_products_with_errors'));
         let excelUrl = '#'; if (result.csvBase64) excelUrl = this.makeBlobUrl(result.csvBase64);
-        this.stockResults = { success: result.success || 0, errors: result.errors || 0, previews: result.products || [], errorList: result.errorList || [], excelUrl, csvFilename: result.csvFilename || 'stock.csv' };
-        this.saveToHistory('stock', result.csvFilename, result.success, excelUrl, this.stockMarketplace);
+        let offersUrl = ''; let offersFilename = '';
+        const xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+        if (result.sprinterOfferRows && result.sprinterOfferRows.length > 0) {
+          const b64 = this.buildSprinterXlsx(SPRINTER_OFFERS_HEADERS, result.sprinterOfferRows);
+          offersUrl = this.makeBlobUrl(b64, xlsxMime);
+          offersFilename = result.offersFilename || 'stock_sprinter.xlsx';
+        }
+        this.stockResults = { success: result.success || 0, errors: result.errors || 0, previews: result.products || [], errorList: result.errorList || [], excelUrl, csvFilename: result.csvFilename || 'stock.csv', offersUrl, offersFilename };
+        this.saveToHistory('stock', offersFilename || result.csvFilename, result.success, offersUrl || excelUrl, this.stockMarketplace);
         this.saveFileToAccount('stock', result.csvFilename, result.success, result.csvBase64, this.stockMarketplace);
         this.sendBrowserNotif(this.t('notif_stock_done'), (result.success || 0) + ' ' + this.t('products_ok'));
         this.createServerNotification(this.t('notif_stock_done') + ': ' + (result.success || 0) + ' ' + this.t('products_ok'));
         this.stockStep = 'results';
       } catch (err) { this.addLog(this.stockLog, 'stockLogContainer', 'error', 'Error: ' + err.message); }
     },
-    resetStock() { this.stockStep = 'upload'; this.stockFile = null; this.stockRows = []; this.stockCols = []; this.stockTotalProducts = 0; this.stockLog = []; this.showStockErrors = false; this.stockResults = { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '' }; },
+    resetStock() { this.stockStep = 'upload'; this.stockFile = null; this.stockRows = []; this.stockCols = []; this.stockTotalProducts = 0; this.stockLog = []; this.showStockErrors = false; this.stockResults = { success: 0, errors: 0, previews: [], errorList: [], excelUrl: '', csvFilename: '', offersUrl: '', offersFilename: '' }; },
 
     validateStep: 'upload', validateMarketplace: 'sprinter_es', validateFile: null, validateRows: [], validateCols: [],
     validateTotalProducts: 0, validateLog: [], showValidateErrors: false, showValidateWarnings: false,
@@ -1277,17 +1365,17 @@ function app() {
           a: { es: 'Los formatos aceptados son:\n\n- .xlsx (Excel moderno)\n- .xls (Excel clásico)\n- .csv (valores separados por comas)\n\nEl tamaño máximo es 15 MB. Si tu archivo es más grande, divídelo en lotes de hasta 10.000 productos.',
                pt: 'Os formatos aceitos são:\n\n- .xlsx (Excel moderno)\n- .xls (Excel clássico)\n- .csv (valores separados por vírgulas)\n\nO tamanho máximo é 15 MB. Se seu arquivo for maior, divida-o em lotes de até 10.000 produtos.' }},
         { k: ['columna', 'campo', 'cabecera', 'header', 'catalogo', 'conversor', 'que columnas', 'que campos'],
-          a: { es: 'Para el Conversor de Catálogo, las columnas principales son:\n\nsku, ean, brand, product_name, model, category, gender, color, size, image_url, price, description\n\nNo todas son obligatorias. Al mínimo necesitas: sku, product_name y price. Descarga la plantilla de ejemplo desde el inicio.',
-               pt: 'Para o Conversor de Catálogo, as colunas principais são:\n\nsku, ean, brand, product_name, model, category, gender, color, size, image_url, price, description\n\nNem todas são obrigatórias. No mínimo você precisa de: sku, product_name e price. Baixe o modelo de exemplo na página inicial.' }},
+          a: { es: 'Para el Conversor de Catálogo, las columnas de tu Excel son:\n\nsku, ean, marca, nombre, modelo, categoria, genero, color, talla, material, imagen, precio, stock, descripcion, variant_group_code\n\nAdemás necesitas las columnas GPSR: pais_fabricacion, fabricante_nombre, fabricante_nombre_comercial, fabricante_direccion, fabricante_email\n\nKatalync genera DOS archivos Sprinter/Mirakl: Productos (42 columnas) y Ofertas (27 columnas). Descarga la plantilla desde el inicio.',
+               pt: 'Para o Conversor de Catálogo, as colunas do seu Excel são:\n\nsku, ean, marca, nombre, modelo, categoria, genero, color, talla, material, imagen, precio, stock, descripcion, variant_group_code\n\nAlém disso, precisa das colunas GPSR: pais_fabricacion, fabricante_nombre, fabricante_nombre_comercial, fabricante_direccion, fabricante_email\n\nO Katalync gera DOIS arquivos Sprinter/Mirakl: Produtos (42 colunas) e Ofertas (27 colunas). Baixe o modelo na página inicial.' }},
         { k: ['precio', 'precios', 'actualizar precio', 'descuento', 'rebaja', 'oferta', 'promo', 'promocion', 'tag'],
-          a: { es: 'La herramienta de Precios necesita estas columnas:\n\nsku, price, discount_price (opcional), currency\n\nSi activas "Incluir precio de descuento", asegúrate de tener la columna discount_price.\n\nEl tag de promoción (ej: wintersales_2025) se añade a la descripción de oferta para que los productos aparezcan en las promociones del marketplace.',
-               pt: 'A ferramenta de Preços precisa destas colunas:\n\nsku, price, discount_price (opcional), currency\n\nSe ativar "Incluir preço de desconto", certifique-se de ter a coluna discount_price.\n\nO tag de promoção (ex: wintersales_2025) é adicionado à descrição da oferta para que os produtos apareçam nas promoções do marketplace.' }},
+          a: { es: 'La herramienta de Precios necesita estas columnas:\n\nsku, ean, precio, stock, precio_descuento (opcional)\n\nGenera un XLSX en formato Ofertas Sprinter (27 columnas) listo para importar en Mirakl. Los campos obligatorios (EAN, tipo de ID, estado, precio canal INIT, origen envío, IVA) se rellenan automáticamente.\n\nEl tag de promoción se añade a la descripción de oferta para campañas.',
+               pt: 'A ferramenta de Preços precisa destas colunas:\n\nsku, ean, precio, stock, precio_descuento (opcional)\n\nGera um XLSX no formato Ofertas Sprinter (27 colunas) pronto para importar no Mirakl. Os campos obrigatórios (EAN, tipo de ID, estado, preço canal INIT, origem envio, IVA) são preenchidos automaticamente.\n\nO tag de promoção é adicionado à descrição da oferta para campanhas.' }},
         { k: ['stock', 'inventario', 'cantidad', 'sincronizar stock', 'actualizar stock'],
-          a: { es: 'Para Stock solo necesitas dos columnas:\n\nsku, quantity\n\nEl SKU debe coincidir exactamente con el que tienes en el marketplace. La cantidad es el número de unidades disponibles.',
-               pt: 'Para Estoque só precisa de duas colunas:\n\nsku, quantity\n\nO SKU deve coincidir exatamente com o que tem no marketplace. A quantidade é o número de unidades disponíveis.' }},
+          a: { es: 'Para Stock necesitas al mínimo:\n\nsku, cantidad (o quantity/stock)\n\nOpcionalmente incluye ean para generar el XLSX en formato Ofertas Sprinter. El SKU debe coincidir con el del marketplace. Genera tanto CSV simple como XLSX formato Mirakl.',
+               pt: 'Para Estoque precisa no mínimo de:\n\nsku, quantidade (ou quantity/stock)\n\nOpcionalmente inclua ean para gerar o XLSX no formato Ofertas Sprinter. O SKU deve coincidir com o do marketplace. Gera tanto CSV simples como XLSX formato Mirakl.' }},
         { k: ['validar', 'validacion', 'comprobar', 'verificar', 'error', 'check'],
-          a: { es: 'La Validación Pre-Upload comprueba:\n\n- SKU: que no esté vacío ni duplicado\n- EAN: formato correcto (13 dígitos)\n- Imagen: URL válida y accesible\n- Precio: número válido > 0\n- Categoría: que no esté vacía\n- Marca: que no esté vacía\n\nTe muestra errores y avisos antes de subir al marketplace.',
-               pt: 'A Validação Pre-Upload verifica:\n\n- SKU: que não esteja vazio nem duplicado\n- EAN: formato correto (13 dígitos)\n- Imagem: URL válida e acessível\n- Preço: número válido > 0\n- Categoria: que não esteja vazia\n- Marca: que não esteja vazia\n\nMostra erros e avisos antes de subir ao marketplace.' }},
+          a: { es: 'La Validación Pre-Upload comprueba todos los campos OBLIGATORIOS de Sprinter/Mirakl:\n\n- Productos (19 campos rojos): SKU, EAN, categoría, marca, género, color, talla, material, GPSR completo...\n- Ofertas (8 campos rojos): EAN, precio, stock\n- Campañas (3 campos azules): responsable UE (aviso, no bloquea)\n\nTambién verifica formato EAN-13, URLs de imagen válidas y que no uses Google Drive/Dropbox/iCloud.',
+               pt: 'A Validação Pre-Upload verifica todos os campos OBRIGATÓRIOS do Sprinter/Mirakl:\n\n- Produtos (19 campos vermelhos): SKU, EAN, categoria, marca, gênero, cor, tamanho, material, GPSR completo...\n- Ofertas (8 campos vermelhos): EAN, preço, estoque\n- Campanhas (3 campos azuis): responsável UE (aviso, não bloqueia)\n\nTambém verifica formato EAN-13, URLs de imagem válidas e que não use Google Drive/Dropbox/iCloud.' }},
         { k: ['error servidor', 'error del servidor', 'no funciona', 'no carga', 'falla', 'se queda', 'tarda mucho', 'cargando', 'no responde'],
           a: { es: 'Si ves "Error del servidor":\n\n1. Comprueba que tu archivo no supere los 10.000 productos\n2. Verifica que el formato sea .xlsx, .xls o .csv\n3. Asegúrate de que el archivo no esté dañado (ábrelo en Excel para verificar)\n4. Espera unos segundos e inténtalo de nuevo\n\nSi el problema persiste, contacta con soporte desde el menú de usuario.',
                pt: 'Se vir "Erro do servidor":\n\n1. Verifique se seu arquivo não ultrapassa 10.000 produtos\n2. Verifique se o formato é .xlsx, .xls ou .csv\n3. Certifique-se de que o arquivo não está danificado (abra-o no Excel para verificar)\n4. Aguarde alguns segundos e tente novamente\n\nSe o problema persistir, contacte o suporte no menu do usuário.' }},
@@ -1295,14 +1383,14 @@ function app() {
           a: { es: 'Las imágenes del catálogo:\n\n- Deben ser URLs públicas accesibles (no Google Drive, Dropbox ni iCloud)\n- Se convierten automáticamente al ratio seleccionado (2:3, 1:1 o 4:3)\n- Se suben a un CDN con URLs públicas para Mirakl\n\nSi la URL de imagen no es válida o no es accesible, el producto se procesará pero sin imagen convertida.',
                pt: 'As imagens do catálogo:\n\n- Devem ser URLs públicas acessíveis (não Google Drive, Dropbox nem iCloud)\n- São convertidas automaticamente para o ratio selecionado (2:3, 1:1 ou 4:3)\n- São enviadas para um CDN com URLs públicas para Mirakl\n\nSe a URL da imagem não for válida ou acessível, o produto será processado mas sem imagem convertida.' }},
         { k: ['plantilla', 'modelo', 'template', 'ejemplo', 'descargar plantilla', 'descargar modelo', 'ejemplo excel'],
-          a: { es: 'Puedes descargar plantillas de ejemplo desde la página de inicio, en la sección "Plantillas de ejemplo":\n\n- Conversor: con todas las columnas del catálogo\n- Precios: SKU, precio, descuento y moneda\n- Stock: SKU y cantidad\n- Validación: campos principales para verificar\n\nCada plantilla incluye 2-3 filas de ejemplo para que veas el formato correcto.',
-               pt: 'Pode baixar modelos de exemplo na página inicial, na seção "Modelos de exemplo":\n\n- Conversor: com todas as colunas do catálogo\n- Preços: SKU, preço, desconto e moeda\n- Estoque: SKU e quantidade\n- Validação: campos principais para verificar\n\nCada modelo inclui 2-3 linhas de exemplo para ver o formato correto.' }},
+          a: { es: 'Puedes descargar plantillas de ejemplo desde la página de inicio:\n\n- Conversor: ~27 columnas simplificadas incluyendo GPSR, con 2 filas de ejemplo\n- Precios: SKU, EAN, precio, stock, descuento\n- Validación: mismas columnas que el conversor\n\nLas columnas usan nombres simples (sku, marca, precio...). Katalync las mapea automáticamente a los códigos API de Mirakl.',
+               pt: 'Pode baixar modelos de exemplo na página inicial:\n\n- Conversor: ~27 colunas simplificadas incluindo GPSR, com 2 linhas de exemplo\n- Preços: SKU, EAN, preço, estoque, desconto\n- Validação: mesmas colunas que o conversor\n\nAs colunas usam nomes simples (sku, marca, precio...). O Katalync mapeia automaticamente para os códigos API do Mirakl.' }},
         { k: ['marketplace', 'sprinter', 'mirakl', 'destino', 'que marketplace'],
-          a: { es: 'Actualmente puedes seleccionar el marketplace de destino antes de procesar. El sistema genera el CSV en el formato específico que cada marketplace necesita para importar por Mirakl.\n\nAsegúrate de seleccionar el marketplace correcto antes de procesar para que el formato de salida sea compatible.',
-               pt: 'Atualmente pode selecionar o marketplace de destino antes de processar. O sistema gera o CSV no formato específico que cada marketplace precisa para importar pelo Mirakl.\n\nCertifique-se de selecionar o marketplace correto antes de processar para que o formato de saída seja compatível.' }},
-        { k: ['descargar', 'csv', 'resultado', 'donde', 'archivo generado', 'mis archivos', 'descarga'],
-          a: { es: 'Después de procesar, puedes descargar el CSV desde:\n\n1. El botón "Descargar CSV" en la pantalla de resultados\n2. La sección "Mis archivos" en el menú de usuario (se guardan 15 días)\n3. El historial de la barra superior\n\nLos archivos se guardan automáticamente en tu cuenta durante 15 días.',
-               pt: 'Depois de processar, pode baixar o CSV de:\n\n1. O botão "Baixar CSV" na tela de resultados\n2. A seção "Meus arquivos" no menu do usuário (guardados por 15 dias)\n3. O histórico na barra superior\n\nOs arquivos são salvos automaticamente na sua conta por 15 dias.' }},
+          a: { es: 'Katalync genera archivos en formato Sprinter/Mirakl. El conversor produce DOS archivos XLSX:\n\n1. Productos (42 columnas) — datos del producto, imágenes, GPSR\n2. Ofertas (27 columnas) — precios, stock, estado, descuentos\n\nAmbos archivos tienen doble fila de cabecera (display + API codes) que Mirakl necesita para importar. Las columnas ROJAS obligatorias se rellenan automáticamente cuando es posible.',
+               pt: 'O Katalync gera arquivos no formato Sprinter/Mirakl. O conversor produz DOIS arquivos XLSX:\n\n1. Produtos (42 colunas) — dados do produto, imagens, GPSR\n2. Ofertas (27 colunas) — preços, estoque, estado, descontos\n\nAmbos arquivos têm dupla linha de cabeçalho (display + códigos API) que o Mirakl precisa para importar. As colunas VERMELHAS obrigatórias são preenchidas automaticamente quando possível.' }},
+        { k: ['descargar', 'csv', 'resultado', 'donde', 'archivo generado', 'mis archivos', 'descarga', 'xlsx'],
+          a: { es: 'Después de procesar, puedes descargar los archivos desde:\n\n1. Botones de descarga en la pantalla de resultados:\n   - "Descargar Productos Sprinter" (XLSX 42 columnas)\n   - "Descargar Ofertas Sprinter" (XLSX 27 columnas)\n   - CSV de respaldo\n2. La sección "Mis archivos" en el menú de usuario (se guardan 15 días)\n3. El historial de la barra superior',
+               pt: 'Depois de processar, pode baixar os arquivos de:\n\n1. Botões de download na tela de resultados:\n   - "Baixar Produtos Sprinter" (XLSX 42 colunas)\n   - "Baixar Ofertas Sprinter" (XLSX 27 colunas)\n   - CSV de backup\n2. A seção "Meus arquivos" no menu do usuário (guardados por 15 dias)\n3. O histórico na barra superior' }},
         { k: ['limite', 'maximo', 'cuantos productos', 'productos por lote', 'demasiados', 'muchos productos', '10000'],
           a: { es: 'Los límites son:\n\n- Máximo 10.000 productos por lote\n- Archivo máximo de 15 MB\n\nSi tu catálogo tiene más de 10.000 productos, divídelo en varios archivos y procésalos por separado.',
                pt: 'Os limites são:\n\n- Máximo 10.000 produtos por lote\n- Arquivo máximo de 15 MB\n\nSe seu catálogo tem mais de 10.000 produtos, divida-o em vários arquivos e processe-os separadamente.' }},
@@ -1321,9 +1409,9 @@ function app() {
         { k: ['sku', 'referencia', 'codigo producto', 'identificador'],
           a: { es: 'El SKU (Stock Keeping Unit) es el identificador único de cada producto:\n\n- Debe ser único (sin duplicados en el archivo)\n- No puede estar vacío\n- Debe coincidir con el SKU del marketplace si ya existe\n- Puede contener letras, números y guiones\n\nEjemplo: SKU-001, NKE-AM90-42-BLK',
                pt: 'O SKU (Stock Keeping Unit) é o identificador único de cada produto:\n\n- Deve ser único (sem duplicados no arquivo)\n- Não pode estar vazio\n- Deve coincidir com o SKU do marketplace se já existir\n- Pode conter letras, números e hífens\n\nExemplo: SKU-001, NKE-AM90-42-BLK' }},
-        { k: ['titulo', 'generar titulo', 'formatear titulo', 'title'],
-          a: { es: 'La opción "Formatear títulos" genera un título estandarizado con el formato:\n\nCategoría + Marca + Color (+ Talla si aplica)\n\nEjemplo: "Zapatillas Nike Negro 42"\n\nPuedes desactivar esta opción si prefieres mantener tus títulos originales.',
-               pt: 'A opção "Formatar títulos" gera um título padronizado com o formato:\n\nCategoria + Marca + Cor (+ Tamanho se aplicável)\n\nExemplo: "Tênis Nike Preto 42"\n\nPode desativar esta opção se preferir manter seus títulos originais.' }},
+        { k: ['titulo', 'generar titulo', 'formatear titulo', 'title', 'nombre'],
+          a: { es: 'La opción "Formatear títulos" genera el "nombre-del-articulo" para Sprinter con el formato:\n\nCategoría + Marca + Modelo\n\nEjemplo: "Zapatillas Nike Air Max 90"\n\nEste campo es OBLIGATORIO en Mirakl (columna roja). Si no activas la opción, debe estar en tu Excel.',
+               pt: 'A opção "Formatar títulos" gera o "nombre-del-articulo" para Sprinter com o formato:\n\nCategoria + Marca + Modelo\n\nExemplo: "Tênis Nike Air Max 90"\n\nEste campo é OBRIGATÓRIO no Mirakl (coluna vermelha). Se não ativar a opção, deve estar no seu Excel.' }},
         { k: ['descripcion', 'generar descripcion', 'description'],
           a: { es: 'La opción "Generar descripciones" crea una descripción estructurada que incluye:\n\n- Marca y modelo\n- Categoría y género\n- Material (si está disponible)\n- Características principales\n\nPuedes desactivar esta opción si prefieres mantener tus descripciones originales.',
                pt: 'A opção "Gerar descrições" cria uma descrição estruturada que inclui:\n\n- Marca e modelo\n- Categoria e gênero\n- Material (se disponível)\n- Características principais\n\nPode desativar esta opção se preferir manter suas descrições originais.' }},
@@ -1357,9 +1445,12 @@ function app() {
         { k: ['seguridad', 'datos', 'privacidad', 'donde se guardan', 'encriptado', 'cifrado', 'seguro'],
           a: { es: 'Tu seguridad es nuestra prioridad:\n\n- Los pagos se procesan con Stripe, líder mundial en pagos seguros. No almacenamos datos de tu tarjeta\n- Tus archivos se procesan de forma segura y se guardan 15 días en tu cuenta\n- Las contraseñas se almacenan con hash criptográfico\n- Toda la comunicación va cifrada por HTTPS\n- El repricing se calcula localmente en tu navegador',
                pt: 'Sua segurança é nossa prioridade:\n\n- Os pagamentos são processados com Stripe, líder mundial em pagamentos seguros. Não armazenamos dados do seu cartão\n- Seus arquivos são processados de forma segura e guardados 15 dias na sua conta\n- As senhas são armazenadas com hash criptográfico\n- Toda a comunicação é cifrada por HTTPS\n- O repricing é calculado localmente no seu navegador' }},
+        { k: ['gpsr', 'fabricante', 'responsable', 'persona responsable', 'pais fabricacion', 'eu'],
+          a: { es: 'Los campos GPSR son OBLIGATORIOS para Sprinter/Mirakl:\n\n- pais_fabricacion — País de fabricación del producto\n- fabricante_nombre — Nombre del fabricante\n- fabricante_nombre_comercial — Nombre comercial registrado\n- fabricante_direccion — Dirección del fabricante\n- fabricante_email — Email del fabricante\n\nPara campañas (Black Friday, etc.) también necesitas:\n- responsable_ue_nombre\n- responsable_ue_direccion\n- responsable_ue_email\n\nInclúyelos en tu Excel de entrada.',
+               pt: 'Os campos GPSR são OBRIGATÓRIOS para Sprinter/Mirakl:\n\n- pais_fabricacion — País de fabricação do produto\n- fabricante_nombre — Nome do fabricante\n- fabricante_nombre_comercial — Nome comercial registrado\n- fabricante_direccion — Endereço do fabricante\n- fabricante_email — Email do fabricante\n\nPara campanhas (Black Friday, etc.) também precisa de:\n- responsable_ue_nombre\n- responsable_ue_direccion\n- responsable_ue_email\n\nInclua-os no seu Excel de entrada.' }},
         { k: ['que es katalync', 'para que sirve', 'que hace', 'como funciona', 'explicar'],
-          a: { es: 'Katalync es una plataforma SaaS para automatizar la preparación de catálogos para marketplace. Incluye 5 herramientas:\n\n1. Conversor de Catálogo — formatea títulos, descripciones, convierte imágenes a 2:3 y genera CSV Mirakl-ready\n2. Actualización de Precios — genera CSV de precios y descuentos listo para importar\n3. Sincronización de Stock — actualiza cantidades desde tu Excel\n4. Validación Pre-Upload — verifica EAN, SKU, imágenes y campos antes de subir\n5. Repricing — ajusta precios vs competencia con estrategia personalizada\n\nTodo desde una sola plataforma, sin necesidad de otros programas.',
-               pt: 'O Katalync é uma plataforma SaaS para automatizar a preparação de catálogos para marketplace. Inclui 5 ferramentas:\n\n1. Conversor de Catálogo — formata títulos, descrições, converte imagens para 2:3 e gera CSV Mirakl-ready\n2. Atualização de Preços — gera CSV de preços e descontos pronto para importar\n3. Sincronização de Estoque — atualiza quantidades do seu Excel\n4. Validação Pre-Upload — verifica EAN, SKU, imagens e campos antes de subir\n5. Repricing — ajusta preços vs concorrência com estratégia personalizada\n\nTudo numa só plataforma, sem necessidade de outros programas.' }}
+          a: { es: 'Katalync es una plataforma SaaS para automatizar la preparación de catálogos para Sprinter y otros marketplaces Mirakl. Incluye 5 herramientas:\n\n1. Conversor de Catálogo — genera DOS archivos XLSX (Productos 42 cols + Ofertas 27 cols) listos para importar en Mirakl\n2. Actualización de Precios — genera XLSX formato Ofertas con precios y descuentos\n3. Sincronización de Stock — actualiza cantidades con XLSX formato Mirakl\n4. Validación Pre-Upload — verifica los 19 campos obligatorios de Productos y 8 de Ofertas\n5. Repricing — ajusta precios vs competencia\n\nSubes UN Excel simplificado y Katalync genera los archivos que Mirakl necesita.',
+               pt: 'O Katalync é uma plataforma SaaS para automatizar a preparação de catálogos para Sprinter e outros marketplaces Mirakl. Inclui 5 ferramentas:\n\n1. Conversor de Catálogo — gera DOIS arquivos XLSX (Produtos 42 cols + Ofertas 27 cols) prontos para importar no Mirakl\n2. Atualização de Preços — gera XLSX formato Ofertas com preços e descontos\n3. Sincronização de Estoque — atualiza quantidades com XLSX formato Mirakl\n4. Validação Pre-Upload — verifica os 19 campos obrigatórios de Produtos e 8 de Ofertas\n5. Repricing — ajusta preços vs concorrência\n\nCarrega UM Excel simplificado e o Katalync gera os arquivos que o Mirakl precisa.' }}
       ];
     },
   };
