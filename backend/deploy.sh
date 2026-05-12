@@ -15,7 +15,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 JS_FILE="$SCRIPT_DIR/process-products.js"
 WORKFLOW_ID="4R88x26cesnzRqMD"
 N8N_HOST="https://api.katalync.com"
-N8N_API_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJiNjhiNjhjYS05YzM5LTQyMDctYWQ3Ni0yNDVhYTVjZmJjMTUiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiNjFhOTZmMjYtYzZmZi00ZGUzLWE2YmItZTcxOTQ4YjE1N2FjIiwiaWF0IjoxNzc4NDIzMzkwfQ.gwtPzLiWrpcRiZdtUrXbkLgHvIhLFdg9ccwF1w9ynAc"
+N8N_API_KEY="${N8N_API_KEY:?ERROR: N8N_API_KEY not set. Run: source backend/.env}"
 
 if [ ! -f "$JS_FILE" ]; then
   echo "ERROR: $JS_FILE not found"

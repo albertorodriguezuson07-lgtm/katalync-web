@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aviso Legal — Katalync</title>
+    <meta name="description" content="Aviso legal de Katalync, plataforma SaaS de gestion de catalogos para marketplaces. Datos identificativos, propiedad intelectual y legislacion aplicable.">
+    <link rel="icon" href="assets/favicon.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0d9488;
+            --primary-light: #14b8a6;
+            --accent: #06b6d4;
+            --navy: #0f172a;
+            --navy-light: #1e293b;
+            --surface: #f8fafc;
+            --border: #e2e8f0;
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --text-faint: #94a3b8;
+            --white: #ffffff;
+            --gradient: linear-gradient(135deg, var(--primary), var(--accent));
+            --gradient-subtle: linear-gradient(135deg, rgba(13,148,136,0.08), rgba(6,182,212,0.08));
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04);
+            --radius: 12px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--text);
+            line-height: 1.75;
+            background: var(--white);
+            -webkit-font-smoothing: antialiased;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Space Grotesk', sans-serif;
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+        }
+
+        /* ═══════════════ HEADER ═══════════════ */
+        .legal-header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border-bottom: 1px solid rgba(226,232,240,0.6);
+            padding: 14px 0;
+        }
+        .header-inner {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-logo { height: 40px; }
+        .header-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            font-size: 14px;
+            transition: color var(--transition);
+        }
+        .header-back:hover { color: var(--primary); }
+        .header-back svg { width: 16px; height: 16px; }
+
+        /* ═══════════════ HERO BANNER ═══════════════ */
+        .legal-hero {
+            background: var(--navy);
+            padding: 56px 0 48px;
+            position: relative;
+            overflow: hidden;
+        }
+        .legal-hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            background-image:
+                linear-gradient(rgba(148,163,184,0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(148,163,184,0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        .legal-hero-inner {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 24px;
+            position: relative;
+            z-index: 1;
+        }
+        .legal-hero h1 {
+            color: var(--white);
+            font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+            margin-bottom: 12px;
+        }
+        .legal-hero p {
+            color: var(--text-faint);
+            font-size: 15px;
+            max-width: 560px;
+        }
+        .legal-hero .date-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(13,148,136,0.12);
+            border: 1px solid rgba(13,148,136,0.2);
+            border-radius: 100px;
+            padding: 5px 14px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        /* ═══════════════ CONTENT ═══════════════ */
+        .legal-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 56px 24px 80px;
+        }
+
+        .legal-section {
+            margin-bottom: 48px;
+        }
+        .legal-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .legal-section h2 {
+            font-size: 1.35rem;
+            color: var(--text);
+            margin-bottom: 16px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid transparent;
+            border-image: var(--gradient) 1;
+        }
+
+        .legal-section h3 {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .legal-section p,
+        .legal-section li {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.8;
+        }
+
+        .legal-section ul,
+        .legal-section ol {
+            margin: 12px 0;
+            padding-left: 24px;
+        }
+
+        .legal-section li {
+            margin-bottom: 6px;
+        }
+
+        .legal-section a {
+            color: var(--primary);
+            text-decoration: none;
+            transition: color var(--transition);
+        }
+        .legal-section a:hover {
+            color: var(--accent);
+        }
+
+        .legal-section p + p {
+            margin-top: 12px;
+        }
+
+        .section-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: var(--gradient-subtle);
+            color: var(--primary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            border-radius: 8px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+        }
+
+        /* ═══════════════ TABLE OF CONTENTS ═══════════════ */
+        .toc {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px 28px;
+            margin-bottom: 48px;
+        }
+        .toc-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 12px;
+        }
+        .toc ol {
+            list-style: none;
+            padding: 0;
+            counter-reset: toc-counter;
+        }
+        .toc li {
+            counter-increment: toc-counter;
+            margin-bottom: 6px;
+        }
+        .toc li a {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+            transition: color var(--transition);
+        }
+        .toc li a:hover {
+            color: var(--primary);
+        }
+        .toc li a::before {
+            content: counter(toc-counter);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            background: var(--gradient-subtle);
+            color: var(--primary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            font-size: 11px;
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+
+        /* ═══════════════ FOOTER ═══════════════ */
+        .legal-footer {
+            background: var(--navy);
+            border-top: 1px solid rgba(255,255,255,0.06);
+            padding: 32px 0;
+            color: var(--text-faint);
+        }
+        .footer-inner {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .footer-legal-links {
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+        .footer-legal-links a {
+            color: var(--text-faint);
+            text-decoration: none;
+            font-size: 13px;
+            transition: color var(--transition);
+        }
+        .footer-legal-links a:hover { color: var(--accent); }
+        .footer-legal-links a.active {
+            color: var(--accent);
+        }
+        .footer-copy {
+            font-size: 12px;
+        }
+
+        /* ═══════════════ RESPONSIVE ═══════════════ */
+        @media (max-width: 768px) {
+            .legal-hero { padding: 40px 0 36px; }
+            .legal-content { padding: 40px 20px 64px; }
+            .legal-section h2 { font-size: 1.2rem; }
+            .footer-inner {
+                flex-direction: column;
+                text-align: center;
+            }
+            .footer-legal-links {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ═══════════════ HEADER ═══════════════ -->
+    <header class="legal-header">
+        <div class="header-inner">
+            <a href="/"><img src="assets/logo-horizontal.png" alt="Katalync" class="header-logo"></a>
+            <a href="/" class="header-back">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+                Volver a Katalync
+            </a>
+        </div>
+    </header>
+
+    <!-- ═══════════════ HERO ═══════════════ -->
+    <section class="legal-hero">
+        <div class="legal-hero-inner">
+            <div class="date-badge">Ultima actualizacion: 13 de mayo de 2026</div>
+            <h1>Aviso Legal</h1>
+            <p>Informacion legal sobre el titular del sitio web katalync.com, sus condiciones de uso y la legislacion aplicable.</p>
+        </div>
+    </section>
+
+    <!-- ═══════════════ CONTENT ═══════════════ -->
+    <main class="legal-content">
+
+        <!-- TOC -->
+        <nav class="toc">
+            <div class="toc-title">Contenido</div>
+            <ol>
+                <li><a href="#datos">Datos identificativos del titular</a></li>
+                <li><a href="#objeto">Objeto del sitio web</a></li>
+                <li><a href="#propiedad">Propiedad intelectual e industrial</a></li>
+                <li><a href="#responsabilidad">Responsabilidad y exencion</a></li>
+                <li><a href="#enlaces">Enlaces externos</a></li>
+                <li><a href="#legislacion">Legislacion aplicable y jurisdiccion</a></li>
+                <li><a href="#modificaciones">Modificaciones del aviso legal</a></li>
+            </ol>
+        </nav>
+
+        <!-- 1 -->
+        <section class="legal-section" id="datos">
+            <div class="section-header">
+                <span class="section-number">1</span>
+                <h2>Datos identificativos del titular</h2>
+            </div>
+            <p>En cumplimiento de lo establecido en el articulo 10 de la Ley 34/2002, de 11 de julio, de Servicios de la Sociedad de la Informacion y de Comercio Electronico (LSSI-CE), se informa al usuario de los siguientes datos identificativos del titular del sitio web:</p>
+            <ul>
+                <li><strong>Titular:</strong> Alberto Rodriguez Uson, actuando bajo la marca comercial PROMETEIX</li>
+                <li><strong>NIF:</strong> XX-XXXXXXXX-X</li>
+                <li><strong>Domicilio:</strong> Murcia, Espana</li>
+                <li><strong>Correo electronico:</strong> <a href="mailto:alberto@prometeix.com">alberto@prometeix.com</a></li>
+                <li><strong>Sitio web:</strong> <a href="https://katalync.com">katalync.com</a></li>
+                <li><strong>Actividad:</strong> Prestacion de servicios de software como servicio (SaaS) para la gestion de catalogos de productos destinados a marketplaces</li>
+            </ul>
+        </section>
+
+        <!-- 2 -->
+        <section class="legal-section" id="objeto">
+            <div class="section-header">
+                <span class="section-number">2</span>
+                <h2>Objeto del sitio web</h2>
+            </div>
+            <p>El sitio web katalync.com tiene como finalidad la prestacion y comercializacion de los servicios de la plataforma Katalync, una solucion SaaS (Software as a Service) destinada a la gestion, conversion, validacion y sincronizacion de catalogos de productos para su publicacion en marketplaces.</p>
+            <p>A traves de esta plataforma, los usuarios pueden transformar sus catalogos de productos al formato requerido por los distintos marketplaces, optimizar imagenes de producto, validar campos obligatorios y gestionar sus listados de forma automatizada.</p>
+        </section>
+
+        <!-- 3 -->
+        <section class="legal-section" id="propiedad">
+            <div class="section-header">
+                <span class="section-number">3</span>
+                <h2>Propiedad intelectual e industrial</h2>
+            </div>
+            <p>Todos los contenidos del sitio web, incluyendo a titulo enunciativo pero no limitativo, textos, graficos, imagenes, logotipos, iconos, software, bases de datos, disenos, estructura de navegacion, codigo fuente y cualquier otro elemento susceptible de proteccion por la normativa de propiedad intelectual e industrial, son propiedad de PROMETEIX o de sus licenciantes, y se encuentran protegidos por las leyes espanolas e internacionales de propiedad intelectual e industrial.</p>
+            <p>La marca Katalync, asi como sus logotipos, nombres comerciales y signos distintivos asociados, son propiedad exclusiva de PROMETEIX. Queda expresamente prohibida su reproduccion, distribucion, comunicacion publica, transformacion o cualquier otra forma de explotacion no autorizada expresamente por su titular.</p>
+            <p>El acceso al sitio web no otorga al usuario derecho alguno de propiedad intelectual o industrial sobre sus contenidos. Cualquier uso no autorizado de los contenidos del sitio web sera considerado una vulneracion de los derechos de propiedad intelectual e industrial del titular y podra dar lugar a las acciones legales correspondientes.</p>
+        </section>
+
+        <!-- 4 -->
+        <section class="legal-section" id="responsabilidad">
+            <div class="section-header">
+                <span class="section-number">4</span>
+                <h2>Responsabilidad y exencion</h2>
+            </div>
+            <p>PROMETEIX no garantiza la disponibilidad ininterrumpida ni la ausencia de errores en el sitio web o en los servicios prestados a traves del mismo. No obstante, se compromete a adoptar las medidas razonablemente necesarias para restablecer el servicio en el menor tiempo posible en caso de incidencia tecnica.</p>
+            <p>PROMETEIX no sera responsable de:</p>
+            <ul>
+                <li>Los danos o perjuicios derivados de interrupciones, fallos informaticos, averias telefonicas, desconexiones, retrasos o bloqueos causados por deficiencias o sobrecargas en las lineas telefonicas, centros de datos, en el sistema de Internet o en otros sistemas electronicos, producidos en el curso de su funcionamiento.</li>
+                <li>Los danos causados por terceros mediante intromisiones ilegitimas fuera del control de PROMETEIX.</li>
+                <li>Las decisiones comerciales que el usuario tome basandose en la informacion obtenida o procesada a traves de la plataforma.</li>
+                <li>La exactitud, idoneidad o completitud de los datos de producto introducidos por el usuario en la plataforma.</li>
+            </ul>
+            <p>El usuario es el unico responsable de verificar que los datos de producto procesados a traves de Katalync cumplen con los requisitos y politicas del marketplace de destino.</p>
+        </section>
+
+        <!-- 5 -->
+        <section class="legal-section" id="enlaces">
+            <div class="section-header">
+                <span class="section-number">5</span>
+                <h2>Enlaces externos</h2>
+            </div>
+            <p>El sitio web puede contener enlaces a paginas web de terceros. PROMETEIX no asume responsabilidad alguna sobre el contenido, la politica de privacidad o las practicas de dichos sitios web externos. La inclusion de estos enlaces no implica aprobacion ni respaldo del contenido de los mismos por parte de PROMETEIX.</p>
+            <p>Se recomienda al usuario la lectura de las condiciones de uso y la politica de privacidad de cualquier sitio web de terceros al que acceda desde katalync.com.</p>
+        </section>
+
+        <!-- 6 -->
+        <section class="legal-section" id="legislacion">
+            <div class="section-header">
+                <span class="section-number">6</span>
+                <h2>Legislacion aplicable y jurisdiccion</h2>
+            </div>
+            <p>El presente Aviso Legal se rige por la legislacion espanola vigente. Para la resolucion de cualquier controversia que pudiera derivarse del acceso o uso del sitio web, las partes se someten expresamente a la jurisdiccion de los Juzgados y Tribunales de la ciudad de Murcia, con renuncia expresa a cualquier otro fuero que pudiera corresponderles.</p>
+            <p>Lo anterior se entiende sin perjuicio del derecho del usuario que ostente la condicion de consumidor a acudir a los tribunales del lugar de su domicilio, conforme a lo establecido en la legislacion procesal vigente.</p>
+        </section>
+
+        <!-- 7 -->
+        <section class="legal-section" id="modificaciones">
+            <div class="section-header">
+                <span class="section-number">7</span>
+                <h2>Modificaciones del aviso legal</h2>
+            </div>
+            <p>PROMETEIX se reserva el derecho a modificar el presente Aviso Legal en cualquier momento, con el objetivo de adaptarlo a novedades legislativas, jurisprudenciales o de practica empresarial. Cualquier modificacion sera publicada en esta pagina con indicacion de la fecha de la ultima actualizacion.</p>
+            <p>Se recomienda al usuario revisar periodicamente el contenido de este Aviso Legal para mantenerse informado de cualquier cambio. El uso continuado del sitio web tras la publicacion de las modificaciones se entendera como aceptacion de las mismas.</p>
+        </section>
+
+    </main>
+
+    <!-- ═══════════════ FOOTER ═══════════════ -->
+    <footer class="legal-footer">
+        <div class="footer-inner">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <a href="/"><img src="assets/logo-horizontal.png" alt="Katalync" style="height:32px; filter:brightness(0) invert(1);"></a>
+            </div>
+            <div class="footer-legal-links">
+                <a href="/legal.html" class="active">Aviso Legal</a>
+                <a href="/privacidad.html">Politica de Privacidad</a>
+                <a href="/terminos.html">Terminos y Condiciones</a>
+                <a href="/">katalync.com</a>
+            </div>
+            <span class="footer-copy">&copy; 2026 Katalync by Prometeix</span>
+        </div>
+    </footer>
+
+</body>
+</html>
