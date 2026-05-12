@@ -395,6 +395,7 @@
         <button @click="page = 'validate'" :class="page === 'validate' ? 'bg-white text-green-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all" x-text="t('nav_validation')"></button>
         <button @click="page = 'stock'" :class="page === 'stock' ? 'bg-white text-amber-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all" x-text="t('nav_stock')"></button>
         <button @click="page = 'repricing'" :class="page === 'repricing' ? 'bg-white text-rose-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all" x-text="t('nav_repricing')"></button>
+        <button x-show="currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'marketplace_admin')" @click="page = 'sync'" :class="page === 'sync' ? 'bg-white text-cyan-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg><span x-text="t('nav_sync')"></span></button>
         <button x-show="currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'marketplace_admin')" @click="page = 'admin'; loadAdminUsers(); loadAdminDashboard()" :class="page === 'admin' ? 'bg-white text-purple-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all">Admin</button>
       </nav>
 
@@ -618,6 +619,13 @@
           </div>
           <h3 class="text-xs font-bold text-gray-900 mb-0.5" x-text="t('tool_repricing')"></h3>
           <p class="text-[10px] text-gray-500 leading-snug line-clamp-2" x-text="t('tool_repricing_desc')"></p>
+        </div>
+        <div x-show="currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'marketplace_admin')" @click="page = 'sync'" class="card-hover bg-white border border-gray-200 rounded-xl p-4 cursor-pointer group hover:border-cyan-200 hover:shadow-md transition-all">
+          <div class="w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+            <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </div>
+          <h3 class="text-xs font-bold text-gray-900 mb-0.5" x-text="t('nav_sync') + ' · ' + t('sync_vendors')"></h3>
+          <p class="text-[10px] text-gray-500 leading-snug line-clamp-2" x-text="t('sync_sub')"></p>
         </div>
       </div>
 
@@ -1747,6 +1755,209 @@
       </div><!-- /marketplaces tab -->
     </div>
 
+    <!-- ==================== SYNC DASHBOARD ==================== -->
+    <div x-show="page === 'sync' && currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'marketplace_admin')" x-transition>
+      <div class="flex items-center gap-3 mb-1">
+        <h2 class="text-xl font-bold text-gray-900" x-text="t('sync_title')"></h2>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-100 text-cyan-700 tracking-wider" x-text="t('sync_demo_badge')"></span>
+      </div>
+      <p class="text-sm text-gray-500 mb-6" x-text="t('sync_sub')"></p>
+
+      <!-- Metrics Row -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white border border-gray-200 rounded-xl p-4">
+          <div class="text-xs text-gray-500 mb-1" x-text="t('sync_vendors')"></div>
+          <div class="text-2xl font-bold text-gray-900" x-text="syncDemoVendors.length"></div>
+          <div class="flex items-center gap-1 mt-1">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-xs text-emerald-600" x-text="syncDemoVendors.filter(v => v.status === 'active').length + ' ' + t('sync_active').toLowerCase()"></span>
+          </div>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-4">
+          <div class="text-xs text-gray-500 mb-1" x-text="t('sync_products')"></div>
+          <div class="text-2xl font-bold text-gray-900" x-text="syncTotalSynced.toLocaleString()"></div>
+          <div class="text-xs text-gray-400 mt-1" x-text="'/ ' + syncTotalProducts.toLocaleString() + ' total'"></div>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-4">
+          <div class="text-xs text-gray-500 mb-1" x-text="t('sync_last')"></div>
+          <div class="text-2xl font-bold text-gray-900" x-text="syncLastTime"></div>
+          <div class="text-xs text-gray-400 mt-1" x-text="t('sync_ago')"></div>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-4">
+          <div class="text-xs text-gray-500 mb-1" x-text="t('sync_success_rate')"></div>
+          <div class="text-2xl font-bold" :class="parseFloat(syncSuccessRate) > 95 ? 'text-emerald-600' : parseFloat(syncSuccessRate) > 80 ? 'text-amber-600' : 'text-red-600'" x-text="syncSuccessRate + '%'"></div>
+          <div class="w-full bg-gray-100 rounded-full h-1.5 mt-2"><div class="bg-emerald-500 h-1.5 rounded-full transition-all" :style="'width:' + syncSuccessRate + '%'"></div></div>
+        </div>
+      </div>
+
+      <!-- Vendors Table -->
+      <div class="bg-white border border-gray-200 rounded-xl overflow-hidden mb-6">
+        <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <h3 class="font-semibold text-sm text-gray-700" x-text="t('sync_vendors')"></h3>
+          <button @click="showToast(t('sync_connect_crm_desc'), 'info')" class="text-xs text-cyan-600 hover:text-cyan-700 flex items-center gap-1">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span x-text="t('sync_connect_crm')"></span>
+          </button>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-left text-xs text-gray-500 border-b border-gray-100">
+                <th class="px-5 py-2.5 font-medium" x-text="t('sync_vendor_name')"></th>
+                <th class="px-4 py-2.5 font-medium" x-text="t('sync_source')"></th>
+                <th class="px-4 py-2.5 font-medium text-right" x-text="t('sync_product_count')"></th>
+                <th class="px-4 py-2.5 font-medium" x-text="t('sync_last_sync')"></th>
+                <th class="px-4 py-2.5 font-medium" x-text="t('sync_interval')"></th>
+                <th class="px-4 py-2.5 font-medium" x-text="t('sync_status')"></th>
+                <th class="px-4 py-2.5 font-medium" x-text="t('sync_actions')"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="v in syncDemoVendors" :key="v.id">
+                <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                  <td class="px-5 py-3">
+                    <div class="font-medium text-gray-900" x-text="v.name"></div>
+                    <div class="text-xs text-gray-400" x-text="v.company"></div>
+                  </td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium" :class="v.source === 'Shopify' ? 'bg-green-50 text-green-700' : v.source === 'PrestaShop' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600'" x-text="v.source"></span>
+                  </td>
+                  <td class="px-4 py-3 text-right">
+                    <div class="font-medium" x-text="v.synced.toLocaleString()"></div>
+                    <div class="text-xs text-red-400" x-show="v.errors > 0" x-text="v.errors + ' ' + t('sync_errors').toLowerCase()"></div>
+                  </td>
+                  <td class="px-4 py-3 text-gray-500 text-xs" x-text="syncTimeAgo(v.lastSync) + ' ' + t('sync_ago')"></td>
+                  <td class="px-4 py-3 text-gray-500 text-xs" x-text="v.interval + 'h'"></td>
+                  <td class="px-4 py-3">
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" :class="v.status === 'active' ? 'bg-emerald-50 text-emerald-700' : v.status === 'error' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-500'">
+                      <span class="w-1.5 h-1.5 rounded-full" :class="v.status === 'active' ? 'bg-emerald-500' : v.status === 'error' ? 'bg-red-500' : 'bg-gray-400'"></span>
+                      <span x-text="v.status === 'active' ? t('sync_active') : v.status === 'error' ? t('sync_error') : t('sync_paused')"></span>
+                    </span>
+                  </td>
+                  <td class="px-4 py-3">
+                    <button @click="simulateSync(v)" :disabled="syncSimulating" class="px-3 py-1 rounded-md text-xs font-medium transition-all" :class="syncSimulating && syncSimVendor === v.id ? 'bg-cyan-100 text-cyan-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-cyan-50 hover:text-cyan-600'" x-text="syncSimulating && syncSimVendor === v.id ? t('sync_simulating') : t('sync_now')"></button>
+                  </td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Upload to Sprinter + Timeline -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Upload Panel -->
+        <div class="bg-gradient-to-br from-cyan-50 to-blue-50 border border-cyan-200 rounded-xl p-5">
+          <h3 class="font-semibold text-gray-800 mb-1" x-text="t('sync_upload_title')"></h3>
+          <p class="text-xs text-gray-500 mb-4" x-text="t('sync_upload_desc')"></p>
+
+          <template x-if="!syncUploadSimulating && !syncUploadDone">
+            <div>
+              <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
+                <span x-text="syncTotalSynced.toLocaleString() + ' ' + t('sync_upload_result')"></span>
+                <span x-text="syncDemoVendors.filter(v => v.status === 'active').length + ' vendedores'"></span>
+              </div>
+              <button @click="simulateUpload()" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-sm font-semibold hover:from-cyan-700 hover:to-blue-700 transition-all flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                <span x-text="t('sync_upload_btn')"></span>
+              </button>
+            </div>
+          </template>
+
+          <template x-if="syncUploadSimulating">
+            <div>
+              <div class="text-sm text-cyan-700 font-medium mb-2" x-text="t('sync_uploading')"></div>
+              <div class="w-full bg-white rounded-full h-3 overflow-hidden">
+                <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-3 rounded-full transition-all duration-200" :style="'width:' + syncUploadProgress + '%'"></div>
+              </div>
+              <div class="text-xs text-gray-500 mt-1 text-right" x-text="syncUploadProgress + '%'"></div>
+            </div>
+          </template>
+
+          <template x-if="syncUploadDone && !syncUploadSimulating">
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <svg class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span class="text-sm font-semibold text-emerald-700" x-text="t('sync_upload_done')"></span>
+              </div>
+              <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="bg-white rounded-lg p-2">
+                  <div class="text-lg font-bold text-gray-900" x-text="syncTotalSynced.toLocaleString()"></div>
+                  <div class="text-[10px] text-gray-500" x-text="t('sync_upload_result')"></div>
+                </div>
+                <div class="bg-white rounded-lg p-2">
+                  <div class="text-lg font-bold text-amber-600" x-text="Math.floor(Math.random() * 10 + 5)"></div>
+                  <div class="text-[10px] text-gray-500" x-text="t('sync_upload_warnings')"></div>
+                </div>
+                <div class="bg-white rounded-lg p-2">
+                  <div class="text-lg font-bold text-red-600" x-text="Math.floor(Math.random() * 5 + 2)"></div>
+                  <div class="text-[10px] text-gray-500" x-text="t('sync_upload_errors')"></div>
+                </div>
+              </div>
+              <button @click="syncUploadDone = false; syncUploadProgress = 0" class="mt-3 w-full py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-700 bg-white border border-gray-200 transition-all">Reset demo</button>
+            </div>
+          </template>
+        </div>
+
+        <!-- Timeline -->
+        <div class="bg-white border border-gray-200 rounded-xl p-5 max-h-[400px] overflow-y-auto">
+          <h3 class="font-semibold text-sm text-gray-700 mb-3" x-text="t('sync_timeline_title')"></h3>
+          <div class="space-y-3">
+            <template x-for="log in syncDemoLogs.slice(0, 10)" :key="log.id">
+              <div class="flex items-start gap-3 text-xs">
+                <div class="mt-0.5 flex-shrink-0">
+                  <div class="w-6 h-6 rounded-full flex items-center justify-center" :class="log.direction === 'in' ? 'bg-blue-100' : 'bg-cyan-100'">
+                    <svg x-show="log.direction === 'in'" class="w-3 h-3 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/></svg>
+                    <svg x-show="log.direction === 'out'" class="w-3 h-3 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/></svg>
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-gray-900" x-text="log.vendor"></span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="log.direction === 'in' ? 'bg-blue-50 text-blue-600' : 'bg-cyan-50 text-cyan-600'" x-text="log.direction === 'in' ? t('sync_direction_in') : t('sync_direction_out')"></span>
+                    <span class="ml-auto text-gray-400" x-text="syncTimeAgo(log.time) + ' ' + t('sync_ago')"></span>
+                  </div>
+                  <div class="flex items-center gap-3 mt-1 text-gray-500">
+                    <span x-text="log.total.toLocaleString() + ' total'"></span>
+                    <span class="text-emerald-600" x-show="log.created > 0" x-text="'+' + log.created + ' ' + t('sync_created').toLowerCase()"></span>
+                    <span class="text-blue-600" x-show="log.updated > 0" x-text="'~' + log.updated + ' ' + t('sync_updated').toLowerCase()"></span>
+                    <span class="text-red-500" x-show="log.errors > 0" x-text="log.errors + ' ' + t('sync_errors').toLowerCase()"></span>
+                    <span class="ml-auto">
+                      <span class="px-1.5 py-0.5 rounded-full text-[10px] font-medium" :class="log.status === 'success' ? 'bg-emerald-50 text-emerald-600' : log.status === 'partial' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'" x-text="log.status === 'success' ? 'OK' : log.status === 'partial' ? 'Parcial' : 'Error'"></span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+
+      <!-- CRM Connect Cards -->
+      <div class="bg-white border border-gray-200 rounded-xl p-5">
+        <h3 class="font-semibold text-sm text-gray-700 mb-3" x-text="t('sync_connect_crm')"></h3>
+        <p class="text-xs text-gray-500 mb-4" x-text="t('sync_connect_crm_desc')"></p>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <button @click="showToast('Shopify connector: ' + t('sync_demo_badge'), 'info')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-green-300 hover:bg-green-50/50 transition-all group">
+            <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center text-green-700 font-bold text-lg group-hover:scale-110 transition-transform">S</div>
+            <span class="text-xs font-medium text-gray-600">Shopify</span>
+          </button>
+          <button @click="showToast('PrestaShop connector: ' + t('sync_demo_badge'), 'info')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group">
+            <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg group-hover:scale-110 transition-transform">P</div>
+            <span class="text-xs font-medium text-gray-600">PrestaShop</span>
+          </button>
+          <button @click="showToast('WooCommerce connector: ' + t('sync_demo_badge'), 'info')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-purple-300 hover:bg-purple-50/50 transition-all group">
+            <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-lg group-hover:scale-110 transition-transform">W</div>
+            <span class="text-xs font-medium text-gray-600">WooCommerce</span>
+          </button>
+          <button @click="showToast('API connector: ' + t('sync_demo_badge'), 'info')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all group">
+            <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-700 font-bold text-lg group-hover:scale-110 transition-transform">{}</div>
+            <span class="text-xs font-medium text-gray-600">API propia</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <footer class="border-t border-gray-200 mt-16">
@@ -1813,6 +2024,6 @@
 
   </div>
 
-  <script src="app.js?v=20260512c"></script>
+  <script src="app.js?v=20260512d"></script>
 </body>
 </html>

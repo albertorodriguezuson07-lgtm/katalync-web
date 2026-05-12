@@ -304,7 +304,48 @@ const TRANSLATIONS = {
     sub_badge_suspended: 'Suspendido',
     billing_portal: 'Facturación',
     billing_portal_loading: 'Abriendo portal...',
-    billing_portal_error: 'No se pudo abrir el portal de facturación'
+    billing_portal_error: 'No se pudo abrir el portal de facturación',
+    nav_sync: 'Sync',
+    sync_title: 'Centro de Sincronización',
+    sync_sub: 'Gestiona la conexión automática entre tus vendedores, Katalync y Sprinter.',
+    sync_vendors: 'Vendedores conectados',
+    sync_products: 'Productos sincronizados',
+    sync_last: 'Última sincronización',
+    sync_success_rate: 'Tasa de éxito',
+    sync_vendor_name: 'Vendedor',
+    sync_source: 'Fuente',
+    sync_product_count: 'Productos',
+    sync_last_sync: 'Última sync',
+    sync_status: 'Estado',
+    sync_actions: 'Acciones',
+    sync_now: 'Sync ahora',
+    sync_active: 'Activo',
+    sync_error: 'Error',
+    sync_paused: 'Pausado',
+    sync_timeline_title: 'Historial de sincronizaciones',
+    sync_direction_in: 'CRM → Katalync',
+    sync_direction_out: 'Katalync → Sprinter',
+    sync_total: 'Total',
+    sync_created: 'Creados',
+    sync_updated: 'Actualizados',
+    sync_errors: 'Errores',
+    sync_upload_title: 'Subir catálogo a Sprinter',
+    sync_upload_btn: 'Subir a Sprinter',
+    sync_upload_desc: 'Sube los productos convertidos directamente a Mirakl/Sprinter via API.',
+    sync_uploading: 'Subiendo a Sprinter...',
+    sync_upload_done: 'Subida completada',
+    sync_upload_result: 'productos subidos',
+    sync_upload_errors: 'errores',
+    sync_upload_warnings: 'advertencias',
+    sync_simulating: 'Sincronizando...',
+    sync_configure: 'Configurar conexión',
+    sync_interval: 'Intervalo de sync',
+    sync_hours: 'horas',
+    sync_ago: 'hace',
+    sync_minutes: 'min',
+    sync_demo_badge: 'DEMO',
+    sync_connect_crm: 'Conectar CRM',
+    sync_connect_crm_desc: 'Conecta el ERP/CRM de tu vendedor para sincronización automática.'
   },
   pt: {
     auth_login_title: 'Iniciar sessão', auth_login_sub: 'Insira suas credenciais para acessar',
@@ -523,7 +564,48 @@ const TRANSLATIONS = {
     sub_badge_suspended: 'Suspenso',
     billing_portal: 'Faturação',
     billing_portal_loading: 'Abrindo portal...',
-    billing_portal_error: 'Não foi possível abrir o portal de faturação'
+    billing_portal_error: 'Não foi possível abrir o portal de faturação',
+    nav_sync: 'Sync',
+    sync_title: 'Centro de Sincronização',
+    sync_sub: 'Gere a conexão automática entre os seus vendedores, Katalync e Sprinter.',
+    sync_vendors: 'Vendedores conectados',
+    sync_products: 'Produtos sincronizados',
+    sync_last: 'Última sincronização',
+    sync_success_rate: 'Taxa de sucesso',
+    sync_vendor_name: 'Vendedor',
+    sync_source: 'Fonte',
+    sync_product_count: 'Produtos',
+    sync_last_sync: 'Última sync',
+    sync_status: 'Estado',
+    sync_actions: 'Ações',
+    sync_now: 'Sync agora',
+    sync_active: 'Ativo',
+    sync_error: 'Erro',
+    sync_paused: 'Pausado',
+    sync_timeline_title: 'Histórico de sincronizações',
+    sync_direction_in: 'CRM → Katalync',
+    sync_direction_out: 'Katalync → Sprinter',
+    sync_total: 'Total',
+    sync_created: 'Criados',
+    sync_updated: 'Atualizados',
+    sync_errors: 'Erros',
+    sync_upload_title: 'Subir catálogo para Sprinter',
+    sync_upload_btn: 'Subir para Sprinter',
+    sync_upload_desc: 'Suba os produtos convertidos diretamente para Mirakl/Sprinter via API.',
+    sync_uploading: 'A subir para Sprinter...',
+    sync_upload_done: 'Subida concluída',
+    sync_upload_result: 'produtos subidos',
+    sync_upload_errors: 'erros',
+    sync_upload_warnings: 'avisos',
+    sync_simulating: 'A sincronizar...',
+    sync_configure: 'Configurar conexão',
+    sync_interval: 'Intervalo de sync',
+    sync_hours: 'horas',
+    sync_ago: 'há',
+    sync_minutes: 'min',
+    sync_demo_badge: 'DEMO',
+    sync_connect_crm: 'Conectar CRM',
+    sync_connect_crm_desc: 'Conecte o ERP/CRM do vendedor para sincronização automática.'
   }
 };
 
@@ -585,6 +667,23 @@ function app() {
     adminDashboard: { loading: false, totalJobs: 0, totalProducts: 0, todayJobs: 0, byTool: [], byUser: [], recentActivity: [] },
 
     page: 'home', showHistory: false, historyJobs: safeGetHistory(), chartMarketplace: 'all', chartMetric: 'products',
+
+    syncSimulating: false, syncSimVendor: null, syncUploadSimulating: false, syncUploadProgress: 0, syncUploadDone: false,
+    syncDemoVendors: [
+      { id: 1, name: 'JOMA Sport', company: 'Joma Sport S.A.', source: 'Shopify', products: 4232, lastSync: Date.now() - 2*3600000, nextSync: Date.now() + 2*3600000, status: 'active', interval: 4, synced: 4180, errors: 52 },
+      { id: 2, name: 'Adidas Iberia', company: 'Adidas España S.A.', source: 'PrestaShop', products: 8915, lastSync: Date.now() - 45*60000, nextSync: Date.now() + 195*60000, status: 'active', interval: 4, synced: 8870, errors: 45 },
+      { id: 3, name: 'Decimas Sport', company: 'Decimas Deportes S.L.', source: 'API propia', products: 2103, lastSync: Date.now() - 24*3600000, nextSync: null, status: 'error', interval: 12, synced: 1890, errors: 213 },
+    ],
+    syncDemoLogs: [
+      { id: 1, vendor: 'JOMA Sport', direction: 'in', total: 4232, created: 12, updated: 87, errors: 3, status: 'success', time: Date.now() - 2*3600000 },
+      { id: 2, vendor: 'JOMA Sport', direction: 'out', total: 4180, created: 12, updated: 87, errors: 0, status: 'success', time: Date.now() - 2*3600000 + 120000 },
+      { id: 3, vendor: 'Adidas Iberia', direction: 'in', total: 8915, created: 230, updated: 415, errors: 15, status: 'partial', time: Date.now() - 45*60000 },
+      { id: 4, vendor: 'Adidas Iberia', direction: 'out', total: 8870, created: 230, updated: 400, errors: 2, status: 'success', time: Date.now() - 43*60000 },
+      { id: 5, vendor: 'Decimas Sport', direction: 'in', total: 2103, created: 0, updated: 0, errors: 213, status: 'failed', time: Date.now() - 24*3600000 },
+      { id: 6, vendor: 'JOMA Sport', direction: 'in', total: 4220, created: 5, updated: 42, errors: 1, status: 'success', time: Date.now() - 6*3600000 },
+      { id: 7, vendor: 'JOMA Sport', direction: 'out', total: 4168, created: 5, updated: 42, errors: 0, status: 'success', time: Date.now() - 6*3600000 + 90000 },
+      { id: 8, vendor: 'Adidas Iberia', direction: 'in', total: 8850, created: 180, updated: 320, errors: 8, status: 'success', time: Date.now() - 4.75*3600000 },
+    ],
 
     init() {
       const saved = safeGetToken();
@@ -815,6 +914,50 @@ function app() {
       if (role === 'super_admin' || role === 'admin') return { label: this.t('role_super_admin'), class: 'bg-purple-100 text-purple-700' };
       if (role === 'marketplace_admin') return { label: this.t('role_marketplace_admin'), class: 'bg-blue-100 text-blue-700' };
       return { label: this.t('role_user'), class: 'bg-gray-100 text-gray-500' };
+    },
+
+    get syncTotalProducts() { return this.syncDemoVendors.reduce((s, v) => s + v.products, 0); },
+    get syncTotalSynced() { return this.syncDemoVendors.reduce((s, v) => s + v.synced, 0); },
+    get syncSuccessRate() { const t = this.syncTotalProducts; return t ? ((this.syncTotalSynced / t) * 100).toFixed(1) : '0'; },
+    get syncLastTime() { const ts = Math.max(...this.syncDemoVendors.map(v => v.lastSync)); return this.syncTimeAgo(ts); },
+
+    syncTimeAgo(ts) {
+      const diff = Date.now() - ts;
+      const mins = Math.floor(diff / 60000);
+      if (mins < 60) return mins + ' ' + this.t('sync_minutes');
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + 'h';
+      return Math.floor(hrs / 24) + 'd';
+    },
+
+    async simulateSync(vendor) {
+      this.syncSimulating = true;
+      this.syncSimVendor = vendor.id;
+      await new Promise(r => setTimeout(r, 2500));
+      vendor.lastSync = Date.now();
+      vendor.nextSync = Date.now() + vendor.interval * 3600000;
+      if (vendor.status === 'error') { vendor.status = 'active'; vendor.errors = Math.floor(vendor.errors * 0.3); vendor.synced = vendor.products - vendor.errors; }
+      const newCreated = Math.floor(Math.random() * 20) + 1;
+      const newUpdated = Math.floor(Math.random() * 50) + 5;
+      this.syncDemoLogs.unshift({ id: Date.now(), vendor: vendor.name, direction: 'in', total: vendor.products, created: newCreated, updated: newUpdated, errors: Math.floor(Math.random() * 3), status: 'success', time: Date.now() });
+      this.syncSimulating = false;
+      this.syncSimVendor = null;
+      this.showToast(vendor.name + ': sync ' + this.t('sync_upload_done').toLowerCase(), 'success');
+    },
+
+    async simulateUpload() {
+      this.syncUploadSimulating = true;
+      this.syncUploadProgress = 0;
+      this.syncUploadDone = false;
+      const total = this.syncTotalSynced;
+      const steps = 20;
+      for (let i = 1; i <= steps; i++) {
+        await new Promise(r => setTimeout(r, 200));
+        this.syncUploadProgress = Math.round((i / steps) * 100);
+      }
+      this.syncUploadDone = true;
+      this.syncUploadSimulating = false;
+      this.syncDemoLogs.unshift({ id: Date.now(), vendor: 'Todos', direction: 'out', total: total, created: Math.floor(total * 0.02), updated: Math.floor(total * 0.06), errors: Math.floor(Math.random() * 15) + 3, status: 'success', time: Date.now() });
     },
 
     get subscriptionActive() {
