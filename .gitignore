@@ -1,0 +1,4 @@
+node_modules/
+backend/backups/
+*.tmp
+.DS_Store
