@@ -294,10 +294,10 @@
         .step-card h3 { font-size: 15px; color: var(--text); font-weight: 600; }
 
         /* ═══════════════ FEATURES ═══════════════ */
-        .features-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+        .features-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; }
         .feature-card {
             background: var(--white); border: 1px solid var(--border);
-            border-radius: var(--radius-lg); padding: 32px;
+            border-radius: var(--radius-lg); padding: 24px;
             transition: all var(--transition); position: relative; overflow: hidden;
         }
         .feature-card::before {
@@ -523,7 +523,7 @@
             .metric-item:nth-child(2)::after { display: none; }
             .steps-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
             .steps-grid::before { display: none; }
-            .features-grid { grid-template-columns: repeat(2, 1fr); }
+            .features-grid { grid-template-columns: repeat(3, 1fr); }
             .transform-grid { grid-template-columns: 1fr; }
             .transform-arrow { transform: rotate(90deg); }
             .footer-inner { flex-direction: column; text-align: center; }
@@ -881,6 +881,18 @@
                     <p x-text="t.feat.f8.desc"></p>
                     <span class="feature-stat" x-text="t.feat.f8.stat"></span>
                 </div>
+                <div class="feature-card reveal stagger-1">
+                    <div class="feature-icon-wrap"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></div>
+                    <h3 x-text="t.feat.f9.title"></h3>
+                    <p x-text="t.feat.f9.desc"></p>
+                    <span class="feature-stat" x-text="t.feat.f9.stat"></span>
+                </div>
+                <div class="feature-card reveal stagger-2">
+                    <div class="feature-icon-wrap"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg></div>
+                    <h3 x-text="t.feat.f10.title"></h3>
+                    <p x-text="t.feat.f10.desc"></p>
+                    <span class="feature-stat" x-text="t.feat.f10.stat"></span>
+                </div>
             </div>
         </div>
     </section>
@@ -1114,7 +1126,7 @@
                     step: 'Paso', s1: 'Crea tu cuenta', s2: 'Activa tu suscripción', s3: 'Sube tu Excel', s4: 'Descarga XLSX listo para Mirakl'
                 },
                 feat: {
-                    tag: 'Herramientas', title: 'Todo lo que necesitas en un solo lugar', desc: 'Ocho herramientas diseñadas para sellers de Sprinter y marketplaces Mirakl que quieren resultados, no trabajo extra.',
+                    tag: 'Herramientas', title: 'Todo lo que necesitas en un solo lugar', desc: 'Diez herramientas diseñadas para sellers de Sprinter y marketplaces Mirakl que quieren resultados, no trabajo extra.',
                     f1: { title: 'Conversor Dual XLSX', desc: 'Genera 2 archivos XLSX (Productos 42 columnas + Ofertas 27 columnas) con doble header row Mirakl. De tu Excel al marketplace sin tocar nada.', stat: '~ 2 min por catálogo' },
                     f2: { title: 'Actualización de Precios', desc: 'XLSX de precios y descuentos listo para importar. Gestiona promociones y precios base en segundos.', stat: 'Bulk updates ilimitados' },
                     f3: { title: 'Sincronización de Stock', desc: 'Actualiza stock directamente desde tu Excel. Evita overselling y mantente siempre al día.', stat: 'Actualización en tiempo real' },
@@ -1122,7 +1134,9 @@
                     f5: { title: 'Repricing Inteligente', desc: 'Compara tus precios con los de la competencia y genera recomendaciones automáticas para maximizar ventas y márgenes.', stat: 'Análisis competitivo en segundos' },
                     f6: { title: 'Portal Marketplace', desc: 'Panel de administración para marketplaces. Gestiona vendedores, monitoriza su actividad, controla suscripciones y onboarding desde un solo lugar.', stat: 'Gestión centralizada' },
                     f7: { title: 'Chatbot IA Integrado', desc: 'Ana, tu asistente IA, responde preguntas sobre Sprinter, diagnostica errores de catálogo y guía vendedores novatos. Disponible 24/7.', stat: 'Respuestas instantáneas con IA' },
-                    f8: { title: 'Informe de Salud', desc: 'Score de calidad 0-100 tras cada procesamiento con checklist de campos obligatorios, métricas y recomendaciones concretas. Descargable como informe.', stat: 'Detección de errores antes de subir' }
+                    f8: { title: 'Informe de Salud', desc: 'Score de calidad 0-100 tras cada procesamiento con checklist de campos obligatorios, métricas y recomendaciones concretas. Descargable como informe.', stat: 'Detección de errores antes de subir' },
+                    f9: { title: 'Estudio de Competidores', desc: 'Datos reales del marketplace de Sprinter: sellers activos, precios, categorías y oportunidades. Identifica nichos con poca competencia y optimiza tu posicionamiento.', stat: '303 productos · 19 sellers · datos reales' },
+                    f10: { title: 'Centro de Sincronización', desc: 'Conecta tu ERP o CRM y sincroniza tu catálogo automáticamente con Sprinter. Monitoriza vendedores, errores y estado de cada sincronización en tiempo real.', stat: 'Shopify · PrestaShop · WooCommerce · API' }
                 },
                 integrations: { tag: 'Integraciones', title: 'Especializado en Sprinter y marketplaces Mirakl', desc: 'Genera archivos XLSX listos para importar con el formato exacto que exige cada plataforma Mirakl.', extra: 'Compatible con cualquier marketplace basado en Mirakl' },
                 trust: { ssl: 'Cifrado SSL', gdpr: 'GDPR compliant', uptime: '99.9% uptime', eu: 'Servidores en la UE' },
@@ -1130,7 +1144,7 @@
                     tag: 'Precios', title: 'Dos planes, cero sorpresas', desc: 'Elige self-service o gestión dedicada. Pago seguro por Stripe, cancela cuando quieras.',
                     popular: 'Más popular',
                     plan1Name: 'Katalync', plan1Desc: 'Todas las herramientas, tú gestionas',
-                    plan1Items: ['Conversor dual XLSX (Productos + Ofertas)', 'Validador pre-upload con GPSR', 'Pipeline de imágenes 2:3 con CDN', 'Actualización de precios y stock', 'Chatbot IA (Ana)', 'Informe de salud del catálogo', 'Plantillas inteligentes por categoría', 'Repricing inteligente', 'Productos ilimitados', 'Soporte por email'],
+                    plan1Items: ['Conversor dual XLSX (Productos + Ofertas)', 'Validador pre-upload con GPSR', 'Pipeline de imágenes 2:3 con CDN', 'Actualización de precios y stock', 'Chatbot IA (Ana)', 'Informe de salud del catálogo', 'Repricing inteligente', 'Estudio de competidores con datos reales', 'Sincronización automática con tu CRM', 'Productos ilimitados', 'Soporte por email'],
                     plan2Name: 'Katalync Partner', plan2Desc: 'Tú vendes, nosotros nos encargamos del marketplace',
                     plan2Items: ['Todo lo de Katalync incluido', 'Onboarding personalizado con videollamada', 'Gestión dedicada de tu catálogo', 'Procesamiento profesional de imágenes', 'Optimización de títulos y descripciones', 'Soporte prioritario WhatsApp y email', 'Reporting mensual de salud', 'Formación de tu equipo'],
                     cta: 'Empezar con Katalync',
@@ -1195,7 +1209,7 @@
                     step: 'Passo', s1: 'Crie sua conta', s2: 'Ative a sua assinatura', s3: 'Envie seu Excel', s4: 'Baixe XLSX pronto para Mirakl'
                 },
                 feat: {
-                    tag: 'Ferramentas', title: 'Tudo que você precisa num só lugar', desc: 'Oito ferramentas desenhadas para sellers de Sprinter e marketplaces Mirakl que querem resultados, não trabalho extra.',
+                    tag: 'Ferramentas', title: 'Tudo que você precisa num só lugar', desc: 'Dez ferramentas desenhadas para sellers de Sprinter e marketplaces Mirakl que querem resultados, não trabalho extra.',
                     f1: { title: 'Conversor Dual XLSX', desc: 'Gera 2 arquivos XLSX (Produtos 42 colunas + Ofertas 27 colunas) com double header row Mirakl. Do seu Excel ao marketplace sem tocar em nada.', stat: '~ 2 min por catálogo' },
                     f2: { title: 'Atualização de Preços', desc: 'XLSX de preços e descontos pronto para importar. Gerencie promoções e preços base em segundos.', stat: 'Bulk updates ilimitados' },
                     f3: { title: 'Sincronização de Stock', desc: 'Atualize stock diretamente do seu Excel. Evite overselling e mantenha-se sempre atualizado.', stat: 'Atualização em tempo real' },
@@ -1203,7 +1217,9 @@
                     f5: { title: 'Repricing Inteligente', desc: 'Compare seus preços com os da concorrência e gere recomendações automáticas para maximizar vendas e margens.', stat: 'Análise competitiva em segundos' },
                     f6: { title: 'Portal Marketplace', desc: 'Painel de administração para marketplaces. Gerencie vendedores, monitore sua atividade, controle assinaturas e onboarding de um só lugar.', stat: 'Gestão centralizada' },
                     f7: { title: 'Chatbot IA Integrado', desc: 'Ana, sua assistente IA, responde perguntas sobre Sprinter, diagnostica erros de catálogo e guia vendedores novatos. Disponível 24/7.', stat: 'Respostas instantâneas com IA' },
-                    f8: { title: 'Relatório de Saúde', desc: 'Score de qualidade 0-100 após cada processamento com checklist de campos obrigatórios, métricas e recomendações concretas. Descarregável como relatório.', stat: 'Detecção de erros antes de enviar' }
+                    f8: { title: 'Relatório de Saúde', desc: 'Score de qualidade 0-100 após cada processamento com checklist de campos obrigatórios, métricas e recomendações concretas. Descarregável como relatório.', stat: 'Detecção de erros antes de enviar' },
+                    f9: { title: 'Estudo de Concorrentes', desc: 'Dados reais do marketplace da Sprinter: sellers ativos, preços, categorias e oportunidades. Identifique nichos com pouca concorrência e otimize o seu posicionamento.', stat: '303 produtos · 19 sellers · dados reais' },
+                    f10: { title: 'Centro de Sincronização', desc: 'Conecte o seu ERP ou CRM e sincronize o catálogo automaticamente com a Sprinter. Monitorize vendedores, erros e estado de cada sincronização em tempo real.', stat: 'Shopify · PrestaShop · WooCommerce · API' }
                 },
                 integrations: { tag: 'Integrações', title: 'Especializado em Sprinter e marketplaces Mirakl', desc: 'Gera arquivos XLSX prontos para importar com o formato exato que cada plataforma Mirakl exige.', extra: 'Compatível com qualquer marketplace baseado em Mirakl' },
                 trust: { ssl: 'Encriptação SSL', gdpr: 'GDPR compliant', uptime: '99.9% uptime', eu: 'Servidores na UE' },
@@ -1211,7 +1227,7 @@
                     tag: 'Preços', title: 'Dois planos, zero surpresas', desc: 'Escolha self-service ou gestão dedicada. Pagamento seguro via Stripe, cancele quando quiser.',
                     popular: 'Mais popular',
                     plan1Name: 'Katalync', plan1Desc: 'Todas as ferramentas, você gere',
-                    plan1Items: ['Conversor dual XLSX (Produtos + Ofertas)', 'Validador pre-upload com GPSR', 'Pipeline de imagens 2:3 com CDN', 'Atualização de preços e stock', 'Chatbot IA (Ana)', 'Relatório de saúde do catálogo', 'Templates inteligentes por categoria', 'Repricing inteligente', 'Produtos ilimitados', 'Suporte por email'],
+                    plan1Items: ['Conversor dual XLSX (Produtos + Ofertas)', 'Validador pre-upload com GPSR', 'Pipeline de imagens 2:3 com CDN', 'Atualização de preços e stock', 'Chatbot IA (Ana)', 'Relatório de saúde do catálogo', 'Repricing inteligente', 'Estudo de concorrentes com dados reais', 'Sincronização automática com o seu CRM', 'Produtos ilimitados', 'Suporte por email'],
                     plan2Name: 'Katalync Partner', plan2Desc: 'Você vende, nós cuidamos do marketplace',
                     plan2Items: ['Tudo do Katalync incluído', 'Onboarding personalizado com videochamada', 'Gestão dedicada do seu catálogo', 'Processamento profissional de imagens', 'Otimização de títulos e descrições', 'Suporte prioritário WhatsApp e email', 'Reporting mensal de saúde', 'Formação da sua equipa'],
                     cta: 'Começar com Katalync',
