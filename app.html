@@ -867,8 +867,8 @@
               </a>
             </template>
             <template x-if="catalogResults.offersUrl && catalogResults.offersUrl !== '#'">
-              <a :href="catalogResults.offersUrl" :download="catalogResults.offersFilename" class="flex items-center gap-3 bg-gradient-to-r from-emerald-700 to-green-600 text-white rounded-xl p-4 transition-all hover:opacity-90 shadow-lg shadow-emerald-200">
-                <svg class="w-7 h-7 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <a :href="catalogResults.offersUrl" :download="catalogResults.offersFilename" class="flex items-center gap-3 text-white rounded-xl p-4 transition-all hover:opacity-90 shadow-lg" style="background:linear-gradient(135deg,#047857,#059669,#10b981);">
+                <svg class="w-7 h-7 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                 <div><p class="font-semibold" x-text="t('download_offers_xlsx')"></p><p class="text-xs opacity-80" x-text="catalogResults.offersFilename"></p></div>
               </a>
             </template>
@@ -1055,7 +1055,7 @@
           </div>
           <div class="max-w-md mx-auto mb-8 space-y-3">
             <template x-if="priceResults.offersUrl">
-              <a :href="priceResults.offersUrl" :download="priceResults.offersFilename" class="flex items-center gap-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl p-5 transition-all hover:opacity-90 shadow-lg shadow-emerald-200"><svg class="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><div><p class="font-semibold" x-text="t('download_offers_xlsx')"></p><p class="text-sm opacity-80" x-text="priceResults.offersFilename"></p></div></a>
+              <a :href="priceResults.offersUrl" :download="priceResults.offersFilename" class="flex items-center gap-3 text-white rounded-xl p-5 transition-all hover:opacity-90 shadow-lg" style="background:linear-gradient(135deg,#047857,#059669,#10b981);"><svg class="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><div><p class="font-semibold" x-text="t('download_offers_xlsx')"></p><p class="text-sm opacity-80" x-text="priceResults.offersFilename"></p></div></a>
             </template>
             <a :href="priceResults.excelUrl" :download="priceResults.csvFilename" class="flex items-center gap-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl p-5 transition-all hover:opacity-90 shadow-lg shadow-blue-200"><svg class="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><div><p class="font-semibold" x-text="t('download_price_csv')"></p><p class="text-sm opacity-80" x-text="priceResults.csvFilename"></p></div></a>
           </div>
@@ -1151,7 +1151,7 @@
           </div>
           <div class="max-w-md mx-auto mb-8 space-y-3">
             <template x-if="stockResults.offersUrl">
-              <a :href="stockResults.offersUrl" :download="stockResults.offersFilename" class="flex items-center gap-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl p-5 transition-all hover:opacity-90 shadow-lg shadow-emerald-200"><svg class="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><div><p class="font-semibold" x-text="t('download_offers_xlsx')"></p><p class="text-sm opacity-80" x-text="stockResults.offersFilename"></p></div></a>
+              <a :href="stockResults.offersUrl" :download="stockResults.offersFilename" class="flex items-center gap-3 text-white rounded-xl p-5 transition-all hover:opacity-90 shadow-lg" style="background:linear-gradient(135deg,#047857,#059669,#10b981);"><svg class="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><div><p class="font-semibold" x-text="t('download_offers_xlsx')"></p><p class="text-sm opacity-80" x-text="stockResults.offersFilename"></p></div></a>
             </template>
             <a :href="stockResults.excelUrl" :download="stockResults.csvFilename" class="flex items-center gap-3 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-xl p-5 transition-all hover:opacity-90 shadow-lg shadow-amber-200"><svg class="w-8 h-8 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><div><p class="font-semibold" x-text="t('download_stock_csv')"></p><p class="text-sm opacity-80" x-text="stockResults.csvFilename"></p></div></a>
           </div>
@@ -1813,6 +1813,6 @@
 
   </div>
 
-  <script src="app.js?v=20260512b"></script>
+  <script src="app.js?v=20260512c"></script>
 </body>
 </html>
