@@ -16,6 +16,25 @@ function verifyToken(token) {
   });
 }
 
+const AI_PARSE_CACHE = {};
+
+function aiParseProduct(name, brand) {
+  const cacheKey = (name || '') + '|||' + (brand || '');
+  if (AI_PARSE_CACHE[cacheKey]) return Promise.resolve(AI_PARSE_CACHE[cacheKey]);
+  return new Promise((resolve) => {
+    const postData = JSON.stringify({ name: name || '', brand: brand || '' });
+    const req = https.request({ hostname: 'api.katalync.com', port: 443, path: '/webhook/ai-parse-product', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) } }, (res) => {
+      const chunks = [];
+      res.on('data', (c) => chunks.push(c));
+      res.on('end', () => { try { const d = JSON.parse(Buffer.concat(chunks).toString()); AI_PARSE_CACHE[cacheKey] = d; resolve(d); } catch(e) { resolve(null); } });
+    });
+    req.on('error', () => resolve(null));
+    req.setTimeout(8000, () => { req.destroy(); resolve(null); });
+    req.write(postData);
+    req.end();
+  });
+}
+
 const input = $input.first().json.body;
 const tokenValid = await verifyToken(input.token);
 if (!tokenValid) {
@@ -197,6 +216,25 @@ const TYPE_KEYWORDS_DETECT = [
   ['malla corta licra', 'Malla'], ['malla larga licra', 'Malla'], ['malla', 'Malla'],
   ['gymsack', 'Bolsa'],
   ['bañador', 'Bañador'], ['banador', 'Bañador'],
+  ['calcetines', 'Calcetín'], ['calcetin', 'Calcetín'],
+  ['polo', 'Polo'], ['polos', 'Polo'],
+  ['chaleco', 'Chaleco'], ['chalecos', 'Chaleco'],
+  ['chaqueta', 'Chaqueta'], ['chaquetas', 'Chaqueta'],
+  ['cortavientos', 'Cortavientos'],
+  ['gorra', 'Gorra'], ['gorras', 'Gorra'], ['gorro', 'Gorro'], ['gorros', 'Gorro'],
+  ['mochila', 'Mochila'], ['mochilas', 'Mochila'],
+  ['guantes', 'Guante'],
+  ['gafas', 'Gafa'],
+  ['bikini', 'Bikini'],
+  ['neopreno', 'Neopreno'], ['neoprenos', 'Neopreno'],
+  ['raqueta', 'Raqueta'], ['raquetas', 'Raqueta'], ['pala', 'Pala'], ['palas', 'Pala'],
+  ['casco', 'Casco'], ['cascos', 'Casco'],
+  ['esterilla', 'Esterilla'], ['esterillas', 'Esterilla'],
+  ['falda', 'Falda'], ['faldas', 'Falda'],
+  ['leggins', 'Malla'], ['leggings', 'Malla'],
+  ['bermudas', 'Pantalón corto'], ['bermuda', 'Pantalón corto'],
+  ['short', 'Pantalón corto'], ['shorts', 'Pantalón corto'],
+  ['top deportivo', 'Top'], ['sujetador deportivo', 'Top'],
   ['zapatillas', ''], ['zapatilla', ''],
 ];
 
@@ -333,8 +371,48 @@ function parseProductName(fullName, brandInput) {
   else if (detectedType === 'Bolsa') categoryHint = 'equipamiento_accesorios-bolsas';
   else if (detectedType === 'Bañador') categoryHint = 'ropa-bottoms-banador';
   else if (detectedType === 'Balón') categoryHint = 'equipamiento_accesorios-balones';
+  var confidence = detectedType ? 'high' : 'low';
   if (!detectedType) { detectedType = 'Zapatilla'; categoryHint = 'calzado-correr_caminar'; }
-  return { prodType: detectedType, model: model, categoryHint: categoryHint };
+  return { prodType: detectedType, model: model, categoryHint: categoryHint, confidence: confidence };
+}
+
+function prodTypeToCategoryHint(prodType, nameNorm) {
+  if (prodType === 'Chancla') return 'calzado-chanclas';
+  if (prodType === 'Sandalia') return 'calzado-sandalias';
+  if (prodType === 'Bota' && nameNorm && nameNorm.includes('sala')) return 'calzado-futbol-botas_sala';
+  if (prodType === 'Bota') return 'calzado-futbol-botas_tacos';
+  if (prodType === 'Zapatilla' && nameNorm && nameNorm.includes('trail')) return 'calzado-trail_running';
+  if (prodType === 'Zapatilla' && nameNorm && nameNorm.includes('sala')) return 'calzado-futbol-botas_sala';
+  if (prodType === 'Zapatilla') return 'calzado-correr_caminar';
+  if (prodType === 'Espinillera') return 'equipamiento_accesorios-protecciones-espinilleras';
+  if (prodType === 'Guante') return 'equipamiento_accesorios-guantes';
+  if (prodType === 'Protección' || prodType === 'Codera' || prodType === 'Rodillera') return 'equipamiento_accesorios-protecciones-rodilleras';
+  if (prodType === 'Chubasquero') return 'ropa-top-chubasqueros';
+  if (prodType === 'Sudadera') return 'ropa-top-sudaderas';
+  if (prodType === 'Camiseta') return 'ropa-top-camisetas';
+  if (prodType === 'Pantalón') return 'ropa-bottoms-pantalones';
+  if (prodType === 'Chándal') return 'ropa-onepiece-chandal';
+  if (prodType === 'Conjunto') return 'ropa-onepiece-conjuntos';
+  if (prodType === 'Malla') return 'ropa-bottoms-leggins_mallas';
+  if (prodType === 'Bolsa' || prodType === 'Mochila') return 'equipamiento_accesorios-bolsas';
+  if (prodType === 'Bañador') return 'ropa-bottoms-banador';
+  if (prodType === 'Balón') return 'equipamiento_accesorios-balones';
+  if (prodType === 'Gorra' || prodType === 'Gorro') return 'equipamiento_accesorios-gorras_gorros';
+  if (prodType === 'Chaqueta' || prodType === 'Cortavientos') return 'ropa-top-chaquetas';
+  if (prodType === 'Polo') return 'ropa-top-polos';
+  if (prodType === 'Chaleco') return 'ropa-top-chalecos';
+  if (prodType === 'Calcetín') return 'ropa-bottoms-calcetines';
+  if (prodType === 'Bikini') return 'ropa-bottoms-bikini';
+  if (prodType === 'Neopreno') return 'ropa-onepiece-neoprenos';
+  if (prodType === 'Raqueta' || prodType === 'Pala') return 'equipamiento_accesorios-raquetas';
+  if (prodType === 'Casco') return 'equipamiento_accesorios-cascos';
+  if (prodType === 'Esterilla') return 'equipamiento_accesorios-esterillas';
+  if (prodType === 'Falda') return 'ropa-bottoms-falda_vestido';
+  if (prodType === 'Top') return 'ropa-top-tops';
+  if (prodType === 'Pantalón corto') return 'ropa-bottoms-pantalones_corto';
+  if (prodType === 'Gafa') return 'equipamiento_accesorios-gafas';
+  if (prodType === 'Cortavientos') return 'ropa-top-cortavientos';
+  return '';
 }
 
 function getProductTypePT(prodTypeES) {
@@ -1057,6 +1135,7 @@ const REMBG_HOST = 'image-tools-rembg.reyl9a.easypanel.host';
 
 const results = [];
 const errors = [];
+let aiCallCount = 0;
 for (const p of products) {
   try {
     const m = mapInputRow(p);
@@ -1078,7 +1157,18 @@ for (const p of products) {
     const userTitlePT = m['nombre-del-articulo-pt'] || m['subtitulo-de-productos-pt'] || '';
     let title = '';
     let titlePT = '';
-    const parsed = parseProductName(name, brand);
+    let parsed = parseProductName(name, brand);
+    if (parsed.confidence === 'low') {
+      const aiResult = await aiParseProduct(name, brand);
+      aiCallCount++;
+      if (aiResult && aiResult.productType) {
+        const nameNorm = removeAccents((name || '').toLowerCase());
+        parsed.prodType = aiResult.productType;
+        parsed.model = aiResult.model || parsed.model;
+        parsed.categoryHint = prodTypeToCategoryHint(aiResult.productType, nameNorm);
+        parsed.confidence = 'ai';
+      }
+    }
     const modelPart = model || parsed.model || name;
     const modelPartPT = toPT(modelPart);
     const parsedCategoryHint = parsed.categoryHint || '';
@@ -1280,5 +1370,6 @@ results[results.length - 1].json._convertImages = convertImages;
 results[results.length - 1].json._outputFormat = outputFormat;
 results[results.length - 1].json._shipmentOrigin = shipmentOrigin;
 results[results.length - 1].json._vatPct = vatPct;
+results[results.length - 1].json._aiParseCount = aiCallCount;
 return results;
 
