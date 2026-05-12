@@ -1851,31 +1851,26 @@
           <h3 class="font-semibold text-gray-800 mb-1" x-text="t('sync_upload_title')"></h3>
           <p class="text-xs text-gray-500 mb-4" x-text="t('sync_upload_desc')"></p>
 
-          <template x-if="!syncUploadSimulating && !syncUploadDone">
-            <div>
+          <div x-show="!syncUploadSimulating && !syncUploadDone">
               <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
                 <span x-text="syncTotalSynced.toLocaleString() + ' ' + t('sync_upload_result')"></span>
                 <span x-text="syncDemoVendors.filter(v => v.status === 'active').length + ' vendedores'"></span>
               </div>
-              <button @click="simulateUpload()" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-sm font-semibold hover:from-cyan-700 hover:to-blue-700 transition-all flex items-center justify-center gap-2">
+              <button @click="simulateUpload()" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-sm font-semibold hover:from-cyan-700 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
                 <span x-text="t('sync_upload_btn')"></span>
               </button>
-            </div>
-          </template>
+          </div>
 
-          <template x-if="syncUploadSimulating">
-            <div>
+          <div x-show="syncUploadSimulating" x-transition>
               <div class="text-sm text-cyan-700 font-medium mb-2" x-text="t('sync_uploading')"></div>
               <div class="w-full bg-white rounded-full h-3 overflow-hidden">
                 <div class="bg-gradient-to-r from-cyan-500 to-blue-500 h-3 rounded-full transition-all duration-200" :style="'width:' + syncUploadProgress + '%'"></div>
               </div>
               <div class="text-xs text-gray-500 mt-1 text-right" x-text="syncUploadProgress + '%'"></div>
-            </div>
-          </template>
+          </div>
 
-          <template x-if="syncUploadDone && !syncUploadSimulating">
-            <div>
+          <div x-show="syncUploadDone && !syncUploadSimulating" x-transition>
               <div class="flex items-center gap-2 mb-3">
                 <svg class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span class="text-sm font-semibold text-emerald-700" x-text="t('sync_upload_done')"></span>
@@ -1895,8 +1890,7 @@
                 </div>
               </div>
               <button @click="syncUploadDone = false; syncUploadProgress = 0" class="mt-3 w-full py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-700 bg-white border border-gray-200 transition-all">Reset demo</button>
-            </div>
-          </template>
+          </div>
         </div>
 
         <!-- Timeline -->
@@ -2024,6 +2018,6 @@
 
   </div>
 
-  <script src="app.js?v=20260512d"></script>
+  <script src="app.js?v=20260512e"></script>
 </body>
 </html>
