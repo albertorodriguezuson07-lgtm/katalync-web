@@ -395,6 +395,7 @@
         <button @click="page = 'validate'" :class="page === 'validate' ? 'bg-white text-green-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all" x-text="t('nav_validation')"></button>
         <button @click="page = 'stock'" :class="page === 'stock' ? 'bg-white text-amber-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all" x-text="t('nav_stock')"></button>
         <button @click="page = 'repricing'" :class="page === 'repricing' ? 'bg-white text-rose-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all" x-text="t('nav_repricing')"></button>
+        <button @click="page = 'competitors'" :class="page === 'competitors' ? 'bg-white text-orange-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span x-text="t('comp_title')"></span></button>
         <button x-show="currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'marketplace_admin')" @click="page = 'sync'" :class="page === 'sync' ? 'bg-white text-cyan-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg><span x-text="t('nav_sync')"></span></button>
         <button x-show="currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'marketplace_admin')" @click="page = 'admin'; loadAdminUsers(); loadAdminDashboard()" :class="page === 'admin' ? 'bg-white text-purple-600 shadow-sm font-semibold' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs sm:text-sm transition-all">Admin</button>
       </nav>
@@ -619,6 +620,13 @@
           </div>
           <h3 class="text-xs font-bold text-gray-900 mb-0.5" x-text="t('tool_repricing')"></h3>
           <p class="text-[10px] text-gray-500 leading-snug line-clamp-2" x-text="t('tool_repricing_desc')"></p>
+        </div>
+        <div @click="page = 'competitors'" class="card-hover bg-white border border-gray-200 rounded-xl p-4 cursor-pointer group hover:border-orange-200 hover:shadow-md transition-all">
+          <div class="w-9 h-9 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+            <svg class="w-4.5 h-4.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          </div>
+          <h3 class="text-xs font-bold text-gray-900 mb-0.5" x-text="t('comp_title')"></h3>
+          <p class="text-[10px] text-gray-500 leading-snug line-clamp-2" x-text="t('comp_desc')"></p>
         </div>
         <div x-show="currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'marketplace_admin')" @click="page = 'sync'" class="card-hover bg-white border border-gray-200 rounded-xl p-4 cursor-pointer group hover:border-cyan-200 hover:shadow-md transition-all">
           <div class="w-9 h-9 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-lg flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
@@ -1755,6 +1763,221 @@
       </div><!-- /marketplaces tab -->
     </div>
 
+    <!-- ==================== COMPETITORS ==================== -->
+    <div x-show="page === 'competitors'" x-transition>
+      <div class="flex items-center gap-3 mb-1">
+        <h2 class="text-xl font-bold text-gray-900" x-text="t('comp_title')"></h2>
+        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider" style="background:#fff7ed;color:#c2410c" x-text="t('comp_demo_badge')"></span>
+      </div>
+      <p class="text-sm text-gray-500 mb-6" x-text="t('comp_sub')"></p>
+
+      <!-- Overview metrics -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white border border-gray-200 rounded-xl p-4">
+          <div class="text-xs text-gray-500 mb-1" x-text="t('comp_sellers')"></div>
+          <div class="text-2xl font-bold text-gray-900" x-text="compData.meta.totalSellers"></div>
+          <div class="text-[10px] text-gray-400">en sprintersports.com</div>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-4">
+          <div class="text-xs text-gray-500 mb-1" x-text="t('comp_products')"></div>
+          <div class="text-2xl font-bold text-gray-900" x-text="compData.meta.totalProducts.toLocaleString()"></div>
+          <div class="text-[10px] text-gray-400">marketplace 3P</div>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-4">
+          <div class="text-xs text-gray-500 mb-1" x-text="t('comp_avg_price')"></div>
+          <div class="text-2xl font-bold text-gray-900" x-text="compData.meta.priceRange.avg.toFixed(2) + '€'"></div>
+          <div class="text-[10px] text-gray-400" x-text="compData.meta.priceRange.min + '€ - ' + compData.meta.priceRange.max + '€'"></div>
+        </div>
+        <div class="bg-white border border-gray-200 rounded-xl p-4">
+          <div class="text-xs text-gray-500 mb-1" x-text="t('comp_categories')"></div>
+          <div class="text-2xl font-bold text-gray-900" x-text="compData.meta.totalCategories"></div>
+          <div class="text-[10px] text-gray-400" x-text="t('comp_data_date') + ': ' + compData.meta.scrapedAt"></div>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="flex gap-1 mb-5 bg-gray-100 rounded-lg p-1 w-fit">
+        <button @click="compTab='overview'" :class="compTab==='overview' ? 'bg-white shadow-sm font-semibold text-orange-600' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs transition-all" x-text="t('comp_top_sellers')"></button>
+        <button @click="compTab='categories'" :class="compTab==='categories' ? 'bg-white shadow-sm font-semibold text-orange-600' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs transition-all" x-text="t('comp_top_categories')"></button>
+        <button @click="compTab='products'" :class="compTab==='products' ? 'bg-white shadow-sm font-semibold text-orange-600' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs transition-all" x-text="t('comp_product_list')"></button>
+        <button @click="compTab='opportunities'" :class="compTab==='opportunities' ? 'bg-white shadow-sm font-semibold text-orange-600' : 'text-gray-500 hover:text-gray-700'" class="px-3 py-1.5 rounded-md text-xs transition-all" x-text="t('comp_opportunity')"></button>
+      </div>
+
+      <!-- TAB: Top Sellers -->
+      <div x-show="compTab==='overview'" x-transition>
+        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden mb-6">
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th class="text-left px-4 py-2.5 font-semibold text-gray-600">#</th>
+                  <th class="text-left px-4 py-2.5 font-semibold text-gray-600" x-text="t('comp_seller')"></th>
+                  <th class="text-right px-4 py-2.5 font-semibold text-gray-600" x-text="t('comp_products')"></th>
+                  <th class="text-right px-4 py-2.5 font-semibold text-gray-600" x-text="t('comp_market_share')"></th>
+                  <th class="text-right px-4 py-2.5 font-semibold text-gray-600" x-text="t('comp_avg_price')"></th>
+                  <th class="text-right px-4 py-2.5 font-semibold text-gray-600" x-text="t('comp_price_range')"></th>
+                  <th class="text-left px-4 py-2.5 font-semibold text-gray-600" x-text="t('comp_categories')"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="(seller, idx) in compData.sellers" :key="seller.name">
+                  <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-2.5 text-gray-400 font-medium" x-text="idx + 1"></td>
+                    <td class="px-4 py-2.5">
+                      <div class="font-semibold text-gray-900" x-text="seller.name"></div>
+                    </td>
+                    <td class="px-4 py-2.5 text-right">
+                      <span class="font-semibold text-gray-900" x-text="seller.products"></span>
+                    </td>
+                    <td class="px-4 py-2.5 text-right">
+                      <div class="flex items-center justify-end gap-2">
+                        <div class="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div class="h-full rounded-full" :style="'width:' + (seller.products / compData.meta.totalProducts * 100) + '%;background:#f97316'"></div>
+                        </div>
+                        <span class="text-gray-600 tabular-nums" x-text="(seller.products / compData.meta.totalProducts * 100).toFixed(1) + '%'"></span>
+                      </div>
+                    </td>
+                    <td class="px-4 py-2.5 text-right font-medium text-gray-900" x-text="seller.avg.toFixed(2) + '€'"></td>
+                    <td class="px-4 py-2.5 text-right text-gray-500" x-text="seller.min.toFixed(0) + '€ - ' + seller.max.toFixed(0) + '€'"></td>
+                    <td class="px-4 py-2.5">
+                      <div class="flex flex-wrap gap-1">
+                        <template x-for="cat in seller.cats.slice(0,3)" :key="cat">
+                          <span class="px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-600" x-text="cat"></span>
+                        </template>
+                        <span x-show="seller.cats.length > 3" class="px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-400" x-text="'+' + (seller.cats.length - 3)"></span>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Top Categories -->
+      <div x-show="compTab==='categories'" x-transition>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <template x-for="cat in compData.categories" :key="cat.name">
+            <div class="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-sm transition-all">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-sm font-semibold text-gray-900" x-text="cat.name"></h4>
+                <span class="text-xs font-bold tabular-nums" style="color:#c2410c" x-text="cat.count + ' prods'"></span>
+              </div>
+              <div class="flex items-center gap-4 text-xs text-gray-500 mb-3">
+                <span x-text="t('comp_avg_price') + ': ' + cat.avg.toFixed(2) + '€'"></span>
+                <span x-text="cat.min.toFixed(0) + '€ - ' + cat.max.toFixed(0) + '€'"></span>
+              </div>
+              <div class="flex items-center justify-between">
+                <div class="flex flex-wrap gap-1">
+                  <template x-for="s in cat.sellers.slice(0,3)" :key="s">
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" style="background:#fff7ed;color:#c2410c" x-text="s"></span>
+                  </template>
+                  <span x-show="cat.sellers.length > 3" class="px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-400" x-text="'+' + (cat.sellers.length - 3)"></span>
+                </div>
+                <span class="text-[10px] text-gray-400" x-text="cat.sellers.length + ' sellers'"></span>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- TAB: Products -->
+      <div x-show="compTab==='products'" x-transition>
+        <!-- Search & Filters -->
+        <div class="flex flex-wrap gap-3 mb-4">
+          <div class="flex-1 min-w-[200px]">
+            <input type="text" x-model="compSearch" :placeholder="t('comp_search')" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-orange-400 focus:ring-2 focus:ring-orange-100 transition-all">
+          </div>
+          <select x-model="compFilterSeller" class="border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-orange-400">
+            <option value="" x-text="t('comp_filter_seller')"></option>
+            <template x-for="s in compUniqueSellers" :key="s">
+              <option :value="s" x-text="s"></option>
+            </template>
+          </select>
+          <select x-model="compFilterCat" class="border border-gray-200 rounded-lg px-3 py-2 text-xs outline-none focus:border-orange-400">
+            <option value="" x-text="t('comp_filter_cat')"></option>
+            <template x-for="c in compUniqueCats" :key="c">
+              <option :value="c" x-text="c"></option>
+            </template>
+          </select>
+        </div>
+
+        <div class="bg-white border border-gray-200 rounded-xl overflow-hidden mb-6">
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead class="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th class="text-left px-4 py-2.5 font-semibold text-gray-600">Producto</th>
+                  <th class="text-left px-4 py-2.5 font-semibold text-gray-600" x-text="t('comp_brand')"></th>
+                  <th class="text-left px-4 py-2.5 font-semibold text-gray-600" x-text="t('comp_seller')"></th>
+                  <th class="text-right px-4 py-2.5 font-semibold text-gray-600" x-text="t('comp_price')"></th>
+                  <th class="text-right px-4 py-2.5 font-semibold text-gray-600" x-text="t('comp_original')"></th>
+                  <th class="text-right px-4 py-2.5 font-semibold text-gray-600" x-text="t('comp_discount')"></th>
+                  <th class="text-left px-4 py-2.5 font-semibold text-gray-600" x-text="t('comp_category')"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <template x-for="(prod, idx) in compFilteredProducts.slice(0, 30)" :key="idx">
+                  <tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                    <td class="px-4 py-2.5 font-medium text-gray-900 max-w-[200px] truncate" x-text="prod.n"></td>
+                    <td class="px-4 py-2.5 text-gray-600" x-text="prod.b"></td>
+                    <td class="px-4 py-2.5">
+                      <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" style="background:#fff7ed;color:#c2410c" x-text="prod.s"></span>
+                    </td>
+                    <td class="px-4 py-2.5 text-right font-bold text-gray-900 tabular-nums" x-text="prod.p.toFixed(2) + '€'"></td>
+                    <td class="px-4 py-2.5 text-right text-gray-400 line-through tabular-nums" x-text="prod.op > 0 ? prod.op.toFixed(2) + '€' : '-'"></td>
+                    <td class="px-4 py-2.5 text-right">
+                      <span x-show="prod.op > 0" class="text-emerald-600 font-semibold tabular-nums" x-text="'-' + ((1 - prod.p / prod.op) * 100).toFixed(0) + '%'"></span>
+                      <span x-show="!prod.op || prod.op === 0" class="text-gray-300">-</span>
+                    </td>
+                    <td class="px-4 py-2.5 text-gray-500" x-text="prod.c"></td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+          <div class="px-4 py-2 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-[10px] text-gray-400">
+            <span x-text="compFilteredProducts.length + ' ' + t('comp_products').toLowerCase()"></span>
+            <span x-text="t('comp_source')"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: Opportunities -->
+      <div x-show="compTab==='opportunities'" x-transition>
+        <p class="text-sm text-gray-500 mb-4" x-text="t('comp_opp_desc')"></p>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <template x-for="cat in compData.categories.filter(c => c.sellers.length <= 2).sort((a,b) => a.sellers.length - b.sellers.length)" :key="cat.name">
+            <div class="bg-white border-2 border-dashed rounded-xl p-4 transition-all" style="border-color:#fdba74">
+              <div class="flex items-center justify-between mb-2">
+                <h4 class="text-sm font-semibold text-gray-900" x-text="cat.name"></h4>
+                <div class="flex items-center gap-1.5">
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" style="background:#fef3c7;color:#92400e" x-text="cat.sellers.length === 1 ? '1 seller' : cat.sellers.length + ' sellers'"></span>
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold" style="background:#dcfce7;color:#166534" x-text="cat.count + ' prods'"></span>
+                </div>
+              </div>
+              <div class="flex items-center gap-4 text-xs text-gray-500 mb-2">
+                <span x-text="t('comp_price_range') + ': ' + cat.min.toFixed(0) + '€ - ' + cat.max.toFixed(0) + '€'"></span>
+                <span x-text="t('comp_avg_price') + ': ' + cat.avg.toFixed(2) + '€'"></span>
+              </div>
+              <div class="flex items-center gap-1">
+                <span class="text-[10px] text-gray-400" x-text="t('comp_seller') + ':'"></span>
+                <template x-for="s in cat.sellers" :key="s">
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600" x-text="s"></span>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="mt-6 text-center text-[10px] text-gray-400">
+        <span x-text="t('comp_source') + ' · ' + t('comp_data_date') + ': ' + compData.meta.scrapedAt"></span>
+      </div>
+    </div>
+
     <!-- ==================== SYNC DASHBOARD ==================== -->
     <div x-show="page === 'sync' && currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'marketplace_admin')" x-transition>
       <div class="flex items-center gap-3 mb-1">
@@ -2018,6 +2241,6 @@
 
   </div>
 
-  <script src="app.js?v=20260512f"></script>
+  <script src="app.js?v=20260512g"></script>
 </body>
 </html>
