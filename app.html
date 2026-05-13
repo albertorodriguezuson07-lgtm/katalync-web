@@ -2056,8 +2056,8 @@
                 <th class="px-4 py-2.5 font-medium" x-text="t('sync_actions')"></th>
               </tr>
             </thead>
-            <tbody>
-              <template x-for="v in syncVendors" :key="v.id">
+            <template x-for="v in syncVendors" :key="v.id">
+              <tbody>
                 <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                   <td class="px-5 py-3">
                     <div class="font-medium text-gray-900" x-text="v.name"></div>
@@ -2130,8 +2130,7 @@
                   </td>
                 </tr>
                 <!-- Expanded products row -->
-                <template x-if="expandedVendor === v.id">
-                  <tr>
+                  <tr x-show="expandedVendor === v.id" x-transition>
                     <td colspan="7" class="px-0 py-0">
                       <div class="bg-gradient-to-b from-gray-50 to-white border-t border-b border-gray-200 px-5 py-5">
                         <!-- Loading -->
@@ -2230,9 +2229,8 @@
                       </div>
                     </td>
                   </tr>
-                </template>
-              </template>
-            </tbody>
+              </tbody>
+            </template>
           </table>
         </div>
       </div>
