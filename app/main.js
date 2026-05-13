@@ -21,6 +21,8 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('app', () => ({
     _N8N_BASE: (typeof N8N_WEBHOOK_BASE !== 'undefined') ? N8N_WEBHOOK_BASE : '',
 
+    safeSaveLang(l) { safeSaveLang(l); },
+
     lang: safeGetLang(),
     darkMode: safeGetDarkMode(),
     browserNotifs: safeGetBrowserNotifs(),

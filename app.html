@@ -85,6 +85,7 @@
   </style>
 </head>
 <script>
+  window.__CT_API_BASE = 'https://api.katalync.com';
   if (!localStorage.getItem('authToken') && !sessionStorage.getItem('authToken')) {
     window.location.href = '/';
   }
