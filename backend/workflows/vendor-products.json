@@ -1,0 +1,56 @@
+{
+  "name": "Katalync - Vendor Products",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vendor-products",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "vp-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "vendor-products"
+    },
+    {
+      "parameters": {
+        "jsCode": "const https = require('https');\n\nfunction httpReq(url, options = {}) {\n  return new Promise((resolve, reject) => {\n    const m = url.match(/^https?:\\/\\/([^/]+)(\\/.*)$/);\n    if (!m) { reject(new Error('Invalid URL: ' + url)); return; }\n    const hostname = m[1];\n    const path = m[2] || '/';\n    const postData = options.body || '';\n    const req = https.request({\n      hostname: hostname,\n      port: 443,\n      path: path,\n      method: options.method || 'GET',\n      headers: { ...options.headers, ...(postData ? { 'Content-Length': Buffer.byteLength(postData) } : {}) }\n    }, (res) => {\n      const chunks = [];\n      res.on('data', c => chunks.push(c));\n      res.on('end', () => {\n        const body = Buffer.concat(chunks).toString();\n        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, text: () => Promise.resolve(body), json: () => Promise.resolve(JSON.parse(body)), headers: res.headers });\n      });\n    });\n    req.on('error', reject);\n    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Request timeout')); });\n    if (postData) req.write(postData);\n    req.end();\n  });\n}\n\nconst SUPABASE_URL = 'https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q';\nconst sbHeaders = {\n  'apikey': SUPABASE_KEY,\n  'Authorization': 'Bearer ' + SUPABASE_KEY,\n  'Content-Type': 'application/json'\n};\n\nconst input = $input.first().json;\nconst body = input.body || input;\nconst { token, vendor_id, status_filter, page, page_size } = body;\n\nif (!token || !vendor_id) {\n  return [{ json: { success: false, error: 'Missing token or vendor_id' } }];\n}\n\ntry {\n  // Auth\n  const authResp = await httpReq('https://api.katalync.com/webhook/auth-verify', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ token })\n  });\n  const authData = await authResp.json();\n  if (!authData.success) {\n    return [{ json: { success: false, error: authData.error || 'Token invalid or expired' } }];\n  }\n\n  // Upsert user\n  const upsertData = await httpReq(SUPABASE_URL + '/users?on_conflict=email', {\n    method: 'POST',\n    headers: { ...sbHeaders, 'Prefer': 'resolution=merge-duplicates,return=representation' },\n    body: JSON.stringify([{ email: authData.email, name: authData.name || authData.email, password_hash: 'oauth-managed', role: authData.role || 'user', company: authData.company || null, lang: authData.lang || 'es', onboarded: authData.onboarded || false, subscription_status: authData.subscription_status || 'active', last_login_at: new Date().toISOString() }])\n  });\n  const userData = await upsertData.json();\n  const user_id = userData && userData.length > 0 ? userData[0].id : null;\n  if (!user_id) return [{ json: { success: false, error: 'Failed to provision user' } }];\n\n  // Verify vendor ownership\n  const vendorsResp = await httpReq(SUPABASE_URL + '/vendors?id=eq.' + vendor_id + '&user_id=eq.' + user_id + '&select=id,name', {\n    headers: sbHeaders\n  });\n  const vendors = await vendorsResp.json();\n  if (!Array.isArray(vendors) || vendors.length === 0) {\n    return [{ json: { success: false, error: 'Vendor not found or access denied' } }];\n  }\n\n  // Build query\n  const limit = Math.min(page_size || 50, 200);\n  const offset = ((page || 1) - 1) * limit;\n  let filter = '&vendor_id=eq.' + vendor_id;\n  if (status_filter === 'converted') filter += '&sprinter_product=not.is.null';\n  else if (status_filter === 'pending') filter += '&sprinter_product=is.null';\n\n  // Fetch products\n  const productsResp = await httpReq(SUPABASE_URL + '/vendor_products?select=id,sku,ean,name,brand,category,price,stock,image_url,converted_image_url,sprinter_product,sprinter_offer,sync_status,last_synced_at,raw_data' + filter + '&order=created_at.desc&limit=' + limit + '&offset=' + offset, {\n    headers: { ...sbHeaders, 'Prefer': 'count=exact' }\n  });\n\n  const products = await productsResp.json();\n  const totalHeader = productsResp.headers['content-range'];\n  let total = Array.isArray(products) ? products.length : 0;\n  if (totalHeader) {\n    const match = totalHeader.match(/\\/(\\d+)/);\n    if (match) total = parseInt(match[1], 10);\n  }\n\n  // Summary counts\n  const convertedCount = Array.isArray(products) ? products.filter(p => p.sprinter_product).length : 0;\n  const pendingCount = Array.isArray(products) ? products.filter(p => !p.sprinter_product).length : 0;\n\n  // Simplify products for response (don't send full sprinter objects unless needed)\n  const simplified = (Array.isArray(products) ? products : []).map(p => ({\n    id: p.id,\n    sku: p.sku,\n    ean: p.ean,\n    name: p.name,\n    brand: p.brand,\n    category: p.category,\n    price: p.price,\n    stock: p.stock,\n    image_url: p.image_url,\n    converted_image_url: p.converted_image_url || (p.sprinter_product ? p.sprinter_product['imagenes-1'] : null),\n    sprinter_title: p.sprinter_product ? p.sprinter_product['nombre-del-articulo'] : null,\n    sprinter_category: p.sprinter_product ? p.sprinter_product['categorias'] : null,\n    sprinter_description: p.sprinter_product ? (p.sprinter_product['descripion-del-producto'] || '').substring(0, 150) : null,\n    sprinter_color: p.sprinter_product ? p.sprinter_product['colores'] : null,\n    sprinter_size: p.sprinter_product ? p.sprinter_product['talla'] : null,\n    offer_price: p.sprinter_offer ? p.sprinter_offer['price'] : null,\n    offer_discount: p.sprinter_offer ? p.sprinter_offer['discount-price'] : null,\n    offer_quantity: p.sprinter_offer ? p.sprinter_offer['quantity'] : null,\n    sync_status: p.sync_status,\n    is_converted: !!p.sprinter_product,\n    has_discount: p.raw_data && p.raw_data.compare_at_price && parseFloat(p.raw_data.compare_at_price) > (p.price || 0),\n    last_synced_at: p.last_synced_at\n  }));\n\n  return [{ json: {\n    success: true,\n    products: simplified,\n    total: total,\n    page: page || 1,\n    page_size: limit,\n    converted_in_page: convertedCount,\n    pending_in_page: pendingCount\n  } }];\n\n} catch (e) {\n  return [{ json: { success: false, error: 'Server error: ' + e.message } }];\n}\n"
+      },
+      "id": "vp-code",
+      "name": "Fetch Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.success ? 200 : 400 }}"
+        }
+      },
+      "id": "vp-respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Fetch Products", "type": "main", "index": 0 }]]
+    },
+    "Fetch Products": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {}
+}

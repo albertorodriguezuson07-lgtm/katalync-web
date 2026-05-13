@@ -379,6 +379,20 @@ const TRANSLATIONS = {
     shopify_oauth_hint: 'Guarda el vendedor primero, luego haz clic en "Conectar con Shopify" para autorizar el acceso.',
     sync_source_unsupported: 'Tipo de fuente no soportado para sync automático',
     sync_mirakl_not_configured: 'Mirakl API no configurada. Contacta con tu administrador.',
+    sync_converting: 'Convirtiendo para marketplace...',
+    sync_converted: 'productos convertidos',
+    sync_convert_error: 'Error en conversión',
+    sync_convert_btn: 'Convertir',
+    sync_view_products: 'Ver productos',
+    sync_hide_products: 'Ocultar',
+    sync_products_loading: 'Cargando productos...',
+    sync_products_none: 'No hay productos aún',
+    sync_original: 'Original',
+    sync_sprinter: 'Sprinter',
+    sync_all_converted: 'Todos los productos ya están convertidos',
+    vendor_marketplaces_label: 'Mercados de destino',
+    vendor_marketplace_es: 'Sprinter (España)',
+    vendor_marketplace_pt: 'Sport Zone (Portugal)',
     sync_logs_title: 'Historial de sincronizaciones',
     sync_no_logs: 'Sin sincronizaciones recientes',
     comp_title: 'Estudio de Competidores',
@@ -704,6 +718,20 @@ const TRANSLATIONS = {
     shopify_oauth_hint: 'Guarde o vendedor primeiro, depois clique em "Conectar com Shopify" para autorizar o acesso.',
     sync_source_unsupported: 'Tipo de fonte não suportado para sync automático',
     sync_mirakl_not_configured: 'Mirakl API não configurada. Contacte o seu administrador.',
+    sync_converting: 'Convertendo para marketplace...',
+    sync_converted: 'produtos convertidos',
+    sync_convert_error: 'Erro na conversão',
+    sync_convert_btn: 'Converter',
+    sync_view_products: 'Ver produtos',
+    sync_hide_products: 'Ocultar',
+    sync_products_loading: 'Carregando produtos...',
+    sync_products_none: 'Nenhum produto ainda',
+    sync_original: 'Original',
+    sync_sprinter: 'Sprinter',
+    sync_all_converted: 'Todos os produtos já estão convertidos',
+    vendor_marketplaces_label: 'Mercados de destino',
+    vendor_marketplace_es: 'Sprinter (Espanha)',
+    vendor_marketplace_pt: 'Sport Zone (Portugal)',
     sync_logs_title: 'Histórico de sincronizações',
     sync_no_logs: 'Sem sincronizações recentes',
     comp_title: 'Estudo de Concorrentes',
@@ -814,6 +842,10 @@ function app() {
     vendorTestResult: null,
     vendorTestInfo: '',
     vendorSaving: false,
+    convertingVendor: null,
+    expandedVendor: null,
+    vendorProducts: [],
+    vendorProductsLoading: false,
 
     compSearch: '', compFilterSeller: '', compFilterCat: '', compTab: 'overview',
     compData: {
@@ -1214,10 +1246,11 @@ function app() {
           source_api_secret: vendor.source_api_secret ? '••••••' : '',
           marketplace_api_key: vendor.marketplace_api_key ? '••••••' : '',
           marketplace_url: vendor.marketplace_url || '',
-          sync_interval_hours: vendor.sync_interval_hours || 4
+          sync_interval_hours: vendor.sync_interval_hours || 4,
+          marketplaces: (vendor.config && vendor.config.marketplaces) || ['sprinter_es']
         };
       } else {
-        this.vendorForm = { name: '', company: '', source: 'shopify', source_url: '', source_api_key: '', source_api_secret: '', marketplace_api_key: '', marketplace_url: '', sync_interval_hours: 4 };
+        this.vendorForm = { name: '', company: '', source: 'shopify', source_url: '', source_api_key: '', source_api_secret: '', marketplace_api_key: '', marketplace_url: '', sync_interval_hours: 4, marketplaces: ['sprinter_es'] };
       }
       this.vendorModal = true;
     },
@@ -1320,12 +1353,67 @@ function app() {
           this.showToast(vendor.name + ': ' + data.total + ' productos sincronizados', 'success');
           await this.loadSyncVendors();
           await this.loadSyncLogs();
+          this.syncSimulating = false;
+          this.syncSimVendor = null;
+          this.autoConvert(vendor);
         } else {
           this.showToast(vendor.name + ': ' + (data.error || 'Error'), 'error');
+          this.syncSimulating = false;
+          this.syncSimVendor = null;
         }
-      } catch(e) { this.showToast(e.message, 'error'); }
-      this.syncSimulating = false;
-      this.syncSimVendor = null;
+      } catch(e) {
+        this.showToast(e.message, 'error');
+        this.syncSimulating = false;
+        this.syncSimVendor = null;
+      }
+    },
+
+    async autoConvert(vendor) {
+      this.convertingVendor = vendor.id;
+      this.showToast(this.t('sync_converting'), 'info');
+      try {
+        const mkt = (vendor.config && vendor.config.marketplaces) || ['sprinter_es'];
+        const resp = await fetch(N8N_BASE + '/webhook/auto-convert', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: this.authToken, vendor_id: vendor.id, marketplaces: mkt })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          if (data.converted > 0) {
+            this.showToast(vendor.name + ': ' + data.converted + ' ' + this.t('sync_converted'), 'success');
+          } else {
+            this.showToast(this.t('sync_all_converted'), 'info');
+          }
+          await this.loadSyncVendors();
+        } else {
+          this.showToast(this.t('sync_convert_error') + ': ' + (data.error || ''), 'error');
+        }
+      } catch(e) { this.showToast(this.t('sync_convert_error') + ': ' + e.message, 'error'); }
+      this.convertingVendor = null;
+    },
+
+    async loadVendorProducts(vendorId) {
+      if (this.expandedVendor === vendorId) {
+        this.expandedVendor = null;
+        this.vendorProducts = [];
+        return;
+      }
+      this.expandedVendor = vendorId;
+      this.vendorProductsLoading = true;
+      this.vendorProducts = [];
+      try {
+        const resp = await fetch(N8N_BASE + '/webhook/vendor-products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: this.authToken, vendor_id: vendorId, page_size: 50 })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          this.vendorProducts = data.products || [];
+        }
+      } catch(e) { console.error('loadVendorProducts error:', e); }
+      this.vendorProductsLoading = false;
     },
 
     async uploadToSprinter() {

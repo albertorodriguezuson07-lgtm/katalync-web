@@ -16,6 +16,34 @@ function verifyToken(token) {
   });
 }
 
+function httpReq(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const m = url.match(/^https?:\/\/([^/]+)(\/.*)$/);
+    if (!m) { reject(new Error('Invalid URL: ' + url)); return; }
+    const hostname = m[1];
+    const path = m[2] || '/';
+    const postData = options.body || '';
+    const req = https.request({
+      hostname: hostname,
+      port: 443,
+      path: path,
+      method: options.method || 'GET',
+      headers: { ...options.headers, ...(postData ? { 'Content-Length': Buffer.byteLength(postData) } : {}) }
+    }, (res) => {
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => {
+        const body = Buffer.concat(chunks).toString();
+        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, text: () => Promise.resolve(body), json: () => Promise.resolve(JSON.parse(body)), headers: res.headers });
+      });
+    });
+    req.on('error', reject);
+    req.setTimeout(options.timeout || 15000, () => { req.destroy(); reject(new Error('Request timeout')); });
+    if (postData) req.write(postData);
+    req.end();
+  });
+}
+
 const AI_PARSE_CACHE = {};
 
 function aiParseProduct(name, brand) {
@@ -1052,7 +1080,7 @@ async function batchTranslate(texts) {
   const cached = {};
   try {
     const encoded = unique.map(t => encodeURIComponent(t)).join(',');
-    const cacheResp = await fetch(SUPABASE_URL + '/translation_cache?source_lang=eq.ES&target_lang=eq.PT&source_text=in.(' + encoded + ')&select=source_text,translated_text', {
+    const cacheResp = await httpReq(SUPABASE_URL + '/translation_cache?source_lang=eq.ES&target_lang=eq.PT&source_text=in.(' + encoded + ')&select=source_text,translated_text', {
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
     });
     if (cacheResp.ok) {
@@ -1064,7 +1092,7 @@ async function batchTranslate(texts) {
   if (toTranslate.length === 0) return cached;
   for (const text of toTranslate) {
     try {
-      const resp = await fetch(LIBRETRANSLATE_URL + '/translate', {
+      const resp = await httpReq(LIBRETRANSLATE_URL + '/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ q: text, source: 'es', target: 'pt', format: 'text' })
@@ -1074,7 +1102,7 @@ async function batchTranslate(texts) {
         const translated = data.translatedText || text;
         cached[text] = translated;
         translateCache[text] = translated;
-        fetch(SUPABASE_URL + '/translation_cache', {
+        httpReq(SUPABASE_URL + '/translation_cache?on_conflict=source_text,source_lang,target_lang', {
           method: 'POST',
           headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
           body: JSON.stringify([{ source_text: text, source_lang: 'ES', target_lang: 'PT', translated_text: translated, provider: 'libretranslate' }])
@@ -1478,7 +1506,7 @@ try {
     const batchSize = 100;
     for (let i = 0; i < upsertRows.length; i += batchSize) {
       const batch = upsertRows.slice(i, i + batchSize);
-      fetch(SUPABASE_URL + '/vendor_products', {
+      await httpReq(SUPABASE_URL + '/vendor_products?on_conflict=vendor_id,sku', {
         method: 'POST',
         headers: {
           'apikey': SUPABASE_KEY,
@@ -1487,7 +1515,7 @@ try {
           'Prefer': 'resolution=merge-duplicates'
         },
         body: JSON.stringify(batch)
-      }).catch(() => {});
+      });
     }
   }
 } catch(e) {}

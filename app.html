@@ -2076,19 +2076,28 @@
                   <td class="px-4 py-3 text-gray-500 text-xs" x-text="v.last_sync_at ? syncTimeAgo(new Date(v.last_sync_at).getTime()) + ' ' + t('sync_ago') : '-'"></td>
                   <td class="px-4 py-3 text-gray-500 text-xs" x-text="(v.sync_interval_hours || 4) + 'h'"></td>
                   <td class="px-4 py-3">
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" :class="v.sync_status === 'active' ? 'bg-emerald-50 text-emerald-700' : v.sync_status === 'error' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-500'">
-                      <span class="w-1.5 h-1.5 rounded-full" :class="v.sync_status === 'active' || v.sync_status === 'synced' || v.sync_status === 'connected' ? 'bg-emerald-500' : v.sync_status === 'error' ? 'bg-red-500' : v.sync_status === 'pending' && v.source === 'shopify' && !v.config?.connected_at ? 'bg-amber-400' : 'bg-gray-400'"></span>
-                      <span x-text="v.sync_status === 'active' || v.sync_status === 'synced' || v.sync_status === 'connected' ? t('sync_active') : v.sync_status === 'error' ? t('sync_error') : v.sync_status === 'pending' && v.source === 'shopify' && !v.config?.connected_at ? 'OAuth pendiente' : t('sync_paused')"></span>
-                    </span>
+                    <div class="flex flex-col gap-1">
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" :class="v.sync_status === 'converted' || v.sync_status === 'converted_with_errors' ? 'bg-blue-50 text-blue-700' : v.sync_status === 'active' || v.sync_status === 'synced' || v.sync_status === 'connected' ? 'bg-emerald-50 text-emerald-700' : v.sync_status === 'error' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-500'">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="v.sync_status === 'converted' || v.sync_status === 'converted_with_errors' ? 'bg-blue-500' : v.sync_status === 'active' || v.sync_status === 'synced' || v.sync_status === 'connected' ? 'bg-emerald-500' : v.sync_status === 'error' ? 'bg-red-500' : v.sync_status === 'pending' && v.source === 'shopify' && !v.config?.connected_at ? 'bg-amber-400' : 'bg-gray-400'"></span>
+                        <span x-text="v.sync_status === 'converted' ? 'Convertido' : v.sync_status === 'converted_with_errors' ? 'Convertido (errores)' : v.sync_status === 'active' || v.sync_status === 'synced' || v.sync_status === 'connected' ? t('sync_active') : v.sync_status === 'error' ? t('sync_error') : v.sync_status === 'pending' && v.source === 'shopify' && !v.config?.connected_at ? 'OAuth pendiente' : t('sync_paused')"></span>
+                      </span>
+                      <div x-show="v.config?.marketplaces" class="flex gap-1">
+                        <template x-for="m in (v.config?.marketplaces || [])" :key="m">
+                          <span class="text-[9px] px-1.5 py-0.5 rounded-full font-medium" :class="m === 'sprinter_es' ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200'" x-text="m === 'sprinter_es' ? 'ES' : 'PT'"></span>
+                        </template>
+                      </div>
+                    </div>
                   </td>
                   <td class="px-4 py-3">
-                    <div class="flex items-center gap-1">
+                    <div class="flex items-center gap-1 flex-wrap">
                       <template x-if="v.source === 'shopify' && !v.config?.connected_at">
                         <button @click="connectShopifyOAuth(v.id)" class="px-3 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all" x-text="t('shopify_oauth_connect')"></button>
                       </template>
                       <template x-if="v.source !== 'shopify' || v.config?.connected_at">
-                        <button @click="triggerSync(v)" :disabled="syncSimulating" class="px-3 py-1 rounded-md text-xs font-medium transition-all" :class="syncSimulating && syncSimVendor === v.id ? 'bg-cyan-100 text-cyan-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-cyan-50 hover:text-cyan-600'" x-text="syncSimulating && syncSimVendor === v.id ? t('sync_simulating') : t('sync_now')"></button>
+                        <button @click="triggerSync(v)" :disabled="syncSimulating || convertingVendor === v.id" class="px-3 py-1 rounded-md text-xs font-medium transition-all" :class="syncSimulating && syncSimVendor === v.id ? 'bg-cyan-100 text-cyan-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-cyan-50 hover:text-cyan-600'" x-text="syncSimulating && syncSimVendor === v.id ? t('sync_simulating') : t('sync_now')"></button>
                       </template>
+                      <button @click="autoConvert(v)" :disabled="convertingVendor === v.id || syncSimulating" x-show="v.product_count > 0 && (v.source !== 'shopify' || v.config?.connected_at)" class="px-3 py-1 rounded-md text-xs font-medium transition-all" :class="convertingVendor === v.id ? 'bg-blue-100 text-blue-600 animate-pulse' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'" x-text="convertingVendor === v.id ? t('sync_converting') : t('sync_convert_btn')"></button>
+                      <button @click="loadVendorProducts(v.id)" x-show="v.product_count > 0" class="px-3 py-1 rounded-md text-xs font-medium transition-all" :class="expandedVendor === v.id ? 'bg-purple-100 text-purple-700' : 'bg-gray-50 text-gray-500 hover:bg-purple-50 hover:text-purple-600'" x-text="expandedVendor === v.id ? t('sync_hide_products') : t('sync_view_products')"></button>
                       <button @click="openVendorModal(v)" class="p-1 rounded text-gray-400 hover:text-cyan-600 hover:bg-cyan-50 transition-all" title="Edit">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                       </button>
@@ -2098,6 +2107,55 @@
                     </div>
                   </td>
                 </tr>
+                <!-- Expanded products row -->
+                <template x-if="expandedVendor === v.id">
+                  <tr>
+                    <td colspan="7" class="px-0 py-0">
+                      <div class="bg-gray-50 border-t border-b border-gray-200 px-5 py-4">
+                        <div x-show="vendorProductsLoading" class="text-center py-4">
+                          <div class="inline-block w-5 h-5 border-2 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+                          <span class="ml-2 text-xs text-gray-500" x-text="t('sync_products_loading')"></span>
+                        </div>
+                        <div x-show="!vendorProductsLoading && vendorProducts.length === 0" class="text-center py-4 text-xs text-gray-400" x-text="t('sync_products_none')"></div>
+                        <div x-show="!vendorProductsLoading && vendorProducts.length > 0">
+                          <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-medium text-gray-600" x-text="vendorProducts.length + ' productos (' + vendorProducts.filter(p => p.is_converted).length + ' convertidos)'"></span>
+                          </div>
+                          <div class="grid gap-2 max-h-96 overflow-y-auto">
+                            <template x-for="p in vendorProducts" :key="p.id">
+                              <div class="bg-white rounded-lg border border-gray-200 p-3 flex items-start gap-3 text-xs">
+                                <div class="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
+                                  <img x-show="p.converted_image_url || p.image_url" :src="p.converted_image_url || p.image_url" class="w-full h-full object-cover" loading="lazy">
+                                  <div x-show="!p.converted_image_url && !p.image_url" class="w-full h-full flex items-center justify-center text-gray-300 text-lg">?</div>
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                  <div class="flex items-center gap-2 mb-1">
+                                    <span class="font-medium text-gray-900 truncate" x-text="p.sprinter_title || p.name"></span>
+                                    <span x-show="p.is_converted" class="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium border border-blue-200">Sprinter</span>
+                                    <span x-show="p.has_discount" class="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium border border-amber-200">Oferta</span>
+                                  </div>
+                                  <div class="flex items-center gap-3 text-gray-500">
+                                    <span x-text="'SKU: ' + p.sku"></span>
+                                    <span x-show="p.ean" x-text="'EAN: ' + p.ean"></span>
+                                    <span x-show="p.sprinter_category" class="text-purple-600" x-text="p.sprinter_category"></span>
+                                    <span x-show="p.sprinter_color" x-text="p.sprinter_color"></span>
+                                    <span x-show="p.sprinter_size" x-text="'T:' + p.sprinter_size"></span>
+                                  </div>
+                                  <div x-show="p.is_converted && p.sprinter_description" class="mt-1 text-gray-400 truncate" x-text="p.sprinter_description"></div>
+                                </div>
+                                <div class="text-right flex-shrink-0">
+                                  <div class="font-bold" :class="p.has_discount ? 'text-amber-600' : 'text-gray-900'" x-text="(p.offer_price || p.price || 0) + '€'"></div>
+                                  <div x-show="p.offer_discount" class="text-[10px] text-red-500 line-through" x-text="p.offer_discount + '€'"></div>
+                                  <div class="text-gray-400 mt-0.5" x-text="'Stock: ' + (p.stock || 0)"></div>
+                                </div>
+                              </div>
+                            </template>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                </template>
               </template>
             </tbody>
           </table>
@@ -2290,6 +2348,20 @@
                 <option value="12">12 horas</option>
                 <option value="24">24 horas</option>
               </select>
+            </div>
+
+            <div class="border-t pt-4">
+              <label class="text-xs font-medium text-gray-600 mb-2 block" x-text="t('vendor_marketplaces_label')"></label>
+              <div class="flex flex-col gap-2">
+                <label class="inline-flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" value="sprinter_es" class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500" :checked="vendorForm.marketplaces?.includes('sprinter_es')" @change="$event.target.checked ? (vendorForm.marketplaces.includes('sprinter_es') || vendorForm.marketplaces.push('sprinter_es')) : vendorForm.marketplaces = vendorForm.marketplaces.filter(m => m !== 'sprinter_es')">
+                  <span class="text-sm text-gray-700 flex items-center gap-1.5"><span class="text-[10px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-200 font-medium">ES</span> <span x-text="t('vendor_marketplace_es')"></span></span>
+                </label>
+                <label class="inline-flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" value="sportzone_pt" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500" :checked="vendorForm.marketplaces?.includes('sportzone_pt')" @change="$event.target.checked ? (vendorForm.marketplaces.includes('sportzone_pt') || vendorForm.marketplaces.push('sportzone_pt')) : vendorForm.marketplaces = vendorForm.marketplaces.filter(m => m !== 'sportzone_pt')">
+                  <span class="text-sm text-gray-700 flex items-center gap-1.5"><span class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 border border-green-200 font-medium">PT</span> <span x-text="t('vendor_marketplace_pt')"></span></span>
+                </label>
+              </div>
             </div>
 
             <!-- Test connection button -->
