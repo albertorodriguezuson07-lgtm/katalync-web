@@ -354,6 +354,8 @@ const TRANSLATIONS = {
     vendor_url_label: 'URL de la tienda',
     vendor_api_key_label: 'API Key',
     vendor_api_secret_label: 'API Secret',
+    vendor_client_id_label: 'Client ID',
+    vendor_client_secret_label: 'Client Secret',
     vendor_marketplace_key_label: 'Mirakl API Key',
     vendor_marketplace_url_label: 'URL Marketplace',
     vendor_interval_label: 'Intervalo de sync (horas)',
@@ -370,6 +372,10 @@ const TRANSLATIONS = {
     vendor_name_required: 'El nombre del vendedor es obligatorio',
     vendor_no_vendors: 'No hay vendedores conectados aún',
     vendor_no_vendors_hint: 'Conecta tu primera tienda para empezar a sincronizar productos automáticamente.',
+    shopify_oauth_missing: 'Introduce la URL de la tienda, Client ID y Client Secret antes de conectar',
+    shopify_oauth_connect: 'Conectar con Shopify',
+    shopify_oauth_connected: 'Conectado',
+    shopify_oauth_hint: 'Guarda el vendedor primero, luego haz clic en "Conectar con Shopify" para autorizar el acceso.',
     sync_source_unsupported: 'Tipo de fuente no soportado para sync automático',
     sync_mirakl_not_configured: 'Mirakl API no configurada. Contacta con tu administrador.',
     sync_logs_title: 'Historial de sincronizaciones',
@@ -672,6 +678,8 @@ const TRANSLATIONS = {
     vendor_url_label: 'URL da loja',
     vendor_api_key_label: 'API Key',
     vendor_api_secret_label: 'API Secret',
+    vendor_client_id_label: 'Client ID',
+    vendor_client_secret_label: 'Client Secret',
     vendor_marketplace_key_label: 'Mirakl API Key',
     vendor_marketplace_url_label: 'URL Marketplace',
     vendor_interval_label: 'Intervalo de sync (horas)',
@@ -688,6 +696,10 @@ const TRANSLATIONS = {
     vendor_name_required: 'O nome do vendedor é obrigatório',
     vendor_no_vendors: 'Nenhum vendedor conectado',
     vendor_no_vendors_hint: 'Conecte a sua primeira loja para começar a sincronizar produtos automaticamente.',
+    shopify_oauth_missing: 'Introduza a URL da loja, Client ID e Client Secret antes de conectar',
+    shopify_oauth_connect: 'Conectar com Shopify',
+    shopify_oauth_connected: 'Conectado',
+    shopify_oauth_hint: 'Guarde o vendedor primeiro, depois clique em "Conectar com Shopify" para autorizar o acesso.',
     sync_source_unsupported: 'Tipo de fonte não suportado para sync automático',
     sync_mirakl_not_configured: 'Mirakl API não configurada. Contacte o seu administrador.',
     sync_logs_title: 'Histórico de sincronizações',
@@ -1209,6 +1221,11 @@ function app() {
     },
 
     async testVendorConnection() {
+      if (this.vendorForm.source === 'shopify' && !this.vendorEditing?.config?.connected_at) {
+        this.vendorTestResult = 'failed';
+        this.vendorTestInfo = this.t('shopify_oauth_hint');
+        return;
+      }
       this.vendorTestResult = 'testing';
       this.vendorTestInfo = '';
       try {
@@ -1346,6 +1363,23 @@ function app() {
     getSourceColor(source) {
       const colors = { shopify: 'bg-green-50 text-green-700', woocommerce: 'bg-purple-50 text-purple-700', prestashop: 'bg-blue-50 text-blue-700', api: 'bg-gray-100 text-gray-600', excel: 'bg-amber-50 text-amber-700' };
       return colors[source] || 'bg-gray-100 text-gray-600';
+    },
+
+    async connectShopifyOAuth(vendorId) {
+      const vendor = this.syncVendors.find(v => v.id === vendorId);
+      if (!vendor) return;
+      if (!vendor.source_url || !vendor.source_api_key || !vendor.source_api_secret) {
+        this.showToast(this.t('shopify_oauth_missing'), 'error');
+        return;
+      }
+      const shop = vendor.source_url.replace(/^https?:\/\//, '').replace(/\/+$/, '');
+      const clientId = vendor.source_api_key;
+      const clientSecret = vendor.source_api_secret;
+      const redirectUri = N8N_BASE + '/webhook/shopify-oauth-callback';
+      const scopes = 'read_products,read_inventory';
+      const state = btoa(JSON.stringify({ vendor_id: vendorId, client_id: clientId, client_secret: clientSecret }));
+      const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
+      window.open(authUrl, '_blank');
     },
 
     get subscriptionActive() {

@@ -1,0 +1,62 @@
+{
+  "name": "Katalync - Shopify OAuth Callback",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "shopify-oauth-callback",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "oauth-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "shopify-oauth-callback"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst query = input.query || {};\nconst { code, shop, state } = query;\n\nconst SUPABASE_URL = 'https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q';\nconst sbHeaders = {\n  'apikey': SUPABASE_KEY,\n  'Authorization': `Bearer ${SUPABASE_KEY}`,\n  'Content-Type': 'application/json'\n};\n\nconst APP_URL = 'https://katalync.com/app';\n\ntry {\n  if (!code || !shop || !state) {\n    return [{ json: { error: true, html: '<h1>Error: Missing parameters</h1>' } }];\n  }\n\n  // Decode state: base64-encoded JSON with vendor_id, user_id, client_id, client_secret\n  let stateData;\n  try {\n    stateData = JSON.parse(Buffer.from(state, 'base64').toString('utf-8'));\n  } catch (e) {\n    return [{ json: { error: true, html: '<h1>Error: Invalid state parameter</h1>' } }];\n  }\n\n  const { vendor_id, client_id, client_secret } = stateData;\n  if (!vendor_id || !client_id || !client_secret) {\n    return [{ json: { error: true, html: '<h1>Error: Missing vendor or credentials in state</h1>' } }];\n  }\n\n  // Exchange code for access token\n  const tokenResp = await fetch(`https://${shop}/admin/oauth/access_token`, {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({\n      client_id: client_id,\n      client_secret: client_secret,\n      code: code\n    })\n  });\n\n  if (!tokenResp.ok) {\n    const errText = await tokenResp.text();\n    return [{ json: { error: true, html: `<h1>Error getting token from Shopify</h1><p>${errText.substring(0, 200)}</p>` } }];\n  }\n\n  const tokenData = await tokenResp.json();\n  const accessToken = tokenData.access_token;\n\n  if (!accessToken) {\n    return [{ json: { error: true, html: '<h1>Error: No access token received from Shopify</h1>' } }];\n  }\n\n  // Save access token to vendor in Supabase\n  const updateResp = await fetch(`${SUPABASE_URL}/vendors?id=eq.${vendor_id}`, {\n    method: 'PATCH',\n    headers: { ...sbHeaders, 'Prefer': 'return=representation' },\n    body: JSON.stringify({\n      source_api_key: accessToken,\n      source_url: `https://${shop}`,\n      sync_status: 'connected',\n      config: { oauth_scope: tokenData.scope || '', connected_at: new Date().toISOString() }\n    })\n  });\n\n  if (!updateResp.ok) {\n    const errText = await updateResp.text();\n    return [{ json: { error: true, html: `<h1>Error saving token</h1><p>${errText.substring(0, 200)}</p>` } }];\n  }\n\n  // Test the token by fetching shop info\n  let shopName = shop;\n  try {\n    const shopResp = await fetch(`https://${shop}/admin/api/2024-01/shop.json`, {\n      headers: { 'X-Shopify-Access-Token': accessToken }\n    });\n    if (shopResp.ok) {\n      const shopData = await shopResp.json();\n      shopName = shopData.shop?.name || shop;\n    }\n  } catch(e) {}\n\n  // Return success HTML that redirects to Katalync\n  const html = `<!DOCTYPE html>\n<html><head><meta charset=\"UTF-8\"><title>Conexión exitosa</title>\n<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f0fdf4}\n.card{background:white;padding:3rem;border-radius:1rem;box-shadow:0 4px 24px rgba(0,0,0,.08);text-align:center;max-width:420px}\nh1{color:#059669;margin:0 0 1rem}p{color:#64748b;line-height:1.6;margin:0 0 1.5rem}\na{display:inline-block;background:#0d9488;color:white;padding:.75rem 2rem;border-radius:.5rem;text-decoration:none;font-weight:600}\na:hover{background:#0f766e}</style>\n</head><body><div class=\"card\">\n<h1>✓ Conectado</h1>\n<p>Tu tienda <strong>${shopName}</strong> se ha conectado correctamente a Katalync.</p>\n<p>Ya puedes sincronizar tus productos.</p>\n<a href=\"${APP_URL}#sync\">Volver a Katalync</a>\n</div></body></html>`;\n\n  return [{ json: { error: false, html } }];\n\n} catch (e) {\n  return [{ json: { error: true, html: `<h1>Error inesperado</h1><p>${e.message}</p>` } }];\n}\n"
+      },
+      "id": "oauth-process",
+      "name": "Process OAuth",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.html }}",
+        "options": {
+          "responseCode": "={{ $json.error ? 400 : 200 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "text/html; charset=utf-8"
+              }
+            ]
+          }
+        }
+      },
+      "id": "oauth-respond",
+      "name": "Respond HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Process OAuth", "type": "main", "index": 0 }]]
+    },
+    "Process OAuth": {
+      "main": [[{ "node": "Respond HTML", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "pinData": {}
+}

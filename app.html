@@ -2077,13 +2077,18 @@
                   <td class="px-4 py-3 text-gray-500 text-xs" x-text="(v.sync_interval_hours || 4) + 'h'"></td>
                   <td class="px-4 py-3">
                     <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" :class="v.sync_status === 'active' ? 'bg-emerald-50 text-emerald-700' : v.sync_status === 'error' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-500'">
-                      <span class="w-1.5 h-1.5 rounded-full" :class="v.sync_status === 'active' ? 'bg-emerald-500' : v.sync_status === 'error' ? 'bg-red-500' : 'bg-gray-400'"></span>
-                      <span x-text="v.sync_status === 'active' ? t('sync_active') : v.sync_status === 'error' ? t('sync_error') : t('sync_paused')"></span>
+                      <span class="w-1.5 h-1.5 rounded-full" :class="v.sync_status === 'active' || v.sync_status === 'synced' || v.sync_status === 'connected' ? 'bg-emerald-500' : v.sync_status === 'error' ? 'bg-red-500' : v.sync_status === 'pending' && v.source === 'shopify' && !v.config?.connected_at ? 'bg-amber-400' : 'bg-gray-400'"></span>
+                      <span x-text="v.sync_status === 'active' || v.sync_status === 'synced' || v.sync_status === 'connected' ? t('sync_active') : v.sync_status === 'error' ? t('sync_error') : v.sync_status === 'pending' && v.source === 'shopify' && !v.config?.connected_at ? 'OAuth pendiente' : t('sync_paused')"></span>
                     </span>
                   </td>
                   <td class="px-4 py-3">
                     <div class="flex items-center gap-1">
-                      <button @click="triggerSync(v)" :disabled="syncSimulating" class="px-3 py-1 rounded-md text-xs font-medium transition-all" :class="syncSimulating && syncSimVendor === v.id ? 'bg-cyan-100 text-cyan-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-cyan-50 hover:text-cyan-600'" x-text="syncSimulating && syncSimVendor === v.id ? t('sync_simulating') : t('sync_now')"></button>
+                      <template x-if="v.source === 'shopify' && !v.config?.connected_at">
+                        <button @click="connectShopifyOAuth(v.id)" class="px-3 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all" x-text="t('shopify_oauth_connect')"></button>
+                      </template>
+                      <template x-if="v.source !== 'shopify' || v.config?.connected_at">
+                        <button @click="triggerSync(v)" :disabled="syncSimulating" class="px-3 py-1 rounded-md text-xs font-medium transition-all" :class="syncSimulating && syncSimVendor === v.id ? 'bg-cyan-100 text-cyan-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-cyan-50 hover:text-cyan-600'" x-text="syncSimulating && syncSimVendor === v.id ? t('sync_simulating') : t('sync_now')"></button>
+                      </template>
                       <button @click="openVendorModal(v)" class="p-1 rounded text-gray-400 hover:text-cyan-600 hover:bg-cyan-50 transition-all" title="Edit">
                         <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                       </button>
@@ -2234,16 +2239,45 @@
               <div class="space-y-4">
                 <div>
                   <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_url_label')"></label>
-                  <input x-model="vendorForm.source_url" type="url" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none" placeholder="https://mitienda.myshopify.com">
+                  <input x-model="vendorForm.source_url" type="url" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none" :placeholder="vendorForm.source === 'shopify' ? 'mitienda.myshopify.com' : 'https://mitienda.com'">
                 </div>
-                <div>
-                  <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_api_key_label')"></label>
-                  <input x-model="vendorForm.source_api_key" type="password" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none">
-                </div>
-                <div x-show="vendorForm.source === 'woocommerce' || vendorForm.source === 'api'">
-                  <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_api_secret_label')"></label>
-                  <input x-model="vendorForm.source_api_secret" type="password" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none">
-                </div>
+                <!-- Shopify: Client ID + Client Secret -->
+                <template x-if="vendorForm.source === 'shopify'">
+                  <div class="space-y-4">
+                    <div>
+                      <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_client_id_label')"></label>
+                      <input x-model="vendorForm.source_api_key" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none" placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+                    </div>
+                    <div>
+                      <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_client_secret_label')"></label>
+                      <input x-model="vendorForm.source_api_secret" type="password" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none">
+                    </div>
+                    <div x-show="vendorEditing && vendorEditing.config?.connected_at" class="flex items-center gap-2 p-2 bg-emerald-50 rounded-lg">
+                      <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span class="text-xs text-emerald-700" x-text="t('shopify_oauth_connected')"></span>
+                    </div>
+                    <div x-show="vendorEditing && !vendorEditing.config?.connected_at">
+                      <button @click="connectShopifyOAuth(vendorEditing.id)" type="button" class="w-full py-2.5 rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
+                        <span class="text-lg font-bold">S</span>
+                        <span x-text="t('shopify_oauth_connect')"></span>
+                      </button>
+                      <p class="text-xs text-gray-400 mt-1" x-text="t('shopify_oauth_hint')"></p>
+                    </div>
+                  </div>
+                </template>
+                <!-- WooCommerce / PrestaShop / API: API Key + Secret -->
+                <template x-if="vendorForm.source !== 'shopify'">
+                  <div class="space-y-4">
+                    <div>
+                      <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_api_key_label')"></label>
+                      <input x-model="vendorForm.source_api_key" type="password" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none">
+                    </div>
+                    <div x-show="vendorForm.source === 'woocommerce' || vendorForm.source === 'api'">
+                      <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_api_secret_label')"></label>
+                      <input x-model="vendorForm.source_api_secret" type="password" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none">
+                    </div>
+                  </div>
+                </template>
               </div>
             </template>
             <div class="border-t pt-4">

@@ -1016,10 +1016,10 @@ const catTranslations = {
   'responsable': 'responsável', 'Responsable': 'Responsável',
   'utilización': 'utilização', 'Utilización': 'Utilização', 'utilizacion': 'utilização'
 };
-const DEEPL_API_KEY = $env.DEEPL_API_KEY || '';
+const LIBRETRANSLATE_URL = $env.LIBRETRANSLATE_URL || 'https://image-tools-libretranslate.reyl9a.easypanel.host';
 const SUPABASE_URL = 'https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1';
 const SUPABASE_KEY = $env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q';
-const deeplCache = {};
+const translateCache = {};
 
 function toPT(text) {
   if (!text || !isPT) return text;
@@ -1040,13 +1040,13 @@ function toPT(text) {
     }
   }
   if (result === text && text.length > 3) {
-    if (deeplCache[text]) return deeplCache[text];
+    if (translateCache[text]) return translateCache[text];
   }
   return result;
 }
 
-async function batchTranslateDeepL(texts) {
-  if (!DEEPL_API_KEY || texts.length === 0) return {};
+async function batchTranslate(texts) {
+  if (texts.length === 0) return {};
   const unique = [...new Set(texts)].filter(t => t && t.length > 3);
   if (unique.length === 0) return {};
   const cached = {};
@@ -1057,36 +1057,28 @@ async function batchTranslateDeepL(texts) {
     });
     if (cacheResp.ok) {
       const cacheData = await cacheResp.json();
-      for (const row of cacheData) { cached[row.source_text] = row.translated_text; deeplCache[row.source_text] = row.translated_text; }
+      for (const row of cacheData) { cached[row.source_text] = row.translated_text; translateCache[row.source_text] = row.translated_text; }
     }
   } catch(e) {}
   const toTranslate = unique.filter(t => !cached[t]);
   if (toTranslate.length === 0) return cached;
-  const batches = [];
-  for (let i = 0; i < toTranslate.length; i += 50) batches.push(toTranslate.slice(i, i + 50));
-  for (const batch of batches) {
+  for (const text of toTranslate) {
     try {
-      const resp = await fetch('https://api-free.deepl.com/v2/translate', {
+      const resp = await fetch(LIBRETRANSLATE_URL + '/translate', {
         method: 'POST',
-        headers: { 'Authorization': 'DeepL-Auth-Key ' + DEEPL_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: batch, source_lang: 'ES', target_lang: 'PT' })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ q: text, source: 'es', target: 'pt', format: 'text' })
       });
       if (resp.ok) {
         const data = await resp.json();
-        const inserts = [];
-        for (let j = 0; j < batch.length; j++) {
-          const translated = data.translations[j]?.text || batch[j];
-          cached[batch[j]] = translated;
-          deeplCache[batch[j]] = translated;
-          inserts.push({ source_text: batch[j], source_lang: 'ES', target_lang: 'PT', translated_text: translated, provider: 'deepl' });
-        }
-        if (inserts.length > 0) {
-          fetch(SUPABASE_URL + '/translation_cache', {
-            method: 'POST',
-            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
-            body: JSON.stringify(inserts)
-          }).catch(() => {});
-        }
+        const translated = data.translatedText || text;
+        cached[text] = translated;
+        translateCache[text] = translated;
+        fetch(SUPABASE_URL + '/translation_cache', {
+          method: 'POST',
+          headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+          body: JSON.stringify([{ source_text: text, source_lang: 'ES', target_lang: 'PT', translated_text: translated, provider: 'libretranslate' }])
+        }).catch(() => {});
       }
     } catch(e) {}
   }
@@ -1194,7 +1186,7 @@ const results = [];
 const errors = [];
 let aiCallCount = 0;
 
-if (isPT && DEEPL_API_KEY) {
+if (isPT) {
   const sampleTexts = [];
   for (const p of products.slice(0, 20)) {
     const m = mapInputRow(p);
@@ -1206,7 +1198,7 @@ if (isPT && DEEPL_API_KEY) {
     if (desc && desc.length < 200) sampleTexts.push(desc);
   }
   const untranslated = sampleTexts.filter(t => { const r = toPT(t); return r === t && t.length > 3; });
-  if (untranslated.length > 0) await batchTranslateDeepL(untranslated);
+  if (untranslated.length > 0) await batchTranslate(untranslated);
 }
 
 for (const p of products) {
@@ -1435,18 +1427,18 @@ for (const p of products) {
     results.push({ json: { sku: p.sku || p.SKU || '?', ean: '', title: '', description: '', material: '', gsr: '', original_image_url: '', converted_image_url: '', price: '', brand: '', category: '', gender: '', color: '', marketplace } });
   }
 }
-if (isPT && DEEPL_API_KEY) {
+if (isPT) {
   const untranslatedTexts = [];
   for (const r of results) {
     const d = r.json;
     if (!d.sku || d._empty) continue;
     for (const field of ['title', 'description', 'category', 'gender', 'color']) {
       const val = d[field];
-      if (val && val.length > 3 && toPT(val) === val && !deeplCache[val]) untranslatedTexts.push(val);
+      if (val && val.length > 3 && toPT(val) === val && !translateCache[val]) untranslatedTexts.push(val);
     }
   }
   if (untranslatedTexts.length > 0) {
-    const translations = await batchTranslateDeepL(untranslatedTexts);
+    const translations = await batchTranslate(untranslatedTexts);
     for (const r of results) {
       const d = r.json;
       if (!d.sku || d._empty) continue;
