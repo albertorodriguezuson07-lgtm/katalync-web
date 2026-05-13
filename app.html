@@ -2310,16 +2310,31 @@
                       <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_client_secret_label')"></label>
                       <input x-model="vendorForm.source_api_secret" type="password" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none">
                     </div>
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                      <label class="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1 block">URL de redireccionamiento (Shopify App)</label>
+                      <div class="flex items-center gap-2">
+                        <code class="flex-1 text-xs bg-white border border-gray-200 rounded px-2 py-1.5 text-gray-700 font-mono select-all break-all">https://api.katalync.com/webhook/shopify-oauth-callback</code>
+                        <button type="button" @click="navigator.clipboard.writeText('https://api.katalync.com/webhook/shopify-oauth-callback'); showToast('URL copiada', 'success')" class="px-2 py-1.5 rounded text-xs bg-gray-200 hover:bg-gray-300 text-gray-600 transition-colors flex-shrink-0">Copiar</button>
+                      </div>
+                      <p class="text-[10px] text-gray-400 mt-1.5">Pega esta URL en tu Shopify App &rarr; Configuration &rarr; Allowed redirection URLs</p>
+                    </div>
                     <div x-show="vendorEditing && vendorEditing.config?.connected_at" class="flex items-center gap-2 p-2 bg-emerald-50 rounded-lg">
                       <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
                       <span class="text-xs text-emerald-700" x-text="t('shopify_oauth_connected')"></span>
                     </div>
                     <div x-show="vendorEditing && !vendorEditing.config?.connected_at">
-                      <button @click="connectShopifyOAuth(vendorEditing.id)" type="button" class="w-full py-2.5 rounded-lg text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
+                      <button @click="vendorEditing ? connectShopifyOAuth(vendorEditing.id) : null" :disabled="!vendorEditing" type="button" class="w-full py-2.5 rounded-lg text-sm font-medium text-white transition-colors flex items-center justify-center gap-2" :class="vendorEditing ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-300 cursor-not-allowed'">
                         <span class="text-lg font-bold">S</span>
                         <span x-text="t('shopify_oauth_connect')"></span>
                       </button>
-                      <p class="text-xs text-gray-400 mt-1" x-text="t('shopify_oauth_hint')"></p>
+                      <p class="text-xs text-gray-400 mt-1" x-text="vendorEditing ? t('shopify_oauth_hint') : 'Guarda el vendedor primero para poder conectar con Shopify.'"></p>
+                    </div>
+                    <div x-show="!vendorEditing">
+                      <button disabled type="button" class="w-full py-2.5 rounded-lg text-sm font-medium text-white bg-gray-300 cursor-not-allowed flex items-center justify-center gap-2">
+                        <span class="text-lg font-bold">S</span>
+                        <span x-text="t('shopify_oauth_connect')"></span>
+                      </button>
+                      <p class="text-xs text-amber-500 mt-1">Guarda el vendedor primero para poder conectar con Shopify.</p>
                     </div>
                   </div>
                 </template>
