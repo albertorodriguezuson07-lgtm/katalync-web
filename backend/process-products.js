@@ -490,11 +490,11 @@ function extractSingleColor(colorInput) {
 }
 
 const IMGPROXY_HOST = 'imgproxy.reyl9a.easypanel.host';
-const R2_HOST = $env.R2_HOST || '1ad99f42539d9623984dd787e28151ba.r2.cloudflarestorage.com';
-const R2_BUCKET = $env.R2_BUCKET || 'sprinter-images';
-const R2_ACCESS_KEY = $env.R2_ACCESS_KEY;
-const R2_SECRET_KEY = $env.R2_SECRET_KEY;
-const CDN_BASE = $env.CDN_BASE || 'https://pub-3dd3844245694c3f82abf1a5f3f07c43.r2.dev';
+const R2_HOST = '1ad99f42539d9623984dd787e28151ba.r2.cloudflarestorage.com';
+const R2_BUCKET = 'sprinter-images';
+const R2_ACCESS_KEY = '81e11f2adc76f7cb3da11063e4f2d9d4';
+const R2_SECRET_KEY = '1172046df1975dea35c76f7d73df05669cc9a331ce1f1b0620225e73eb257265';
+const CDN_BASE = 'https://pub-3dd3844245694c3f82abf1a5f3f07c43.r2.dev';
 
 const { createHmac, createHash } = require('crypto');
 
@@ -1044,9 +1044,9 @@ const catTranslations = {
   'responsable': 'responsável', 'Responsable': 'Responsável',
   'utilización': 'utilização', 'Utilización': 'Utilização', 'utilizacion': 'utilização'
 };
-const LIBRETRANSLATE_URL = $env.LIBRETRANSLATE_URL || 'https://image-tools-libretranslate.reyl9a.easypanel.host';
+const LIBRETRANSLATE_URL = 'https://image-tools-libretranslate.reyl9a.easypanel.host';
 const SUPABASE_URL = 'https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1';
-const SUPABASE_KEY = $env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q';
 const translateCache = {};
 
 function toPT(text) {
@@ -1485,7 +1485,7 @@ if (isPT) {
 
 // Lock-in: save processed products to Supabase for data accumulation
 try {
-  const validResults = results.filter(r => r.json.sku && !r.json._empty && r.json.ean);
+  const validResults = results.filter(r => r.json.sku && !r.json._empty);
   if (validResults.length > 0 && vendorId) {
     const upsertRows = validResults.map(r => ({
       vendor_id: vendorId,
@@ -1497,7 +1497,6 @@ try {
       price: r.json.price ? parseFloat(r.json.price) || null : null,
       image_url: r.json.original_image_url || null,
       converted_image_url: r.json.converted_image_url || null,
-      raw_data: {},
       sprinter_product: r.json.sprinterProduct || null,
       sprinter_offer: r.json.sprinterOffer || null,
       sync_status: 'converted',
