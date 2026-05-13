@@ -1,0 +1,187 @@
+{
+  "name": "Katalync - Catalog Submit Job",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "catalog-submit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-catalog-submit",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "catalog-submit"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst { token, products, tool, marketplace, config } = input.body || input;\n\n// Validate required fields\nif (!token) {\n  return [{ json: { error: true, code: 'MISSING_TOKEN', message: 'Token is required' } }];\n}\nif (!products || !Array.isArray(products) || products.length === 0) {\n  return [{ json: { error: true, code: 'INVALID_PRODUCTS', message: 'Products array is required and must not be empty' } }];\n}\nif (!tool) {\n  return [{ json: { error: true, code: 'MISSING_TOOL', message: 'tool parameter is required (e.g. xlsx_converter, image_pipeline, offer_mapper)' } }];\n}\n\nconst validTools = ['xlsx_converter', 'image_pipeline', 'offer_mapper', 'product_enricher', 'ean_validator', 'mirakl_sync', 'full_pipeline'];\nif (!validTools.includes(tool)) {\n  return [{ json: { error: true, code: 'INVALID_TOOL', message: `Invalid tool '${tool}'. Valid: ${validTools.join(', ')}` } }];\n}\n\nconst validMarketplaces = ['sprinter', 'mirakl', 'shopify', 'woocommerce', null];\nif (marketplace && !validMarketplaces.includes(marketplace)) {\n  return [{ json: { error: true, code: 'INVALID_MARKETPLACE', message: `Invalid marketplace '${marketplace}'. Valid: ${validMarketplaces.filter(Boolean).join(', ')}` } }];\n}\n\n// Decode JWT\ntry {\n  const parts = token.split('.');\n  if (parts.length !== 3) throw new Error('Invalid token format');\n  const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());\n  \n  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {\n    return [{ json: { error: true, code: 'TOKEN_EXPIRED', message: 'Token has expired' } }];\n  }\n  \n  const vendor_id = payload.sub || payload.vendor_id || payload.user_id;\n  if (!vendor_id) {\n    return [{ json: { error: true, code: 'INVALID_TOKEN', message: 'Token missing subject' } }];\n  }\n  \n  return [{ json: {\n    error: false,\n    vendor_id,\n    email: payload.email || null,\n    products,\n    product_count: products.length,\n    tool,\n    marketplace: marketplace || null,\n    config: config || {}\n  } }];\n} catch (e) {\n  return [{ json: { error: true, code: 'AUTH_FAILED', message: 'Token verification failed: ' + e.message } }];\n}"
+      },
+      "id": "verify-token",
+      "name": "Verify Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-error",
+      "name": "Validation Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [550, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.code, message: $json.message }) }}",
+        "options": {
+          "responseCode": "={{ ['MISSING_TOKEN','TOKEN_EXPIRED','INVALID_TOKEN','AUTH_FAILED'].includes($json.code) ? 401 : 400 }}"
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [850, 150]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\n\n// Build the job record\nconst now = new Date().toISOString();\nconst job = {\n  vendor_id: input.vendor_id,\n  status: 'queued',\n  tool: input.tool,\n  marketplace: input.marketplace,\n  total_products: input.product_count,\n  processed_products: 0,\n  error_count: 0,\n  input_data: JSON.stringify({\n    products: input.products,\n    config: input.config,\n    tool: input.tool,\n    marketplace: input.marketplace\n  }),\n  result_data: null,\n  created_at: now,\n  updated_at: now,\n  started_at: null,\n  completed_at: null\n};\n\nreturn [{ json: { job, vendor_id: input.vendor_id, product_count: input.product_count, tool: input.tool } }];"
+      },
+      "id": "prepare-job",
+      "name": "Prepare Job Record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 450]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/processing_jobs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.job) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "insert-job",
+      "name": "Insert Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1150, 450],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json;\nconst prevData = $('Prepare Job Record').first().json;\n\n// Supabase returns array with the inserted record\nconst record = Array.isArray(response) ? response[0] : response;\nconst job_id = record?.id;\n\nif (!job_id) {\n  return [{ json: {\n    success: false,\n    error: 'job_creation_failed',\n    message: 'Failed to create processing job in database',\n    details: JSON.stringify(response).substring(0, 500)\n  } }];\n}\n\nreturn [{ json: {\n  success: true,\n  job_id,\n  status: 'queued',\n  tool: prevData.tool,\n  product_count: prevData.product_count,\n  message: `Job queued: ${prevData.product_count} products will be processed with ${prevData.tool}`\n} }];"
+      },
+      "id": "build-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.success ? 201 : 500 }}"
+        }
+      },
+      "id": "respond-final",
+      "name": "Respond Final",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1700, 450]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Verify Token", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Verify Token": {
+      "main": [
+        [
+          { "node": "Validation Error?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Validation Error?": {
+      "main": [
+        [
+          { "node": "Respond Error", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Prepare Job Record", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare Job Record": {
+      "main": [
+        [
+          { "node": "Insert Job", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Insert Job": {
+      "main": [
+        [
+          { "node": "Build Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          { "node": "Respond Final", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "katalync", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" },
+    { "name": "jobs", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" }
+  ],
+  "triggerCount": 1,
+  "active": false
+}

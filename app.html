@@ -1980,10 +1980,9 @@
     </div>
 
     <!-- ==================== SYNC DASHBOARD ==================== -->
-    <div x-show="page === 'sync' && currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'marketplace_admin')" x-transition>
+    <div x-show="page === 'sync' && currentUser && (currentUser.role === 'super_admin' || currentUser.role === 'admin' || currentUser.role === 'marketplace_admin')" x-transition x-effect="if(page === 'sync' && !syncLoading && syncVendors.length === 0) { loadSyncVendors(); loadSyncLogs(); }">
       <div class="flex items-center gap-3 mb-1">
         <h2 class="text-xl font-bold text-gray-900" x-text="t('sync_title')"></h2>
-        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-100 text-cyan-700 tracking-wider" x-text="t('sync_demo_badge')"></span>
       </div>
       <p class="text-sm text-gray-500 mb-6" x-text="t('sync_sub')"></p>
 
@@ -1991,10 +1990,10 @@
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div class="bg-white border border-gray-200 rounded-xl p-4">
           <div class="text-xs text-gray-500 mb-1" x-text="t('sync_vendors')"></div>
-          <div class="text-2xl font-bold text-gray-900" x-text="syncDemoVendors.length"></div>
+          <div class="text-2xl font-bold text-gray-900" x-text="syncVendors.length"></div>
           <div class="flex items-center gap-1 mt-1">
             <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span class="text-xs text-emerald-600" x-text="syncDemoVendors.filter(v => v.status === 'active').length + ' ' + t('sync_active').toLowerCase()"></span>
+            <span class="text-xs text-emerald-600" x-text="syncVendors.filter(v => v.sync_status === 'active').length + ' ' + t('sync_active').toLowerCase()"></span>
           </div>
         </div>
         <div class="bg-white border border-gray-200 rounded-xl p-4">
@@ -2018,12 +2017,33 @@
       <div class="bg-white border border-gray-200 rounded-xl overflow-hidden mb-6">
         <div class="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
           <h3 class="font-semibold text-sm text-gray-700" x-text="t('sync_vendors')"></h3>
-          <button @click="showToast(t('sync_connect_crm_desc'), 'info')" class="text-xs text-cyan-600 hover:text-cyan-700 flex items-center gap-1">
-            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            <span x-text="t('sync_connect_crm')"></span>
-          </button>
+          <div class="flex items-center gap-2">
+            <button @click="loadSyncVendors(); loadSyncLogs()" class="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" :class="syncLoading ? 'animate-spin' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span x-text="t('refresh')"></span>
+            </button>
+            <button @click="openVendorModal()" class="text-xs text-cyan-600 hover:text-cyan-700 flex items-center gap-1">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span x-text="t('vendor_add')"></span>
+            </button>
+          </div>
         </div>
-        <div class="overflow-x-auto">
+
+        <!-- Loading state -->
+        <div x-show="syncLoading" class="px-5 py-8 text-center">
+          <div class="inline-block w-6 h-6 border-2 border-cyan-200 border-t-cyan-600 rounded-full animate-spin"></div>
+        </div>
+
+        <!-- Empty state -->
+        <div x-show="!syncLoading && syncVendors.length === 0" class="px-5 py-10 text-center">
+          <div class="text-3xl mb-2">📦</div>
+          <div class="text-sm font-medium text-gray-600" x-text="t('vendor_no_vendors')"></div>
+          <div class="text-xs text-gray-400 mt-1" x-text="t('vendor_no_vendors_hint')"></div>
+          <button @click="openVendorModal()" class="mt-4 px-4 py-2 rounded-lg text-xs font-medium text-white bg-cyan-600 hover:bg-cyan-700 transition-all" x-text="t('vendor_add')"></button>
+        </div>
+
+        <!-- Vendors list -->
+        <div x-show="!syncLoading && syncVendors.length > 0" class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-left text-xs text-gray-500 border-b border-gray-100">
@@ -2037,29 +2057,40 @@
               </tr>
             </thead>
             <tbody>
-              <template x-for="v in syncDemoVendors" :key="v.id">
+              <template x-for="v in syncVendors" :key="v.id">
                 <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                   <td class="px-5 py-3">
                     <div class="font-medium text-gray-900" x-text="v.name"></div>
                     <div class="text-xs text-gray-400" x-text="v.company"></div>
                   </td>
                   <td class="px-4 py-3">
-                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium" :class="v.source === 'Shopify' ? 'bg-green-50 text-green-700' : v.source === 'PrestaShop' ? 'bg-blue-50 text-blue-700' : 'bg-gray-100 text-gray-600'" x-text="v.source"></span>
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium" :class="getSourceColor(v.source)">
+                      <span x-text="getSourceIcon(v.source)"></span>
+                      <span x-text="getSourceLabel(v.source)"></span>
+                    </span>
                   </td>
                   <td class="px-4 py-3 text-right">
-                    <div class="font-medium" x-text="v.synced.toLocaleString()"></div>
-                    <div class="text-xs text-red-400" x-show="v.errors > 0" x-text="v.errors + ' ' + t('sync_errors').toLowerCase()"></div>
+                    <div class="font-medium" x-text="(v.last_sync_products_synced || 0).toLocaleString()"></div>
+                    <div class="text-xs text-gray-400" x-text="'/ ' + (v.product_count || 0).toLocaleString()"></div>
                   </td>
-                  <td class="px-4 py-3 text-gray-500 text-xs" x-text="syncTimeAgo(v.lastSync) + ' ' + t('sync_ago')"></td>
-                  <td class="px-4 py-3 text-gray-500 text-xs" x-text="v.interval + 'h'"></td>
+                  <td class="px-4 py-3 text-gray-500 text-xs" x-text="v.last_sync_at ? syncTimeAgo(new Date(v.last_sync_at).getTime()) + ' ' + t('sync_ago') : '-'"></td>
+                  <td class="px-4 py-3 text-gray-500 text-xs" x-text="(v.sync_interval_hours || 4) + 'h'"></td>
                   <td class="px-4 py-3">
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" :class="v.status === 'active' ? 'bg-emerald-50 text-emerald-700' : v.status === 'error' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-500'">
-                      <span class="w-1.5 h-1.5 rounded-full" :class="v.status === 'active' ? 'bg-emerald-500' : v.status === 'error' ? 'bg-red-500' : 'bg-gray-400'"></span>
-                      <span x-text="v.status === 'active' ? t('sync_active') : v.status === 'error' ? t('sync_error') : t('sync_paused')"></span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" :class="v.sync_status === 'active' ? 'bg-emerald-50 text-emerald-700' : v.sync_status === 'error' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-500'">
+                      <span class="w-1.5 h-1.5 rounded-full" :class="v.sync_status === 'active' ? 'bg-emerald-500' : v.sync_status === 'error' ? 'bg-red-500' : 'bg-gray-400'"></span>
+                      <span x-text="v.sync_status === 'active' ? t('sync_active') : v.sync_status === 'error' ? t('sync_error') : t('sync_paused')"></span>
                     </span>
                   </td>
                   <td class="px-4 py-3">
-                    <button @click="simulateSync(v)" :disabled="syncSimulating" class="px-3 py-1 rounded-md text-xs font-medium transition-all" :class="syncSimulating && syncSimVendor === v.id ? 'bg-cyan-100 text-cyan-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-cyan-50 hover:text-cyan-600'" x-text="syncSimulating && syncSimVendor === v.id ? t('sync_simulating') : t('sync_now')"></button>
+                    <div class="flex items-center gap-1">
+                      <button @click="triggerSync(v)" :disabled="syncSimulating" class="px-3 py-1 rounded-md text-xs font-medium transition-all" :class="syncSimulating && syncSimVendor === v.id ? 'bg-cyan-100 text-cyan-600 animate-pulse' : 'bg-gray-100 text-gray-600 hover:bg-cyan-50 hover:text-cyan-600'" x-text="syncSimulating && syncSimVendor === v.id ? t('sync_simulating') : t('sync_now')"></button>
+                      <button @click="openVendorModal(v)" class="p-1 rounded text-gray-400 hover:text-cyan-600 hover:bg-cyan-50 transition-all" title="Edit">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                      </button>
+                      <button @click="deleteVendor(v)" class="p-1 rounded text-gray-400 hover:text-red-600 hover:bg-red-50 transition-all" title="Delete">
+                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </template>
@@ -2078,9 +2109,9 @@
           <div x-show="!syncUploadSimulating && !syncUploadDone">
               <div class="flex items-center justify-between text-xs text-gray-500 mb-3">
                 <span x-text="syncTotalSynced.toLocaleString() + ' ' + t('sync_upload_result')"></span>
-                <span x-text="syncDemoVendors.filter(v => v.status === 'active').length + ' vendedores'"></span>
+                <span x-text="syncVendors.filter(v => v.sync_status === 'active').length + ' vendedores'"></span>
               </div>
-              <button @click="simulateUpload()" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-sm font-semibold hover:from-cyan-700 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+              <button @click="uploadToSprinter()" :disabled="syncUploadSimulating" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-sm font-semibold hover:from-cyan-700 hover:to-blue-700 transition-all flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
                 <span x-text="t('sync_upload_btn')"></span>
               </button>
@@ -2099,29 +2130,22 @@
                 <svg class="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                 <span class="text-sm font-semibold text-emerald-700" x-text="t('sync_upload_done')"></span>
               </div>
-              <div class="grid grid-cols-3 gap-2 text-center">
-                <div class="bg-white rounded-lg p-2">
-                  <div class="text-lg font-bold text-gray-900" x-text="syncTotalSynced.toLocaleString()"></div>
-                  <div class="text-[10px] text-gray-500" x-text="t('sync_upload_result')"></div>
-                </div>
-                <div class="bg-white rounded-lg p-2">
-                  <div class="text-lg font-bold text-amber-600" x-text="Math.floor(Math.random() * 10 + 5)"></div>
-                  <div class="text-[10px] text-gray-500" x-text="t('sync_upload_warnings')"></div>
-                </div>
-                <div class="bg-white rounded-lg p-2">
-                  <div class="text-lg font-bold text-red-600" x-text="Math.floor(Math.random() * 5 + 2)"></div>
-                  <div class="text-[10px] text-gray-500" x-text="t('sync_upload_errors')"></div>
-                </div>
+              <div class="bg-white rounded-lg p-3 text-center">
+                <div class="text-lg font-bold text-gray-900" x-text="syncTotalSynced.toLocaleString()"></div>
+                <div class="text-[10px] text-gray-500" x-text="t('sync_upload_result')"></div>
               </div>
-              <button @click="syncUploadDone = false; syncUploadProgress = 0" class="mt-3 w-full py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-700 bg-white border border-gray-200 transition-all">Reset demo</button>
+              <button @click="syncUploadDone = false; syncUploadProgress = 0" class="mt-3 w-full py-1.5 rounded-md text-xs text-gray-500 hover:text-gray-700 bg-white border border-gray-200 transition-all" x-text="t('sync_now')"></button>
           </div>
         </div>
 
         <!-- Timeline -->
         <div class="bg-white border border-gray-200 rounded-xl p-5 max-h-[400px] overflow-y-auto">
-          <h3 class="font-semibold text-sm text-gray-700 mb-3" x-text="t('sync_timeline_title')"></h3>
-          <div class="space-y-3">
-            <template x-for="log in syncDemoLogs.slice(0, 10)" :key="log.id">
+          <h3 class="font-semibold text-sm text-gray-700 mb-3" x-text="t('sync_logs_title')"></h3>
+          <!-- Empty logs -->
+          <div x-show="syncLogs.length === 0" class="py-6 text-center text-xs text-gray-400" x-text="t('sync_no_logs')"></div>
+          <!-- Log entries -->
+          <div class="space-y-3" x-show="syncLogs.length > 0">
+            <template x-for="log in syncLogs.slice(0, 10)" :key="log.id">
               <div class="flex items-start gap-3 text-xs">
                 <div class="mt-0.5 flex-shrink-0">
                   <div class="w-6 h-6 rounded-full flex items-center justify-center" :class="log.direction === 'in' ? 'bg-blue-100' : 'bg-cyan-100'">
@@ -2131,15 +2155,15 @@
                 </div>
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2">
-                    <span class="font-medium text-gray-900" x-text="log.vendor"></span>
+                    <span class="font-medium text-gray-900" x-text="log.vendor_name || log.vendor"></span>
                     <span class="px-1.5 py-0.5 rounded text-[10px] font-medium" :class="log.direction === 'in' ? 'bg-blue-50 text-blue-600' : 'bg-cyan-50 text-cyan-600'" x-text="log.direction === 'in' ? t('sync_direction_in') : t('sync_direction_out')"></span>
-                    <span class="ml-auto text-gray-400" x-text="syncTimeAgo(log.time) + ' ' + t('sync_ago')"></span>
+                    <span class="ml-auto text-gray-400" x-text="log.created_at ? syncTimeAgo(new Date(log.created_at).getTime()) + ' ' + t('sync_ago') : ''"></span>
                   </div>
                   <div class="flex items-center gap-3 mt-1 text-gray-500">
-                    <span x-text="log.total.toLocaleString() + ' total'"></span>
-                    <span class="text-emerald-600" x-show="log.created > 0" x-text="'+' + log.created + ' ' + t('sync_created').toLowerCase()"></span>
-                    <span class="text-blue-600" x-show="log.updated > 0" x-text="'~' + log.updated + ' ' + t('sync_updated').toLowerCase()"></span>
-                    <span class="text-red-500" x-show="log.errors > 0" x-text="log.errors + ' ' + t('sync_errors').toLowerCase()"></span>
+                    <span x-text="(log.total || 0).toLocaleString() + ' total'"></span>
+                    <span class="text-emerald-600" x-show="(log.created || 0) > 0" x-text="'+' + log.created + ' ' + t('sync_created').toLowerCase()"></span>
+                    <span class="text-blue-600" x-show="(log.updated || 0) > 0" x-text="'~' + log.updated + ' ' + t('sync_updated').toLowerCase()"></span>
+                    <span class="text-red-500" x-show="(log.errors || 0) > 0" x-text="log.errors + ' ' + t('sync_errors').toLowerCase()"></span>
                     <span class="ml-auto">
                       <span class="px-1.5 py-0.5 rounded-full text-[10px] font-medium" :class="log.status === 'success' ? 'bg-emerald-50 text-emerald-600' : log.status === 'partial' ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'" x-text="log.status === 'success' ? 'OK' : log.status === 'partial' ? 'Parcial' : 'Error'"></span>
                     </span>
@@ -2155,23 +2179,105 @@
       <div class="bg-white border border-gray-200 rounded-xl p-5">
         <h3 class="font-semibold text-sm text-gray-700 mb-3" x-text="t('sync_connect_crm')"></h3>
         <p class="text-xs text-gray-500 mb-4" x-text="t('sync_connect_crm_desc')"></p>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <button @click="showToast('Shopify connector: ' + t('sync_demo_badge'), 'info')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-green-300 hover:bg-green-50/50 transition-all group">
+        <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <button @click="vendorForm.source = 'shopify'; openVendorModal()" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-green-300 hover:bg-green-50/50 transition-all group">
             <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center text-green-700 font-bold text-lg group-hover:scale-110 transition-transform">S</div>
             <span class="text-xs font-medium text-gray-600">Shopify</span>
           </button>
-          <button @click="showToast('PrestaShop connector: ' + t('sync_demo_badge'), 'info')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group">
+          <button @click="vendorForm.source = 'prestashop'; openVendorModal()" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-blue-300 hover:bg-blue-50/50 transition-all group">
             <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg group-hover:scale-110 transition-transform">P</div>
             <span class="text-xs font-medium text-gray-600">PrestaShop</span>
           </button>
-          <button @click="showToast('WooCommerce connector: ' + t('sync_demo_badge'), 'info')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-purple-300 hover:bg-purple-50/50 transition-all group">
+          <button @click="vendorForm.source = 'woocommerce'; openVendorModal()" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-purple-300 hover:bg-purple-50/50 transition-all group">
             <div class="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center text-purple-700 font-bold text-lg group-hover:scale-110 transition-transform">W</div>
             <span class="text-xs font-medium text-gray-600">WooCommerce</span>
           </button>
-          <button @click="showToast('API connector: ' + t('sync_demo_badge'), 'info')" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all group">
+          <button @click="vendorForm.source = 'api'; openVendorModal()" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all group">
             <div class="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-700 font-bold text-lg group-hover:scale-110 transition-transform">{}</div>
-            <span class="text-xs font-medium text-gray-600">API propia</span>
+            <span class="text-xs font-medium text-gray-600">API</span>
           </button>
+          <button @click="vendorForm.source = 'excel'; openVendorModal()" class="flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed border-gray-200 hover:border-amber-300 hover:bg-amber-50/50 transition-all group">
+            <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-lg group-hover:scale-110 transition-transform">X</div>
+            <span class="text-xs font-medium text-gray-600">Excel</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Vendor Modal -->
+      <div x-show="vendorModal" x-transition class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="vendorModal = false">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-bold" x-text="vendorEditing ? t('vendor_edit') : t('vendor_add')"></h3>
+            <button @click="vendorModal = false" class="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+          </div>
+
+          <div class="space-y-4">
+            <div>
+              <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_name_label')"></label>
+              <input x-model="vendorForm.name" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none" placeholder="Mi Tienda Sport">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_company_label')"></label>
+              <input x-model="vendorForm.company" type="text" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none">
+            </div>
+            <div>
+              <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_source_label')"></label>
+              <select x-model="vendorForm.source" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none">
+                <option value="shopify">Shopify</option>
+                <option value="woocommerce">WooCommerce</option>
+                <option value="prestashop">PrestaShop</option>
+                <option value="api">API propia</option>
+                <option value="excel">Excel manual</option>
+              </select>
+            </div>
+            <template x-if="vendorForm.source !== 'excel'">
+              <div class="space-y-4">
+                <div>
+                  <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_url_label')"></label>
+                  <input x-model="vendorForm.source_url" type="url" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none" placeholder="https://mitienda.myshopify.com">
+                </div>
+                <div>
+                  <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_api_key_label')"></label>
+                  <input x-model="vendorForm.source_api_key" type="password" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none">
+                </div>
+                <div x-show="vendorForm.source === 'woocommerce' || vendorForm.source === 'api'">
+                  <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_api_secret_label')"></label>
+                  <input x-model="vendorForm.source_api_secret" type="password" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:ring-2 focus:ring-cyan-200 focus:border-cyan-400 outline-none">
+                </div>
+              </div>
+            </template>
+            <div class="border-t pt-4">
+              <label class="text-xs font-medium text-gray-600 mb-1 block" x-text="t('vendor_interval_label')"></label>
+              <select x-model="vendorForm.sync_interval_hours" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+                <option value="1">1 hora</option>
+                <option value="2">2 horas</option>
+                <option value="4">4 horas</option>
+                <option value="8">8 horas</option>
+                <option value="12">12 horas</option>
+                <option value="24">24 horas</option>
+              </select>
+            </div>
+
+            <!-- Test connection button -->
+            <template x-if="vendorForm.source !== 'excel'">
+              <div>
+                <button @click="testVendorConnection()" :disabled="vendorTestResult === 'testing'" class="w-full py-2 rounded-lg text-sm font-medium transition-all" :class="vendorTestResult === 'ok' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : vendorTestResult === 'failed' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'">
+                  <span x-show="!vendorTestResult" x-text="t('vendor_test_connection')"></span>
+                  <span x-show="vendorTestResult === 'testing'" class="animate-pulse" x-text="t('vendor_testing')"></span>
+                  <span x-show="vendorTestResult === 'ok'" x-text="t('vendor_connection_ok') + ' — ' + vendorTestInfo"></span>
+                  <span x-show="vendorTestResult === 'failed'" x-text="t('vendor_connection_failed') + ': ' + vendorTestInfo"></span>
+                </button>
+              </div>
+            </template>
+          </div>
+
+          <div class="flex gap-3 mt-6">
+            <button @click="vendorModal = false" class="flex-1 py-2 rounded-lg text-sm text-gray-600 bg-gray-100 hover:bg-gray-200" x-text="t('cancel')"></button>
+            <button @click="saveVendor()" :disabled="vendorSaving" class="flex-1 py-2 rounded-lg text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50">
+              <span x-show="!vendorSaving" x-text="t('vendor_save')"></span>
+              <span x-show="vendorSaving" class="animate-pulse" x-text="t('vendor_saving')"></span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

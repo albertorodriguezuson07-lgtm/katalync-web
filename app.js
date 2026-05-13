@@ -346,6 +346,34 @@ const TRANSLATIONS = {
     sync_demo_badge: 'DEMO',
     sync_connect_crm: 'Conectar CRM',
     sync_connect_crm_desc: 'Conecta el ERP/CRM de tu vendedor para sincronización automática.',
+    vendor_add: 'Añadir vendedor',
+    vendor_edit: 'Editar vendedor',
+    vendor_name_label: 'Nombre del vendedor',
+    vendor_company_label: 'Empresa',
+    vendor_source_label: 'Fuente de datos',
+    vendor_url_label: 'URL de la tienda',
+    vendor_api_key_label: 'API Key',
+    vendor_api_secret_label: 'API Secret',
+    vendor_marketplace_key_label: 'Mirakl API Key',
+    vendor_marketplace_url_label: 'URL Marketplace',
+    vendor_interval_label: 'Intervalo de sync (horas)',
+    vendor_test_connection: 'Probar conexión',
+    vendor_testing: 'Probando...',
+    vendor_connection_ok: 'Conexión exitosa',
+    vendor_connection_failed: 'Conexión fallida',
+    vendor_save: 'Guardar vendedor',
+    vendor_saving: 'Guardando...',
+    vendor_created: 'Vendedor creado correctamente',
+    vendor_updated: 'Vendedor actualizado',
+    vendor_deleted: 'Vendedor eliminado',
+    vendor_delete_confirm: '¿Eliminar vendedor {name}? Se borrarán todos sus productos.',
+    vendor_name_required: 'El nombre del vendedor es obligatorio',
+    vendor_no_vendors: 'No hay vendedores conectados aún',
+    vendor_no_vendors_hint: 'Conecta tu primera tienda para empezar a sincronizar productos automáticamente.',
+    sync_source_unsupported: 'Tipo de fuente no soportado para sync automático',
+    sync_mirakl_not_configured: 'Mirakl API no configurada. Contacta con tu administrador.',
+    sync_logs_title: 'Historial de sincronizaciones',
+    sync_no_logs: 'Sin sincronizaciones recientes',
     comp_title: 'Estudio de Competidores',
     comp_sub: 'Análisis del marketplace de Sprinter con datos reales.',
     comp_desc: 'Analiza sellers, categorías, precios y productos del marketplace en tiempo real.',
@@ -636,6 +664,34 @@ const TRANSLATIONS = {
     sync_demo_badge: 'DEMO',
     sync_connect_crm: 'Conectar CRM',
     sync_connect_crm_desc: 'Conecte o ERP/CRM do vendedor para sincronização automática.',
+    vendor_add: 'Adicionar vendedor',
+    vendor_edit: 'Editar vendedor',
+    vendor_name_label: 'Nome do vendedor',
+    vendor_company_label: 'Empresa',
+    vendor_source_label: 'Fonte de dados',
+    vendor_url_label: 'URL da loja',
+    vendor_api_key_label: 'API Key',
+    vendor_api_secret_label: 'API Secret',
+    vendor_marketplace_key_label: 'Mirakl API Key',
+    vendor_marketplace_url_label: 'URL Marketplace',
+    vendor_interval_label: 'Intervalo de sync (horas)',
+    vendor_test_connection: 'Testar conexão',
+    vendor_testing: 'Testando...',
+    vendor_connection_ok: 'Conexão bem-sucedida',
+    vendor_connection_failed: 'Conexão falhada',
+    vendor_save: 'Guardar vendedor',
+    vendor_saving: 'Guardando...',
+    vendor_created: 'Vendedor criado com sucesso',
+    vendor_updated: 'Vendedor atualizado',
+    vendor_deleted: 'Vendedor eliminado',
+    vendor_delete_confirm: 'Eliminar vendedor {name}? Todos os produtos serão apagados.',
+    vendor_name_required: 'O nome do vendedor é obrigatório',
+    vendor_no_vendors: 'Nenhum vendedor conectado',
+    vendor_no_vendors_hint: 'Conecte a sua primeira loja para começar a sincronizar produtos automaticamente.',
+    sync_source_unsupported: 'Tipo de fonte não suportado para sync automático',
+    sync_mirakl_not_configured: 'Mirakl API não configurada. Contacte o seu administrador.',
+    sync_logs_title: 'Histórico de sincronizações',
+    sync_no_logs: 'Sem sincronizações recentes',
     comp_title: 'Estudo de Concorrentes',
     comp_sub: 'Análise do marketplace da Sprinter com dados reais.',
     comp_desc: 'Analise sellers, categorias, preços e produtos do marketplace em tempo real.',
@@ -728,22 +784,22 @@ function app() {
 
     page: 'home', showHistory: false, historyJobs: safeGetHistory(), chartMarketplace: 'all', chartMetric: 'products',
 
+    // Vendor management - real data
+    syncVendors: [],
+    syncLogs: [],
+    syncLoading: false,
     syncSimulating: false, syncSimVendor: null, syncUploadSimulating: false, syncUploadProgress: 0, syncUploadDone: false,
-    syncDemoVendors: [
-      { id: 1, name: 'JOMA Sport', company: 'Joma Sport S.A.', source: 'Shopify', products: 4232, lastSync: Date.now() - 2*3600000, nextSync: Date.now() + 2*3600000, status: 'active', interval: 4, synced: 4180, errors: 52 },
-      { id: 2, name: 'Adidas Iberia', company: 'Adidas España S.A.', source: 'PrestaShop', products: 8915, lastSync: Date.now() - 45*60000, nextSync: Date.now() + 195*60000, status: 'active', interval: 4, synced: 8870, errors: 45 },
-      { id: 3, name: 'Decimas Sport', company: 'Decimas Deportes S.L.', source: 'API propia', products: 2103, lastSync: Date.now() - 24*3600000, nextSync: null, status: 'error', interval: 12, synced: 1890, errors: 213 },
-    ],
-    syncDemoLogs: [
-      { id: 1, vendor: 'JOMA Sport', direction: 'in', total: 4232, created: 12, updated: 87, errors: 3, status: 'success', time: Date.now() - 2*3600000 },
-      { id: 2, vendor: 'JOMA Sport', direction: 'out', total: 4180, created: 12, updated: 87, errors: 0, status: 'success', time: Date.now() - 2*3600000 + 120000 },
-      { id: 3, vendor: 'Adidas Iberia', direction: 'in', total: 8915, created: 230, updated: 415, errors: 15, status: 'partial', time: Date.now() - 45*60000 },
-      { id: 4, vendor: 'Adidas Iberia', direction: 'out', total: 8870, created: 230, updated: 400, errors: 2, status: 'success', time: Date.now() - 43*60000 },
-      { id: 5, vendor: 'Decimas Sport', direction: 'in', total: 2103, created: 0, updated: 0, errors: 213, status: 'failed', time: Date.now() - 24*3600000 },
-      { id: 6, vendor: 'JOMA Sport', direction: 'in', total: 4220, created: 5, updated: 42, errors: 1, status: 'success', time: Date.now() - 6*3600000 },
-      { id: 7, vendor: 'JOMA Sport', direction: 'out', total: 4168, created: 5, updated: 42, errors: 0, status: 'success', time: Date.now() - 6*3600000 + 90000 },
-      { id: 8, vendor: 'Adidas Iberia', direction: 'in', total: 8850, created: 180, updated: 320, errors: 8, status: 'success', time: Date.now() - 4.75*3600000 },
-    ],
+
+    // Vendor form (for add/edit modal)
+    vendorModal: false,
+    vendorEditing: null,
+    vendorForm: {
+      name: '', company: '', source: 'shopify', source_url: '', source_api_key: '',
+      source_api_secret: '', marketplace_api_key: '', marketplace_url: '', sync_interval_hours: 4
+    },
+    vendorTestResult: null,
+    vendorTestInfo: '',
+    vendorSaving: false,
 
     compSearch: '', compFilterSeller: '', compFilterCat: '', compTab: 'overview',
     compData: {
@@ -1084,10 +1140,14 @@ function app() {
       return { label: this.t('role_user'), class: 'bg-gray-100 text-gray-500' };
     },
 
-    get syncTotalProducts() { return this.syncDemoVendors.reduce((s, v) => s + v.products, 0); },
-    get syncTotalSynced() { return this.syncDemoVendors.reduce((s, v) => s + v.synced, 0); },
+    get syncTotalProducts() { return this.syncVendors.reduce((s, v) => s + (v.product_count || 0), 0); },
+    get syncTotalSynced() { return this.syncVendors.reduce((s, v) => s + (v.last_sync_products_synced || 0), 0); },
     get syncSuccessRate() { const t = this.syncTotalProducts; return t ? ((this.syncTotalSynced / t) * 100).toFixed(1) : '0'; },
-    get syncLastTime() { const ts = Math.max(...this.syncDemoVendors.map(v => v.lastSync)); return this.syncTimeAgo(ts); },
+    get syncLastTime() {
+      const times = this.syncVendors.filter(v => v.last_sync_at).map(v => new Date(v.last_sync_at).getTime());
+      if (!times.length) return '-';
+      return this.syncTimeAgo(Math.max(...times));
+    },
 
     syncTimeAgo(ts) {
       const diff = Date.now() - ts;
@@ -1098,34 +1158,194 @@ function app() {
       return Math.floor(hrs / 24) + 'd';
     },
 
-    async simulateSync(vendor) {
-      this.syncSimulating = true;
-      this.syncSimVendor = vendor.id;
-      await new Promise(r => setTimeout(r, 2500));
-      vendor.lastSync = Date.now();
-      vendor.nextSync = Date.now() + vendor.interval * 3600000;
-      if (vendor.status === 'error') { vendor.status = 'active'; vendor.errors = Math.floor(vendor.errors * 0.3); vendor.synced = vendor.products - vendor.errors; }
-      const newCreated = Math.floor(Math.random() * 20) + 1;
-      const newUpdated = Math.floor(Math.random() * 50) + 5;
-      this.syncDemoLogs.unshift({ id: Date.now(), vendor: vendor.name, direction: 'in', total: vendor.products, created: newCreated, updated: newUpdated, errors: Math.floor(Math.random() * 3), status: 'success', time: Date.now() });
-      this.syncSimulating = false;
-      this.syncSimVendor = null;
-      this.showToast(vendor.name + ': sync ' + this.t('sync_upload_done').toLowerCase(), 'success');
+    async loadSyncVendors() {
+      this.syncLoading = true;
+      try {
+        const resp = await fetch(N8N_BASE + '/webhook/vendor-list', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: this.authToken })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          this.syncVendors = data.vendors || [];
+        }
+      } catch(e) { console.error('loadSyncVendors error:', e); }
+      this.syncLoading = false;
     },
 
-    async simulateUpload() {
+    async loadSyncLogs() {
+      try {
+        const resp = await fetch(N8N_BASE + '/webhook/sync-logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: this.authToken, limit: 20 })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          this.syncLogs = data.logs || [];
+        }
+      } catch(e) { console.error('loadSyncLogs error:', e); }
+    },
+
+    openVendorModal(vendor = null) {
+      this.vendorEditing = vendor;
+      this.vendorTestResult = null;
+      this.vendorTestInfo = '';
+      if (vendor) {
+        this.vendorForm = {
+          name: vendor.name || '', company: vendor.company || '', source: vendor.source || 'shopify',
+          source_url: vendor.source_url || '',
+          source_api_key: vendor.source_api_key ? '••••••' : '',
+          source_api_secret: vendor.source_api_secret ? '••••••' : '',
+          marketplace_api_key: vendor.marketplace_api_key ? '••••••' : '',
+          marketplace_url: vendor.marketplace_url || '',
+          sync_interval_hours: vendor.sync_interval_hours || 4
+        };
+      } else {
+        this.vendorForm = { name: '', company: '', source: 'shopify', source_url: '', source_api_key: '', source_api_secret: '', marketplace_api_key: '', marketplace_url: '', sync_interval_hours: 4 };
+      }
+      this.vendorModal = true;
+    },
+
+    async testVendorConnection() {
+      this.vendorTestResult = 'testing';
+      this.vendorTestInfo = '';
+      try {
+        const payload = this.vendorEditing
+          ? { token: this.authToken, vendor_id: this.vendorEditing.id }
+          : { token: this.authToken, source: this.vendorForm.source, source_url: this.vendorForm.source_url, source_api_key: this.vendorForm.source_api_key, source_api_secret: this.vendorForm.source_api_secret };
+        const resp = await fetch(N8N_BASE + '/webhook/vendor-test-connection', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await resp.json();
+        if (data.success && data.connection === 'ok') {
+          this.vendorTestResult = 'ok';
+          this.vendorTestInfo = (data.shop_name ? data.shop_name + ' — ' : '') + (data.product_count || 0) + ' productos';
+        } else {
+          this.vendorTestResult = 'failed';
+          this.vendorTestInfo = data.error || 'Connection failed';
+        }
+      } catch(e) {
+        this.vendorTestResult = 'failed';
+        this.vendorTestInfo = e.message;
+      }
+    },
+
+    async saveVendor() {
+      if (!this.vendorForm.name) { this.showToast(this.t('vendor_name_required'), 'error'); return; }
+      this.vendorSaving = true;
+      try {
+        const endpoint = this.vendorEditing ? '/webhook/vendor-update' : '/webhook/vendor-create';
+        const body = { token: this.authToken, ...this.vendorForm };
+        if (this.vendorEditing) body.vendor_id = this.vendorEditing.id;
+        if (body.source_api_key === '••••••') delete body.source_api_key;
+        if (body.source_api_secret === '••••••') delete body.source_api_secret;
+        if (body.marketplace_api_key === '••••••') delete body.marketplace_api_key;
+        const resp = await fetch(N8N_BASE + endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await resp.json();
+        if (data.success) {
+          this.vendorModal = false;
+          this.showToast(this.vendorEditing ? this.t('vendor_updated') : this.t('vendor_created'), 'success');
+          await this.loadSyncVendors();
+        } else {
+          this.showToast(data.error || 'Error', 'error');
+        }
+      } catch(e) { this.showToast(e.message, 'error'); }
+      this.vendorSaving = false;
+    },
+
+    async deleteVendor(vendor) {
+      if (!confirm(this.t('vendor_delete_confirm').replace('{name}', vendor.name))) return;
+      try {
+        const resp = await fetch(N8N_BASE + '/webhook/vendor-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: this.authToken, vendor_id: vendor.id })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          this.showToast(this.t('vendor_deleted'), 'success');
+          await this.loadSyncVendors();
+        }
+      } catch(e) { this.showToast(e.message, 'error'); }
+    },
+
+    async triggerSync(vendor) {
+      this.syncSimulating = true;
+      this.syncSimVendor = vendor.id;
+      try {
+        const endpoint = vendor.source === 'shopify' ? '/webhook/shopify-sync-pull'
+          : vendor.source === 'woocommerce' ? '/webhook/woocommerce-sync-pull'
+          : vendor.source === 'prestashop' ? '/webhook/prestashop-sync-pull'
+          : null;
+        if (!endpoint) {
+          this.showToast(this.t('sync_source_unsupported'), 'info');
+          this.syncSimulating = false;
+          this.syncSimVendor = null;
+          return;
+        }
+        const resp = await fetch(N8N_BASE + endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: this.authToken, vendor_id: vendor.id })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          this.showToast(vendor.name + ': ' + data.total + ' productos sincronizados', 'success');
+          await this.loadSyncVendors();
+          await this.loadSyncLogs();
+        } else {
+          this.showToast(vendor.name + ': ' + (data.error || 'Error'), 'error');
+        }
+      } catch(e) { this.showToast(e.message, 'error'); }
+      this.syncSimulating = false;
+      this.syncSimVendor = null;
+    },
+
+    async uploadToSprinter() {
       this.syncUploadSimulating = true;
       this.syncUploadProgress = 0;
       this.syncUploadDone = false;
-      const total = this.syncTotalSynced;
-      const steps = 20;
-      for (let i = 1; i <= steps; i++) {
-        await new Promise(r => setTimeout(r, 200));
-        this.syncUploadProgress = Math.round((i / steps) * 100);
-      }
-      this.syncUploadDone = true;
+      try {
+        const resp = await fetch(N8N_BASE + '/webhook/mirakl-upload-products', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: this.authToken })
+        });
+        const data = await resp.json();
+        if (data.success) {
+          this.syncUploadProgress = 100;
+          this.syncUploadDone = true;
+          this.showToast(this.t('sync_upload_done'), 'success');
+        } else if (data.error === 'mirakl_not_configured') {
+          this.showToast(this.t('sync_mirakl_not_configured'), 'info');
+        } else {
+          this.showToast(data.error || 'Error', 'error');
+        }
+      } catch(e) { this.showToast(e.message, 'error'); }
       this.syncUploadSimulating = false;
-      this.syncDemoLogs.unshift({ id: Date.now(), vendor: 'Todos', direction: 'out', total: total, created: Math.floor(total * 0.02), updated: Math.floor(total * 0.06), errors: Math.floor(Math.random() * 15) + 3, status: 'success', time: Date.now() });
+    },
+
+    getSourceIcon(source) {
+      const icons = { shopify: 'S', woocommerce: 'W', prestashop: 'P', api: '{}', excel: 'X' };
+      return icons[source] || '?';
+    },
+
+    getSourceLabel(source) {
+      const labels = { shopify: 'Shopify', woocommerce: 'WooCommerce', prestashop: 'PrestaShop', api: 'API', excel: 'Excel' };
+      return labels[source] || source;
+    },
+
+    getSourceColor(source) {
+      const colors = { shopify: 'bg-green-50 text-green-700', woocommerce: 'bg-purple-50 text-purple-700', prestashop: 'bg-blue-50 text-blue-700', api: 'bg-gray-100 text-gray-600', excel: 'bg-amber-50 text-amber-700' };
+      return colors[source] || 'bg-gray-100 text-gray-600';
     },
 
     get subscriptionActive() {

@@ -52,6 +52,7 @@ const shipmentOrigin = input.shipmentOrigin || 'ES';
 const vatPct = input.vatPct || 'ES-21%,PT-23%';
 const offerState = input.offerState || 'Nuevo';
 const outputFormat = input.outputFormat || '';
+const vendorId = input.vendor_id || null;
 const isPT = marketplace === 'sportzone_pt';
 
 const INPUT_MAP = {
@@ -1015,6 +1016,11 @@ const catTranslations = {
   'responsable': 'responsável', 'Responsable': 'Responsável',
   'utilización': 'utilização', 'Utilización': 'Utilização', 'utilizacion': 'utilização'
 };
+const DEEPL_API_KEY = $env.DEEPL_API_KEY || '';
+const SUPABASE_URL = 'https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1';
+const SUPABASE_KEY = $env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q';
+const deeplCache = {};
+
 function toPT(text) {
   if (!text || !isPT) return text;
   let result = text;
@@ -1033,7 +1039,58 @@ function toPT(text) {
       });
     }
   }
+  if (result === text && text.length > 3) {
+    if (deeplCache[text]) return deeplCache[text];
+  }
   return result;
+}
+
+async function batchTranslateDeepL(texts) {
+  if (!DEEPL_API_KEY || texts.length === 0) return {};
+  const unique = [...new Set(texts)].filter(t => t && t.length > 3);
+  if (unique.length === 0) return {};
+  const cached = {};
+  try {
+    const encoded = unique.map(t => encodeURIComponent(t)).join(',');
+    const cacheResp = await fetch(SUPABASE_URL + '/translation_cache?source_lang=eq.ES&target_lang=eq.PT&source_text=in.(' + encoded + ')&select=source_text,translated_text', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+    });
+    if (cacheResp.ok) {
+      const cacheData = await cacheResp.json();
+      for (const row of cacheData) { cached[row.source_text] = row.translated_text; deeplCache[row.source_text] = row.translated_text; }
+    }
+  } catch(e) {}
+  const toTranslate = unique.filter(t => !cached[t]);
+  if (toTranslate.length === 0) return cached;
+  const batches = [];
+  for (let i = 0; i < toTranslate.length; i += 50) batches.push(toTranslate.slice(i, i + 50));
+  for (const batch of batches) {
+    try {
+      const resp = await fetch('https://api-free.deepl.com/v2/translate', {
+        method: 'POST',
+        headers: { 'Authorization': 'DeepL-Auth-Key ' + DEEPL_API_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: batch, source_lang: 'ES', target_lang: 'PT' })
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        const inserts = [];
+        for (let j = 0; j < batch.length; j++) {
+          const translated = data.translations[j]?.text || batch[j];
+          cached[batch[j]] = translated;
+          deeplCache[batch[j]] = translated;
+          inserts.push({ source_text: batch[j], source_lang: 'ES', target_lang: 'PT', translated_text: translated, provider: 'deepl' });
+        }
+        if (inserts.length > 0) {
+          fetch(SUPABASE_URL + '/translation_cache', {
+            method: 'POST',
+            headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json', 'Prefer': 'resolution=merge-duplicates' },
+            body: JSON.stringify(inserts)
+          }).catch(() => {});
+        }
+      }
+    } catch(e) {}
+  }
+  return cached;
 }
 
 const [rw, rh] = ratio.split(':').map(Number);
@@ -1136,6 +1193,22 @@ const REMBG_HOST = 'image-tools-rembg.reyl9a.easypanel.host';
 const results = [];
 const errors = [];
 let aiCallCount = 0;
+
+if (isPT && DEEPL_API_KEY) {
+  const sampleTexts = [];
+  for (const p of products.slice(0, 20)) {
+    const m = mapInputRow(p);
+    const name = m['nombre-del-articulo'] || '';
+    const cat = m['categorias'] || '';
+    const desc = m['descripion-del-producto'] || '';
+    if (name) sampleTexts.push(name);
+    if (cat) sampleTexts.push(cat);
+    if (desc && desc.length < 200) sampleTexts.push(desc);
+  }
+  const untranslated = sampleTexts.filter(t => { const r = toPT(t); return r === t && t.length > 3; });
+  if (untranslated.length > 0) await batchTranslateDeepL(untranslated);
+}
+
 for (const p of products) {
   try {
     const m = mapInputRow(p);
@@ -1362,6 +1435,69 @@ for (const p of products) {
     results.push({ json: { sku: p.sku || p.SKU || '?', ean: '', title: '', description: '', material: '', gsr: '', original_image_url: '', converted_image_url: '', price: '', brand: '', category: '', gender: '', color: '', marketplace } });
   }
 }
+if (isPT && DEEPL_API_KEY) {
+  const untranslatedTexts = [];
+  for (const r of results) {
+    const d = r.json;
+    if (!d.sku || d._empty) continue;
+    for (const field of ['title', 'description', 'category', 'gender', 'color']) {
+      const val = d[field];
+      if (val && val.length > 3 && toPT(val) === val && !deeplCache[val]) untranslatedTexts.push(val);
+    }
+  }
+  if (untranslatedTexts.length > 0) {
+    const translations = await batchTranslateDeepL(untranslatedTexts);
+    for (const r of results) {
+      const d = r.json;
+      if (!d.sku || d._empty) continue;
+      for (const field of ['category', 'gender', 'color']) {
+        if (d[field] && translations[d[field]]) d[field] = translations[d[field]];
+      }
+      if (d.sprinterProduct) {
+        if (translations[d.category]) d.sprinterProduct['categorias'] = translations[d.category] || d.sprinterProduct['categorias'];
+        if (translations[d.gender]) d.sprinterProduct['genero'] = translations[d.gender] || d.sprinterProduct['genero'];
+      }
+    }
+  }
+}
+
+// Lock-in: save processed products to Supabase for data accumulation
+try {
+  const validResults = results.filter(r => r.json.sku && !r.json._empty && r.json.ean);
+  if (validResults.length > 0 && vendorId) {
+    const upsertRows = validResults.map(r => ({
+      vendor_id: vendorId,
+      sku: r.json.sku,
+      ean: r.json.ean || null,
+      name: r.json.title || null,
+      brand: r.json.brand || null,
+      category: r.json.category || null,
+      price: r.json.price ? parseFloat(r.json.price) || null : null,
+      image_url: r.json.original_image_url || null,
+      converted_image_url: r.json.converted_image_url || null,
+      raw_data: {},
+      sprinter_product: r.json.sprinterProduct || null,
+      sprinter_offer: r.json.sprinterOffer || null,
+      sync_status: 'converted',
+      last_synced_at: new Date().toISOString()
+    }));
+    const batchSize = 100;
+    for (let i = 0; i < upsertRows.length; i += batchSize) {
+      const batch = upsertRows.slice(i, i + batchSize);
+      fetch(SUPABASE_URL + '/vendor_products', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json',
+          'Prefer': 'resolution=merge-duplicates'
+        },
+        body: JSON.stringify(batch)
+      }).catch(() => {});
+    }
+  }
+} catch(e) {}
+
 if (results.length === 0) results.push({ json: { _empty: true } });
 results[results.length - 1].json._errors = errors;
 results[results.length - 1].json._totalInput = products.length;

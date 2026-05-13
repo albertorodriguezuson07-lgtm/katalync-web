@@ -1,0 +1,172 @@
+{
+  "name": "Katalync - Catalog Job Status",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "catalog-job-status",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-catalog-job-status",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "catalog-job-status"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst { token, job_id } = input.body || input;\n\n// Validate required fields\nif (!token) {\n  return [{ json: { error: true, code: 'MISSING_TOKEN', message: 'Token is required' } }];\n}\nif (!job_id) {\n  return [{ json: { error: true, code: 'MISSING_JOB_ID', message: 'job_id is required' } }];\n}\n\n// Validate job_id format (UUID or numeric)\nconst uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;\nconst numericRegex = /^\\d+$/;\nif (!uuidRegex.test(job_id) && !numericRegex.test(job_id)) {\n  return [{ json: { error: true, code: 'INVALID_JOB_ID', message: 'job_id must be a valid UUID or numeric ID' } }];\n}\n\n// Decode JWT\ntry {\n  const parts = token.split('.');\n  if (parts.length !== 3) throw new Error('Invalid token format');\n  const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());\n  \n  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {\n    return [{ json: { error: true, code: 'TOKEN_EXPIRED', message: 'Token has expired' } }];\n  }\n  \n  const vendor_id = payload.sub || payload.vendor_id || payload.user_id;\n  if (!vendor_id) {\n    return [{ json: { error: true, code: 'INVALID_TOKEN', message: 'Token missing subject' } }];\n  }\n  \n  return [{ json: {\n    error: false,\n    vendor_id,\n    job_id\n  } }];\n} catch (e) {\n  return [{ json: { error: true, code: 'AUTH_FAILED', message: 'Token verification failed: ' + e.message } }];\n}"
+      },
+      "id": "verify-token",
+      "name": "Verify Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-error",
+      "name": "Validation Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [550, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.code, message: $json.message }) }}",
+        "options": {
+          "responseCode": "={{ ['MISSING_TOKEN','TOKEN_EXPIRED','INVALID_TOKEN','AUTH_FAILED'].includes($json.code) ? 401 : 400 }}"
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [850, 150]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/processing_jobs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        },
+        "queryParameters": {
+          "parameters": [
+            { "name": "id", "value": "=eq.{{ $json.job_id }}" },
+            { "name": "vendor_id", "value": "=eq.{{ $json.vendor_id }}" },
+            { "name": "select", "value": "id,vendor_id,status,tool,marketplace,total_products,processed_products,error_count,result_data,created_at,started_at,completed_at,updated_at" }
+          ]
+        }
+      },
+      "id": "query-job",
+      "name": "Query Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 450],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json;\nconst authData = $('Verify Token').first().json;\n\n// Supabase returns an array\nconst jobs = Array.isArray(response) ? response : [response];\n\nif (!jobs || jobs.length === 0 || !jobs[0]?.id) {\n  return [{ json: {\n    success: false,\n    error: 'job_not_found',\n    message: `Job ${authData.job_id} not found or access denied`\n  } }];\n}\n\nconst job = jobs[0];\n\n// Parse result_data if it's a string\nlet result_data = job.result_data;\nif (typeof result_data === 'string') {\n  try {\n    result_data = JSON.parse(result_data);\n  } catch (e) {\n    result_data = null;\n  }\n}\n\n// Calculate progress percentage\nconst progress = job.total_products > 0 \n  ? Math.round((job.processed_products / job.total_products) * 100) \n  : 0;\n\n// Calculate elapsed time\nlet elapsed_seconds = null;\nif (job.started_at) {\n  const start = new Date(job.started_at).getTime();\n  const end = job.completed_at ? new Date(job.completed_at).getTime() : Date.now();\n  elapsed_seconds = Math.round((end - start) / 1000);\n}\n\nreturn [{ json: {\n  success: true,\n  job_id: job.id,\n  status: job.status,\n  tool: job.tool,\n  marketplace: job.marketplace,\n  total_products: job.total_products,\n  processed_products: job.processed_products,\n  error_count: job.error_count,\n  progress,\n  result_data,\n  created_at: job.created_at,\n  started_at: job.started_at,\n  completed_at: job.completed_at,\n  elapsed_seconds,\n  is_complete: ['completed', 'failed', 'cancelled'].includes(job.status)\n} }];"
+      },
+      "id": "build-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1150, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.success ? 200 : ($json.error === 'job_not_found' ? 404 : 500) }}"
+        }
+      },
+      "id": "respond-final",
+      "name": "Respond Final",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1450, 450]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Verify Token", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Verify Token": {
+      "main": [
+        [
+          { "node": "Validation Error?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Validation Error?": {
+      "main": [
+        [
+          { "node": "Respond Error", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Query Job", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Query Job": {
+      "main": [
+        [
+          { "node": "Build Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          { "node": "Respond Final", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "katalync", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" },
+    { "name": "jobs", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" }
+  ],
+  "triggerCount": 1,
+  "active": false
+}

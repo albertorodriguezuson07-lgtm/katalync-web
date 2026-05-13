@@ -1,0 +1,261 @@
+{
+  "name": "Katalync - Vendor List",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vendor-list",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "vendor-list"
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000002",
+      "name": "Verify Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300],
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst { body } = input;\n\nif (!body || !body.token) {\n  return [{ json: { error: 'Token is required', statusCode: 401 } }];\n}\n\ntry {\n  const parts = body.token.split('.');\n  if (parts.length !== 3) {\n    return [{ json: { error: 'Invalid token format', statusCode: 401 } }];\n  }\n  \n  // Base64url decode the payload\n  let payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');\n  while (payload.length % 4) payload += '=';\n  const decoded = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));\n  \n  if (!decoded.user_id) {\n    return [{ json: { error: 'Invalid token: missing user_id', statusCode: 401 } }];\n  }\n  \n  // Check expiration\n  if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {\n    return [{ json: { error: 'Token expired', statusCode: 401 } }];\n  }\n  \n  return [{ json: { user_id: decoded.user_id, email: decoded.email || null, valid: true } }];\n} catch (e) {\n  return [{ json: { error: 'Token decode failed: ' + e.message, statusCode: 401 } }];\n}"
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000003",
+      "name": "Check Token Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-token-valid",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000004",
+      "name": "Auth Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 460],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.error }) }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode || 401 }}"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000005",
+      "name": "Get Vendors",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 160],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/vendors?user_id=eq.{{ $json.user_id }}&order=created_at.desc",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000006",
+      "name": "Get Product Counts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 160],
+      "parameters": {
+        "jsCode": "const vendors = $input.first().json;\nconst vendorList = Array.isArray(vendors) ? vendors : [vendors];\n\n// Store vendors for the next HTTP call\n// We'll build vendor IDs to query product counts\nconst vendorIds = vendorList.map(v => v.id).filter(Boolean);\n\nreturn [{ json: { vendors: vendorList, vendorIds } }];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000007",
+      "name": "Get Product Counts HTTP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 160],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/vendor_products?select=vendor_id,id&vendor_id=in.({{ $json.vendorIds.join(',') }})",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000008",
+      "name": "Merge Vendors with Counts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 160],
+      "parameters": {
+        "jsCode": "const products = $input.first().json;\nconst productList = Array.isArray(products) ? products : (products.id ? [products] : []);\n\n// Get vendors from previous Code node via $('node_name')\nconst vendorData = $('Get Product Counts').first().json;\nconst vendors = vendorData.vendors || [];\n\n// Count products per vendor\nconst counts = {};\nfor (const p of productList) {\n  if (p.vendor_id) {\n    counts[p.vendor_id] = (counts[p.vendor_id] || 0) + 1;\n  }\n}\n\n// Merge counts into vendors\nconst enrichedVendors = vendors.map(v => ({\n  ...v,\n  product_count_actual: counts[v.id] || 0\n}));\n\nreturn [{ json: { success: true, vendors: enrichedVendors, total: enrichedVendors.length } }];"
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000009",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1780, 160],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify Token": {
+      "main": [
+        [
+          {
+            "node": "Check Token Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Token Valid": {
+      "main": [
+        [
+          {
+            "node": "Get Vendors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Auth Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Vendors": {
+      "main": [
+        [
+          {
+            "node": "Get Product Counts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Product Counts": {
+      "main": [
+        [
+          {
+            "node": "Get Product Counts HTTP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Product Counts HTTP": {
+      "main": [
+        [
+          {
+            "node": "Merge Vendors with Counts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Vendors with Counts": {
+      "main": [
+        [
+          {
+            "node": "Success Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {}
+}

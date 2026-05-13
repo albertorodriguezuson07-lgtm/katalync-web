@@ -1,0 +1,342 @@
+{
+  "name": "Katalync - Mirakl Upload Products",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mirakl-upload-products",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-mirakl-upload-products",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "mirakl-upload-products"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst { token, products, marketplace_url, api_key } = input.body || input;\n\n// Validate required fields\nif (!token) {\n  return [{ json: { error: true, code: 'MISSING_TOKEN', message: 'Token is required' } }];\n}\nif (!products || !Array.isArray(products) || products.length === 0) {\n  return [{ json: { error: true, code: 'INVALID_PRODUCTS', message: 'Products array is required and must not be empty' } }];\n}\nif (products.length > 5000) {\n  return [{ json: { error: true, code: 'TOO_MANY_PRODUCTS', message: 'Maximum 5000 products per upload' } }];\n}\n\n// Decode JWT (HS256) to extract vendor_id\ntry {\n  const parts = token.split('.');\n  if (parts.length !== 3) throw new Error('Invalid token format');\n  const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());\n  \n  // Check expiry\n  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {\n    return [{ json: { error: true, code: 'TOKEN_EXPIRED', message: 'Token has expired' } }];\n  }\n  \n  const vendor_id = payload.sub || payload.vendor_id || payload.user_id;\n  if (!vendor_id) {\n    return [{ json: { error: true, code: 'INVALID_TOKEN', message: 'Token missing subject' } }];\n  }\n  \n  return [{ json: {\n    error: false,\n    vendor_id,\n    products,\n    marketplace_url: marketplace_url || null,\n    api_key: api_key || null,\n    token\n  } }];\n} catch (e) {\n  return [{ json: { error: true, code: 'AUTH_FAILED', message: 'Token verification failed: ' + e.message } }];\n}"
+      },
+      "id": "verify-token",
+      "name": "Verify Token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-auth-error",
+      "name": "Auth Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [550, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.code, message: $json.message }) }}",
+        "options": {
+          "responseCode": 401
+        }
+      },
+      "id": "respond-auth-error",
+      "name": "Respond Auth Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [850, 150]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-mirakl-configured",
+              "leftValue": "={{ $json.marketplace_url }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "exists", "singleValue": true }
+            },
+            {
+              "id": "check-api-key",
+              "leftValue": "={{ $json.api_key }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "exists", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-mirakl-configured",
+      "name": "Mirakl Configured?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [850, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: 'mirakl_not_configured', message: 'Mirakl marketplace URL and API key are required. Configure them in Settings.' }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-not-configured",
+      "name": "Respond Not Configured",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1150, 600]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst products = input.products;\n\n// Convert products to Mirakl Product Import format (CSV)\n// Mirakl expects: category;identifier;shop-sku;product-title;product-description;...attributes\nconst requiredFields = ['shop_sku', 'product_title', 'category_code'];\n\n// Validate all products have required fields\nconst errors = [];\nproducts.forEach((p, i) => {\n  requiredFields.forEach(f => {\n    if (!p[f]) errors.push(`Product ${i}: missing ${f}`);\n  });\n});\n\nif (errors.length > 0) {\n  return [{ json: { error: true, code: 'VALIDATION_ERROR', message: errors.join('; '), vendor_id: input.vendor_id, marketplace_url: input.marketplace_url, api_key: input.api_key } }];\n}\n\n// Build CSV header from all unique keys across products\nconst allKeys = new Set();\nproducts.forEach(p => Object.keys(p).forEach(k => allKeys.add(k)));\n\n// Map internal field names to Mirakl field names\nconst fieldMap = {\n  'shop_sku': 'shop_sku',\n  'product_title': 'product-title',\n  'product_description': 'product-description',\n  'category_code': 'category',\n  'brand': 'brand',\n  'ean': 'product-id',\n  'ean_type': 'product-id-type',\n  'image_url_1': 'media-url',\n  'internal_description': 'internal-description',\n  'variant_group_code': 'variant-group-code'\n};\n\n// Collect all attribute keys (those not in fieldMap)\nconst attrKeys = [...allKeys].filter(k => !fieldMap[k]);\nconst csvHeaders = [...Object.values(fieldMap), ...attrKeys];\nconst csvSeparator = ';';\n\nconst headerLine = csvHeaders.join(csvSeparator);\nconst dataLines = products.map(p => {\n  const row = [];\n  // Mapped fields first\n  Object.keys(fieldMap).forEach(internal => {\n    let val = p[internal] || '';\n    // Escape semicolons and quotes in values\n    val = String(val).replace(/\"/g, '\"\"');\n    if (val.includes(csvSeparator) || val.includes('\"') || val.includes('\\n')) {\n      val = '\"' + val + '\"';\n    }\n    row.push(val);\n  });\n  // Extra attribute fields\n  attrKeys.forEach(k => {\n    let val = p[k] || '';\n    val = String(val).replace(/\"/g, '\"\"');\n    if (val.includes(csvSeparator) || val.includes('\"') || val.includes('\\n')) {\n      val = '\"' + val + '\"';\n    }\n    row.push(val);\n  });\n  return row.join(csvSeparator);\n});\n\nconst csvContent = headerLine + '\\n' + dataLines.join('\\n');\n\nreturn [{ json: {\n  error: false,\n  csv_content: csvContent,\n  product_count: products.length,\n  vendor_id: input.vendor_id,\n  marketplace_url: input.marketplace_url,\n  api_key: input.api_key\n} }];"
+      },
+      "id": "build-product-csv",
+      "name": "Build Product CSV",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1150, 350]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-csv-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-csv-error",
+      "name": "CSV Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1400, 350]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.code, message: $json.message }) }}",
+        "options": {
+          "responseCode": 422
+        }
+      },
+      "id": "respond-validation-error",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1700, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.marketplace_url }}/api/products/imports",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ $json.api_key }}" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "file",
+              "parameterType": "formData",
+              "inputDataFieldName": "={{ { fileName: 'products_import.csv', mimeType: 'text/csv', data: Buffer.from($json.csv_content).toString('base64'), fileExtension: 'csv' } }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "fullResponse": true
+        }
+      },
+      "id": "mirakl-api-upload",
+      "name": "Upload to Mirakl",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1700, 450],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst prevData = $('Build Product CSV').first().json;\n\n// Check if the HTTP request succeeded\nconst statusCode = input.statusCode || input.status;\nconst mirakl_success = statusCode >= 200 && statusCode < 300;\nconst import_id = mirakl_success ? (input.body?.import_id || input.data?.import_id || input.import_id || null) : null;\n\nconst sync_log_id = 'sync_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);\n\nreturn [{ json: {\n  mirakl_success,\n  import_id,\n  sync_log_id,\n  status_code: statusCode,\n  error_message: !mirakl_success ? (input.body?.message || input.message || 'Mirakl API error') : null,\n  vendor_id: prevData.vendor_id,\n  product_count: prevData.product_count,\n  marketplace_url: prevData.marketplace_url\n} }];"
+      },
+      "id": "parse-mirakl-response",
+      "name": "Parse Mirakl Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1950, 450]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/sync_logs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=representation" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ vendor_id: $json.vendor_id, direction: 'push', sync_type: 'products', status: $json.mirakl_success ? 'running' : 'failed', total_products: $json.product_count, created_products: 0, updated_products: 0, error_count: $json.mirakl_success ? 0 : 1, details: { import_id: $json.import_id, marketplace_url: $json.marketplace_url, error: $json.error_message }, started_at: new Date().toISOString() }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "insert-sync-log",
+      "name": "Insert Sync Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 450]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const mirakl = $('Parse Mirakl Response').first().json;\nconst syncLogResponse = $input.first().json;\n\nconst sync_log_id = Array.isArray(syncLogResponse) ? syncLogResponse[0]?.id : (syncLogResponse.id || syncLogResponse[0]?.id || null);\n\nif (mirakl.mirakl_success) {\n  return [{ json: {\n    success: true,\n    import_id: mirakl.import_id,\n    sync_log_id,\n    product_count: mirakl.product_count,\n    message: `${mirakl.product_count} products submitted to Mirakl for import`\n  } }];\n} else {\n  return [{ json: {\n    success: false,\n    error: 'mirakl_upload_failed',\n    message: mirakl.error_message || 'Failed to upload products to Mirakl',\n    status_code: mirakl.status_code,\n    sync_log_id\n  } }];\n}"
+      },
+      "id": "build-final-response",
+      "name": "Build Final Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2450, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.success ? 200 : 502 }}"
+        }
+      },
+      "id": "respond-final",
+      "name": "Respond Final",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2700, 450]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Verify Token", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Verify Token": {
+      "main": [
+        [
+          { "node": "Auth Error?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Auth Error?": {
+      "main": [
+        [
+          { "node": "Respond Auth Error", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Mirakl Configured?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Mirakl Configured?": {
+      "main": [
+        [
+          { "node": "Build Product CSV", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Not Configured", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Product CSV": {
+      "main": [
+        [
+          { "node": "CSV Error?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "CSV Error?": {
+      "main": [
+        [
+          { "node": "Respond Validation Error", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Upload to Mirakl", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Upload to Mirakl": {
+      "main": [
+        [
+          { "node": "Parse Mirakl Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse Mirakl Response": {
+      "main": [
+        [
+          { "node": "Insert Sync Log", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Insert Sync Log": {
+      "main": [
+        [
+          { "node": "Build Final Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Final Response": {
+      "main": [
+        [
+          { "node": "Respond Final", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "katalync", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" },
+    { "name": "mirakl", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" },
+    { "name": "sync", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" }
+  ],
+  "triggerCount": 1,
+  "active": false
+}

@@ -1,0 +1,224 @@
+{
+  "name": "Katalync - Mirakl Check Status",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mirakl-check-status",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-mirakl-check-status",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "mirakl-check-status"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst { token, import_id, type, marketplace_url, api_key } = input.body || input;\n\n// Validate required fields\nif (!token) {\n  return [{ json: { error: true, code: 'MISSING_TOKEN', message: 'Token is required' } }];\n}\nif (!import_id) {\n  return [{ json: { error: true, code: 'MISSING_IMPORT_ID', message: 'import_id is required' } }];\n}\nif (!type || !['products', 'offers'].includes(type)) {\n  return [{ json: { error: true, code: 'INVALID_TYPE', message: 'type must be \"products\" or \"offers\"' } }];\n}\nif (!marketplace_url) {\n  return [{ json: { error: true, code: 'MISSING_URL', message: 'marketplace_url is required' } }];\n}\nif (!api_key) {\n  return [{ json: { error: true, code: 'MISSING_API_KEY', message: 'api_key is required' } }];\n}\n\n// Decode JWT\ntry {\n  const parts = token.split('.');\n  if (parts.length !== 3) throw new Error('Invalid token format');\n  const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());\n  \n  if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {\n    return [{ json: { error: true, code: 'TOKEN_EXPIRED', message: 'Token has expired' } }];\n  }\n  \n  const vendor_id = payload.sub || payload.vendor_id || payload.user_id;\n  if (!vendor_id) {\n    return [{ json: { error: true, code: 'INVALID_TOKEN', message: 'Token missing subject' } }];\n  }\n  \n  return [{ json: {\n    error: false,\n    vendor_id,\n    import_id,\n    type,\n    marketplace_url: marketplace_url.replace(/\\/$/, ''),\n    api_key\n  } }];\n} catch (e) {\n  return [{ json: { error: true, code: 'AUTH_FAILED', message: 'Token verification failed: ' + e.message } }];\n}"
+      },
+      "id": "verify-token",
+      "name": "Verify Token & Validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-error",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-auth-error",
+      "name": "Auth Error?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [550, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.code, message: $json.message }) }}",
+        "options": {
+          "responseCode": "={{ ['MISSING_TOKEN','TOKEN_EXPIRED','INVALID_TOKEN','AUTH_FAILED'].includes($json.code) ? 401 : 400 }}"
+        }
+      },
+      "id": "respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [850, 150]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.type === 'products' ? $json.marketplace_url + '/api/products/imports/' + $json.import_id : $json.marketplace_url + '/api/offers/imports/' + $json.import_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ $json.api_key }}" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "fullResponse": true
+        }
+      },
+      "id": "mirakl-get-status",
+      "name": "Get Import Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 450],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst authData = $('Verify Token & Validate').first().json;\n\nconst statusCode = input.statusCode || input.status;\n\nif (!statusCode || statusCode < 200 || statusCode >= 300) {\n  return [{ json: {\n    api_success: false,\n    vendor_id: authData.vendor_id,\n    import_id: authData.import_id,\n    type: authData.type,\n    status: 'ERROR',\n    error_message: input.body?.message || input.message || `Mirakl API returned ${statusCode}`,\n    total: 0,\n    created: 0,\n    updated: 0,\n    errors: [],\n    has_errors: false\n  } }];\n}\n\nconst body = input.body || input.data || input;\n\n// Mirakl import status response structure\n// For products: { import_id, status, lines_read, lines_in_success, lines_in_error, ... }\n// For offers: { import_id, status, lines_read, lines_in_success, lines_in_error, ... }\nconst importStatus = body.status || body.import_status || 'UNKNOWN';\n\n// Map Mirakl status to our status\nlet normalizedStatus;\nswitch (importStatus.toUpperCase()) {\n  case 'WAITING':\n  case 'QUEUED':\n    normalizedStatus = 'WAITING';\n    break;\n  case 'RUNNING':\n  case 'PROCESSING':\n    normalizedStatus = 'RUNNING';\n    break;\n  case 'COMPLETE':\n  case 'COMPLETED':\n  case 'SENT':\n    normalizedStatus = 'COMPLETE';\n    break;\n  case 'FAILED':\n  case 'ERROR':\n    normalizedStatus = 'FAILED';\n    break;\n  default:\n    normalizedStatus = importStatus;\n}\n\nconst total = body.lines_read || body.total_count || 0;\nconst created = body.lines_in_success || body.success_count || 0;\nconst updated = body.lines_updated || 0;\nconst errorCount = body.lines_in_error || body.error_count || 0;\n\n// Parse error details if available\nlet errors = [];\nif (body.errors && Array.isArray(body.errors)) {\n  errors = body.errors.map(e => ({\n    sku: e.sku || e.shop_sku || e.identifier || 'unknown',\n    message: e.message || e.error_message || e.reason || 'Unknown error',\n    code: e.code || e.error_code || null,\n    line: e.line_number || e.line || null\n  }));\n}\nif (body.lines_in_error_details && Array.isArray(body.lines_in_error_details)) {\n  errors = body.lines_in_error_details.map(e => ({\n    sku: e.sku || e.identifier || 'unknown',\n    message: e.message || e.error || 'Unknown error',\n    code: e.code || null,\n    line: e.line || null\n  }));\n}\n\nreturn [{ json: {\n  api_success: true,\n  vendor_id: authData.vendor_id,\n  import_id: authData.import_id,\n  type: authData.type,\n  status: normalizedStatus,\n  total,\n  created,\n  updated,\n  error_count: errorCount,\n  errors: errors.slice(0, 100),\n  has_errors: errorCount > 0,\n  raw_status: importStatus\n} }];"
+      },
+      "id": "parse-status",
+      "name": "Parse Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1150, 450]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/sync_logs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: $json.status === 'COMPLETE' ? 'completed' : ($json.status === 'FAILED' ? 'failed' : 'running'), total_products: $json.total, created_products: $json.created, updated_products: $json.updated, error_count: $json.error_count, details: { import_id: $json.import_id, raw_status: $json.raw_status, errors: $json.errors.slice(0, 50) }, completed_at: ['COMPLETE','FAILED'].includes($json.status) ? new Date().toISOString() : null }) }}",
+        "options": {
+          "timeout": 10000
+        },
+        "queryParameters": {
+          "parameters": [
+            { "name": "details->>import_id", "value": "=eq.{{ $json.import_id }}" },
+            { "name": "vendor_id", "value": "=eq.{{ $json.vendor_id }}" }
+          ]
+        }
+      },
+      "id": "update-sync-log",
+      "name": "Update Sync Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1450, 450],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const status = $('Parse Status').first().json;\n\nif (!status.api_success) {\n  return [{ json: {\n    success: false,\n    error: 'mirakl_api_error',\n    message: status.error_message,\n    import_id: status.import_id,\n    type: status.type\n  } }];\n}\n\nreturn [{ json: {\n  success: true,\n  import_id: status.import_id,\n  type: status.type,\n  status: status.status,\n  total: status.total,\n  created: status.created,\n  updated: status.updated,\n  error_count: status.error_count,\n  errors: status.errors,\n  is_complete: ['COMPLETE', 'FAILED'].includes(status.status)\n} }];"
+      },
+      "id": "build-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1700, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.success ? 200 : 502 }}"
+        }
+      },
+      "id": "respond-final",
+      "name": "Respond Final",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1950, 450]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Verify Token & Validate", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Verify Token & Validate": {
+      "main": [
+        [
+          { "node": "Auth Error?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Auth Error?": {
+      "main": [
+        [
+          { "node": "Respond Error", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Get Import Status", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Import Status": {
+      "main": [
+        [
+          { "node": "Parse Status", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse Status": {
+      "main": [
+        [
+          { "node": "Update Sync Log", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Update Sync Log": {
+      "main": [
+        [
+          { "node": "Build Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          { "node": "Respond Final", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "katalync", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" },
+    { "name": "mirakl", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" },
+    { "name": "sync", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" }
+  ],
+  "triggerCount": 1,
+  "active": false
+}

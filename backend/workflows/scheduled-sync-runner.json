@@ -1,0 +1,578 @@
+{
+  "name": "Katalync - Scheduled Sync Runner",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/vendors",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        },
+        "queryParameters": {
+          "parameters": [
+            { "name": "sync_status", "value": "=eq.active" },
+            { "name": "next_sync_at", "value": "=lte.{{ new Date().toISOString() }}" },
+            { "name": "select", "value": "id,name,email,source_type,source_config,marketplace_url,marketplace_api_key,sync_interval_minutes,last_sync_at,next_sync_at" }
+          ]
+        }
+      },
+      "id": "query-vendors",
+      "name": "Query Due Vendors",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json;\n\n// Handle case where no vendors are due\nconst vendors = Array.isArray(response) ? response : [];\n\nif (vendors.length === 0) {\n  return [{ json: { has_vendors: false, vendor_count: 0, message: 'No vendors due for sync' } }];\n}\n\n// Return each vendor as a separate item for the loop\nreturn vendors.map(v => ({ json: {\n  has_vendors: true,\n  vendor_count: vendors.length,\n  vendor_id: v.id,\n  vendor_name: v.name || 'Unknown',\n  vendor_email: v.email || null,\n  source_type: v.source_type || 'manual',\n  source_config: typeof v.source_config === 'string' ? JSON.parse(v.source_config) : (v.source_config || {}),\n  marketplace_url: v.marketplace_url || null,\n  marketplace_api_key: v.marketplace_api_key || null,\n  sync_interval_minutes: v.sync_interval_minutes || 60,\n  last_sync_at: v.last_sync_at\n} }));"
+      },
+      "id": "parse-vendors",
+      "name": "Parse Vendors",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-has-vendors",
+              "leftValue": "={{ $json.has_vendors }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-has-vendors",
+      "name": "Has Vendors?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// No vendors to sync - just log and exit\nreturn [{ json: { done: true, message: 'No vendors due for sync', timestamp: new Date().toISOString() } }];"
+      },
+      "id": "no-vendors",
+      "name": "No Vendors Due",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1150, 150]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.source_type }}",
+                    "rightValue": "shopify",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "Shopify"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.source_type }}",
+                    "rightValue": "woocommerce",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "WooCommerce"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.source_type }}",
+                    "rightValue": "api",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ]
+              },
+              "renameOutput": "Custom API"
+            }
+          ],
+          "fallbackOutput": "other"
+        },
+        "options": {}
+      },
+      "id": "switch-source-type",
+      "name": "Source Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [1150, 450]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const vendor = $input.first().json;\nconst config = vendor.source_config;\n\n// Build Shopify API request to fetch products\nconst shopifyDomain = config.shop_domain || config.domain;\nconst accessToken = config.access_token || config.api_key;\nconst sinceDate = vendor.last_sync_at || null;\n\nif (!shopifyDomain || !accessToken) {\n  return [{ json: {\n    sync_success: false,\n    vendor_id: vendor.vendor_id,\n    vendor_name: vendor.vendor_name,\n    source_type: 'shopify',\n    error: 'Missing Shopify configuration (shop_domain or access_token)',\n    products: [],\n    product_count: 0\n  } }];\n}\n\n// We'll construct the URL for fetching products\nlet url = `https://${shopifyDomain}/admin/api/2024-01/products.json?limit=250&status=active`;\nif (sinceDate) {\n  url += `&updated_at_min=${sinceDate}`;\n}\n\nreturn [{ json: {\n  vendor_id: vendor.vendor_id,\n  vendor_name: vendor.vendor_name,\n  vendor_email: vendor.vendor_email,\n  source_type: 'shopify',\n  fetch_url: url,\n  access_token: accessToken,\n  marketplace_url: vendor.marketplace_url,\n  marketplace_api_key: vendor.marketplace_api_key,\n  sync_interval_minutes: vendor.sync_interval_minutes\n} }];"
+      },
+      "id": "shopify-prepare",
+      "name": "Prepare Shopify Sync",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 250]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const vendor = $input.first().json;\nconst config = vendor.source_config;\n\n// Build WooCommerce API request\nconst siteUrl = config.site_url || config.url;\nconst consumerKey = config.consumer_key;\nconst consumerSecret = config.consumer_secret;\nconst sinceDate = vendor.last_sync_at || null;\n\nif (!siteUrl || !consumerKey || !consumerSecret) {\n  return [{ json: {\n    sync_success: false,\n    vendor_id: vendor.vendor_id,\n    vendor_name: vendor.vendor_name,\n    source_type: 'woocommerce',\n    error: 'Missing WooCommerce configuration (site_url, consumer_key, or consumer_secret)',\n    products: [],\n    product_count: 0\n  } }];\n}\n\nlet url = `${siteUrl.replace(/\\/$/, '')}/wp-json/wc/v3/products?per_page=100&status=publish`;\nif (sinceDate) {\n  url += `&modified_after=${sinceDate}`;\n}\n\n// WooCommerce uses Basic auth with consumer key/secret\nconst authHeader = 'Basic ' + Buffer.from(`${consumerKey}:${consumerSecret}`).toString('base64');\n\nreturn [{ json: {\n  vendor_id: vendor.vendor_id,\n  vendor_name: vendor.vendor_name,\n  vendor_email: vendor.vendor_email,\n  source_type: 'woocommerce',\n  fetch_url: url,\n  auth_header: authHeader,\n  marketplace_url: vendor.marketplace_url,\n  marketplace_api_key: vendor.marketplace_api_key,\n  sync_interval_minutes: vendor.sync_interval_minutes\n} }];"
+      },
+      "id": "woocommerce-prepare",
+      "name": "Prepare WooCommerce Sync",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 450]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const vendor = $input.first().json;\nconst config = vendor.source_config;\n\n// Custom API sync\nconst apiUrl = config.api_url || config.endpoint;\nconst apiHeaders = config.headers || {};\nconst apiMethod = (config.method || 'GET').toUpperCase();\n\nif (!apiUrl) {\n  return [{ json: {\n    sync_success: false,\n    vendor_id: vendor.vendor_id,\n    vendor_name: vendor.vendor_name,\n    source_type: 'api',\n    error: 'Missing API configuration (api_url)',\n    products: [],\n    product_count: 0\n  } }];\n}\n\nreturn [{ json: {\n  vendor_id: vendor.vendor_id,\n  vendor_name: vendor.vendor_name,\n  vendor_email: vendor.vendor_email,\n  source_type: 'api',\n  fetch_url: apiUrl,\n  api_headers: apiHeaders,\n  api_method: apiMethod,\n  marketplace_url: vendor.marketplace_url,\n  marketplace_api_key: vendor.marketplace_api_key,\n  sync_interval_minutes: vendor.sync_interval_minutes\n} }];"
+      },
+      "id": "api-prepare",
+      "name": "Prepare API Sync",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 650]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const vendor = $input.first().json;\n\n// Manual/unknown source type - skip sync but update timestamps\nreturn [{ json: {\n  sync_success: true,\n  vendor_id: vendor.vendor_id,\n  vendor_name: vendor.vendor_name,\n  source_type: vendor.source_type || 'manual',\n  skipped: true,\n  message: `Skipping sync for source type '${vendor.source_type || 'manual'}' - manual upload only`,\n  products: [],\n  product_count: 0,\n  sync_interval_minutes: vendor.sync_interval_minutes\n} }];"
+      },
+      "id": "manual-skip",
+      "name": "Skip Manual Source",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1450, 850]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.fetch_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-Shopify-Access-Token", "value": "={{ $json.access_token }}" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "fullResponse": true
+        }
+      },
+      "id": "shopify-fetch",
+      "name": "Fetch Shopify Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1750, 250],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.fetch_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "={{ $json.auth_header }}" },
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "fullResponse": true
+        }
+      },
+      "id": "woocommerce-fetch",
+      "name": "Fetch WooCommerce Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1750, 450],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "={{ $json.api_method || 'GET' }}",
+        "url": "={{ $json.fetch_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "fullResponse": true
+        }
+      },
+      "id": "api-fetch",
+      "name": "Fetch API Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1750, 650],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst prevNode = $('Prepare Shopify Sync').first().json;\n\nconst statusCode = input.statusCode || input.status;\nif (!statusCode || statusCode < 200 || statusCode >= 300) {\n  return [{ json: {\n    sync_success: false,\n    vendor_id: prevNode.vendor_id,\n    vendor_name: prevNode.vendor_name,\n    source_type: 'shopify',\n    error: `Shopify API returned ${statusCode}: ${input.body?.errors || input.message || 'Unknown error'}`,\n    products: [],\n    product_count: 0,\n    sync_interval_minutes: prevNode.sync_interval_minutes\n  } }];\n}\n\nconst body = input.body || input;\nconst products = body.products || [];\n\nreturn [{ json: {\n  sync_success: true,\n  vendor_id: prevNode.vendor_id,\n  vendor_name: prevNode.vendor_name,\n  source_type: 'shopify',\n  products: products,\n  product_count: products.length,\n  sync_interval_minutes: prevNode.sync_interval_minutes\n} }];"
+      },
+      "id": "shopify-parse",
+      "name": "Parse Shopify Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2050, 250]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst prevNode = $('Prepare WooCommerce Sync').first().json;\n\nconst statusCode = input.statusCode || input.status;\nif (!statusCode || statusCode < 200 || statusCode >= 300) {\n  return [{ json: {\n    sync_success: false,\n    vendor_id: prevNode.vendor_id,\n    vendor_name: prevNode.vendor_name,\n    source_type: 'woocommerce',\n    error: `WooCommerce API returned ${statusCode}: ${input.body?.message || input.message || 'Unknown error'}`,\n    products: [],\n    product_count: 0,\n    sync_interval_minutes: prevNode.sync_interval_minutes\n  } }];\n}\n\nconst body = input.body || input;\nconst products = Array.isArray(body) ? body : (body.products || []);\n\nreturn [{ json: {\n  sync_success: true,\n  vendor_id: prevNode.vendor_id,\n  vendor_name: prevNode.vendor_name,\n  source_type: 'woocommerce',\n  products: products,\n  product_count: products.length,\n  sync_interval_minutes: prevNode.sync_interval_minutes\n} }];"
+      },
+      "id": "woocommerce-parse",
+      "name": "Parse WooCommerce Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2050, 450]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst prevNode = $('Prepare API Sync').first().json;\n\nconst statusCode = input.statusCode || input.status;\nif (!statusCode || statusCode < 200 || statusCode >= 300) {\n  return [{ json: {\n    sync_success: false,\n    vendor_id: prevNode.vendor_id,\n    vendor_name: prevNode.vendor_name,\n    source_type: 'api',\n    error: `API returned ${statusCode}: ${input.body?.message || input.message || 'Unknown error'}`,\n    products: [],\n    product_count: 0,\n    sync_interval_minutes: prevNode.sync_interval_minutes\n  } }];\n}\n\nconst body = input.body || input;\n// Try common response patterns\nconst products = Array.isArray(body) ? body : (body.products || body.items || body.data || []);\n\nreturn [{ json: {\n  sync_success: true,\n  vendor_id: prevNode.vendor_id,\n  vendor_name: prevNode.vendor_name,\n  source_type: 'api',\n  products: products,\n  product_count: Array.isArray(products) ? products.length : 0,\n  sync_interval_minutes: prevNode.sync_interval_minutes\n} }];"
+      },
+      "id": "api-parse",
+      "name": "Parse API Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2050, 650]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst now = new Date();\nconst interval = input.sync_interval_minutes || 60;\nconst next_sync_at = new Date(now.getTime() + interval * 60 * 1000).toISOString();\n\nreturn [{ json: {\n  ...input,\n  last_sync_at: now.toISOString(),\n  next_sync_at,\n  sync_completed: true\n} }];"
+      },
+      "id": "merge-results",
+      "name": "Prepare Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2350, 450]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/vendors",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ last_sync_at: $json.last_sync_at, next_sync_at: $json.next_sync_at, sync_status: $json.sync_success ? 'active' : 'error', updated_at: new Date().toISOString() }) }}",
+        "options": {
+          "timeout": 10000
+        },
+        "queryParameters": {
+          "parameters": [
+            { "name": "id", "value": "=eq.{{ $json.vendor_id }}" }
+          ]
+        }
+      },
+      "id": "update-vendor",
+      "name": "Update Vendor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2600, 350],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/sync_logs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ vendor_id: $('Prepare Update').first().json.vendor_id, direction: 'pull', sync_type: $('Prepare Update').first().json.source_type, status: $('Prepare Update').first().json.sync_success ? 'completed' : 'failed', total_products: $('Prepare Update').first().json.product_count || 0, created_products: 0, updated_products: $('Prepare Update').first().json.product_count || 0, error_count: $('Prepare Update').first().json.sync_success ? 0 : 1, details: { source_type: $('Prepare Update').first().json.source_type, error: $('Prepare Update').first().json.error || null, skipped: $('Prepare Update').first().json.skipped || false }, started_at: $('Prepare Update').first().json.last_sync_at, completed_at: new Date().toISOString() }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "insert-sync-log",
+      "name": "Insert Sync Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2600, 550],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "check-sync-failed",
+              "leftValue": "={{ $('Prepare Update').first().json.sync_success }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-has-errors",
+      "name": "Sync Failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [2900, 450]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/notifications",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE" },
+            { "name": "Authorization", "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ vendor_id: $('Prepare Update').first().json.vendor_id, type: 'sync_error', title: 'Sync Failed: ' + ($('Prepare Update').first().json.source_type || 'unknown'), message: $('Prepare Update').first().json.error || 'Automatic sync failed. Check your source configuration.', severity: 'error', read: false, created_at: new Date().toISOString() }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "create-notification",
+      "name": "Create Error Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3200, 350],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Sync completed (with or without errors), log completion\nreturn [{ json: { done: true, timestamp: new Date().toISOString() } }];"
+      },
+      "id": "sync-complete",
+      "name": "Sync Complete",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3200, 550]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          { "node": "Query Due Vendors", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Query Due Vendors": {
+      "main": [
+        [
+          { "node": "Parse Vendors", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse Vendors": {
+      "main": [
+        [
+          { "node": "Has Vendors?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Has Vendors?": {
+      "main": [
+        [
+          { "node": "Source Type", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "No Vendors Due", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Source Type": {
+      "main": [
+        [
+          { "node": "Prepare Shopify Sync", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Prepare WooCommerce Sync", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Prepare API Sync", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Skip Manual Source", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare Shopify Sync": {
+      "main": [
+        [
+          { "node": "Fetch Shopify Products", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare WooCommerce Sync": {
+      "main": [
+        [
+          { "node": "Fetch WooCommerce Products", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare API Sync": {
+      "main": [
+        [
+          { "node": "Fetch API Products", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Fetch Shopify Products": {
+      "main": [
+        [
+          { "node": "Parse Shopify Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Fetch WooCommerce Products": {
+      "main": [
+        [
+          { "node": "Parse WooCommerce Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Fetch API Products": {
+      "main": [
+        [
+          { "node": "Parse API Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse Shopify Response": {
+      "main": [
+        [
+          { "node": "Prepare Update", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse WooCommerce Response": {
+      "main": [
+        [
+          { "node": "Prepare Update", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse API Response": {
+      "main": [
+        [
+          { "node": "Prepare Update", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Skip Manual Source": {
+      "main": [
+        [
+          { "node": "Prepare Update", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare Update": {
+      "main": [
+        [
+          { "node": "Update Vendor", "type": "main", "index": 0 },
+          { "node": "Insert Sync Log", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Update Vendor": {
+      "main": [
+        [
+          { "node": "Sync Failed?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Sync Failed?": {
+      "main": [
+        [
+          { "node": "Create Error Notification", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Sync Complete", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": 300
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "katalync", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" },
+    { "name": "sync", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" },
+    { "name": "scheduled", "createdAt": "2026-05-13T00:00:00.000Z", "updatedAt": "2026-05-13T00:00:00.000Z" }
+  ],
+  "triggerCount": 1,
+  "active": false
+}
