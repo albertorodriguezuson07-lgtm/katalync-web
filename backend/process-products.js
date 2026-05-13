@@ -1483,25 +1483,40 @@ if (isPT) {
   }
 }
 
-// Lock-in: save processed products to Supabase for data accumulation
+// Lock-in: save processed products to Supabase per marketplace
 try {
   const validResults = results.filter(r => r.json.sku && !r.json._empty);
   if (validResults.length > 0 && vendorId) {
-    const upsertRows = validResults.map(r => ({
-      vendor_id: vendorId,
-      sku: r.json.sku,
-      ean: r.json.ean || null,
-      name: r.json.title || null,
-      brand: r.json.brand || null,
-      category: r.json.category || null,
-      price: r.json.price ? parseFloat(r.json.price) || null : null,
-      image_url: r.json.original_image_url || null,
-      converted_image_url: r.json.converted_image_url || null,
-      sprinter_product: r.json.sprinterProduct || null,
-      sprinter_offer: r.json.sprinterOffer || null,
-      sync_status: 'converted',
-      last_synced_at: new Date().toISOString()
-    }));
+    const mktKey = marketplace || 'sprinter_es';
+    const skuList = validResults.map(r => r.json.sku);
+    const existingResp = await httpReq(SUPABASE_URL + '/vendor_products?vendor_id=eq.' + vendorId + '&sku=in.(' + skuList.map(s => '"' + s + '"').join(',') + ')&select=sku,sprinter_product,sprinter_offer', {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' }
+    });
+    const existingData = await existingResp.json();
+    const existingMap = {};
+    if (Array.isArray(existingData)) existingData.forEach(p => { existingMap[p.sku] = p; });
+    const upsertRows = validResults.map(r => {
+      const ex = existingMap[r.json.sku] || {};
+      const prevSP = (ex.sprinter_product && typeof ex.sprinter_product === 'object') ? ex.sprinter_product : {};
+      const prevSO = (ex.sprinter_offer && typeof ex.sprinter_offer === 'object') ? ex.sprinter_offer : {};
+      const mergedSP = { ...prevSP, [mktKey]: r.json.sprinterProduct || null };
+      const mergedSO = { ...prevSO, [mktKey]: r.json.sprinterOffer || null };
+      return {
+        vendor_id: vendorId,
+        sku: r.json.sku,
+        ean: r.json.ean || null,
+        name: r.json.title || null,
+        brand: r.json.brand || null,
+        category: r.json.category || null,
+        price: r.json.price ? parseFloat(r.json.price) || null : null,
+        image_url: r.json.original_image_url || null,
+        converted_image_url: r.json.converted_image_url || null,
+        sprinter_product: mergedSP,
+        sprinter_offer: mergedSO,
+        sync_status: 'converted',
+        last_synced_at: new Date().toISOString()
+      };
+    });
     const batchSize = 100;
     for (let i = 0; i < upsertRows.length; i += batchSize) {
       const batch = upsertRows.slice(i, i + batchSize);

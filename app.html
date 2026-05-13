@@ -2176,6 +2176,8 @@
                                         <p x-show="p.is_converted && p.sprinter_title && p.sprinter_title !== p.name" class="text-[10px] text-gray-400 mt-0.5 truncate" x-text="'Original: ' + p.name"></p>
                                       </div>
                                       <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                                        <span x-show="p.is_converted && p.marketplace === 'sprinter_es'" class="text-[9px] px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 font-bold border border-red-200">ES</span>
+                                        <span x-show="p.is_converted && p.marketplace === 'sportzone_pt'" class="text-[9px] px-1.5 py-0.5 rounded-full bg-green-50 text-green-600 font-bold border border-green-200">PT</span>
                                         <span x-show="p.is_converted" class="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-bold border border-blue-200">SPRINTER</span>
                                         <span x-show="!p.is_converted" class="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium">PENDIENTE</span>
                                         <span x-show="p.has_discount" class="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 font-bold border border-amber-200">OFERTA</span>
