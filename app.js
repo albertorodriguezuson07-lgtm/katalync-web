@@ -1355,7 +1355,9 @@ function app() {
           await this.loadSyncLogs();
           this.syncSimulating = false;
           this.syncSimVendor = null;
-          this.autoConvert(vendor);
+          if (data.total > 0) {
+            this.autoConvert(vendor);
+          }
         } else {
           this.showToast(vendor.name + ': ' + (data.error || 'Error'), 'error');
           this.syncSimulating = false;

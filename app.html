@@ -2077,9 +2077,31 @@
                   <td class="px-4 py-3 text-gray-500 text-xs" x-text="(v.sync_interval_hours || 4) + 'h'"></td>
                   <td class="px-4 py-3">
                     <div class="flex flex-col gap-1">
-                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" :class="v.sync_status === 'converted' || v.sync_status === 'converted_with_errors' ? 'bg-blue-50 text-blue-700' : v.sync_status === 'active' || v.sync_status === 'synced' || v.sync_status === 'connected' ? 'bg-emerald-50 text-emerald-700' : v.sync_status === 'error' ? 'bg-red-50 text-red-700' : 'bg-gray-100 text-gray-500'">
-                        <span class="w-1.5 h-1.5 rounded-full" :class="v.sync_status === 'converted' || v.sync_status === 'converted_with_errors' ? 'bg-blue-500' : v.sync_status === 'active' || v.sync_status === 'synced' || v.sync_status === 'connected' ? 'bg-emerald-500' : v.sync_status === 'error' ? 'bg-red-500' : v.sync_status === 'pending' && v.source === 'shopify' && !v.config?.connected_at ? 'bg-amber-400' : 'bg-gray-400'"></span>
-                        <span x-text="v.sync_status === 'converted' ? 'Convertido' : v.sync_status === 'converted_with_errors' ? 'Convertido (errores)' : v.sync_status === 'active' || v.sync_status === 'synced' || v.sync_status === 'connected' ? t('sync_active') : v.sync_status === 'error' ? t('sync_error') : v.sync_status === 'pending' && v.source === 'shopify' && !v.config?.connected_at ? 'OAuth pendiente' : t('sync_paused')"></span>
+                      <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium" :class="{
+                        'bg-blue-50 text-blue-700': v.sync_status === 'converted',
+                        'bg-amber-50 text-amber-700': v.sync_status === 'converted_with_errors' || v.sync_status === 'completed_with_errors',
+                        'bg-emerald-50 text-emerald-700': v.sync_status === 'active' || v.sync_status === 'synced' || v.sync_status === 'connected',
+                        'bg-red-50 text-red-700': v.sync_status === 'error' || v.sync_status === 'failed',
+                        'bg-gray-100 text-gray-500': !['converted','converted_with_errors','completed_with_errors','active','synced','connected','error','failed'].includes(v.sync_status)
+                      }">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="{
+                          'bg-blue-500': v.sync_status === 'converted',
+                          'bg-amber-500': v.sync_status === 'converted_with_errors' || v.sync_status === 'completed_with_errors',
+                          'bg-emerald-500': v.sync_status === 'active' || v.sync_status === 'synced' || v.sync_status === 'connected',
+                          'bg-red-500': v.sync_status === 'error' || v.sync_status === 'failed',
+                          'bg-amber-400': v.sync_status === 'pending' && v.source === 'shopify' && !v.config?.connected_at,
+                          'bg-gray-400': !['converted','converted_with_errors','completed_with_errors','active','synced','connected','error','failed'].includes(v.sync_status) && !(v.sync_status === 'pending' && v.source === 'shopify' && !v.config?.connected_at)
+                        }"></span>
+                        <span x-text="
+                          v.sync_status === 'converted' ? 'Convertido' :
+                          v.sync_status === 'converted_with_errors' ? 'Convertido (errores)' :
+                          v.sync_status === 'completed_with_errors' ? 'Sync con errores' :
+                          v.sync_status === 'synced' ? 'Sincronizado' :
+                          v.sync_status === 'active' || v.sync_status === 'connected' ? t('sync_active') :
+                          v.sync_status === 'error' || v.sync_status === 'failed' ? t('sync_error') :
+                          v.sync_status === 'pending' && v.source === 'shopify' && !v.config?.connected_at ? 'OAuth pendiente' :
+                          v.sync_status === 'pending' ? 'Pendiente' : t('sync_paused')
+                        "></span>
                       </span>
                       <div x-show="v.config?.marketplaces" class="flex gap-1">
                         <template x-for="m in (v.config?.marketplaces || [])" :key="m">
@@ -2111,42 +2133,95 @@
                 <template x-if="expandedVendor === v.id">
                   <tr>
                     <td colspan="7" class="px-0 py-0">
-                      <div class="bg-gray-50 border-t border-b border-gray-200 px-5 py-4">
-                        <div x-show="vendorProductsLoading" class="text-center py-4">
-                          <div class="inline-block w-5 h-5 border-2 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
-                          <span class="ml-2 text-xs text-gray-500" x-text="t('sync_products_loading')"></span>
+                      <div class="bg-gradient-to-b from-gray-50 to-white border-t border-b border-gray-200 px-5 py-5">
+                        <!-- Loading -->
+                        <div x-show="vendorProductsLoading" class="text-center py-8">
+                          <div class="inline-block w-6 h-6 border-2 border-purple-200 border-t-purple-600 rounded-full animate-spin mb-2"></div>
+                          <p class="text-sm text-gray-500" x-text="t('sync_products_loading')"></p>
                         </div>
-                        <div x-show="!vendorProductsLoading && vendorProducts.length === 0" class="text-center py-4 text-xs text-gray-400" x-text="t('sync_products_none')"></div>
+                        <!-- Empty -->
+                        <div x-show="!vendorProductsLoading && vendorProducts.length === 0" class="text-center py-8">
+                          <div class="text-3xl mb-2">📦</div>
+                          <p class="text-sm text-gray-400" x-text="t('sync_products_none')"></p>
+                        </div>
+                        <!-- Products -->
                         <div x-show="!vendorProductsLoading && vendorProducts.length > 0">
-                          <div class="flex items-center justify-between mb-3">
-                            <span class="text-xs font-medium text-gray-600" x-text="vendorProducts.length + ' productos (' + vendorProducts.filter(p => p.is_converted).length + ' convertidos)'"></span>
+                          <!-- Header bar -->
+                          <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-3">
+                              <h4 class="text-sm font-bold text-gray-800" x-text="v.name + ' — Productos'"></h4>
+                              <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600" x-text="vendorProducts.length + ' mostrando'"></span>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs">
+                              <span class="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 font-medium" x-text="vendorProducts.filter(p => p.is_converted).length + ' convertidos'"></span>
+                              <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium" x-text="vendorProducts.filter(p => !p.is_converted).length + ' pendientes'"></span>
+                            </div>
                           </div>
-                          <div class="grid gap-2 max-h-96 overflow-y-auto">
+                          <!-- Product cards grid -->
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[520px] overflow-y-auto pr-1">
                             <template x-for="p in vendorProducts" :key="p.id">
-                              <div class="bg-white rounded-lg border border-gray-200 p-3 flex items-start gap-3 text-xs">
-                                <div class="flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
-                                  <img x-show="p.converted_image_url || p.image_url" :src="p.converted_image_url || p.image_url" class="w-full h-full object-cover" loading="lazy">
-                                  <div x-show="!p.converted_image_url && !p.image_url" class="w-full h-full flex items-center justify-center text-gray-300 text-lg">?</div>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                  <div class="flex items-center gap-2 mb-1">
-                                    <span class="font-medium text-gray-900 truncate" x-text="p.sprinter_title || p.name"></span>
-                                    <span x-show="p.is_converted" class="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium border border-blue-200">Sprinter</span>
-                                    <span x-show="p.has_discount" class="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 font-medium border border-amber-200">Oferta</span>
+                              <div class="bg-white rounded-xl border shadow-sm hover:shadow-md transition-shadow overflow-hidden" :class="p.is_converted ? 'border-blue-200' : 'border-gray-200'">
+                                <div class="flex">
+                                  <!-- Image -->
+                                  <div class="flex-shrink-0 w-24 h-24 bg-gray-100 relative">
+                                    <img x-show="p.converted_image_url || p.image_url" :src="p.converted_image_url || p.image_url" class="w-full h-full object-cover" loading="lazy">
+                                    <div x-show="!p.converted_image_url && !p.image_url" class="w-full h-full flex items-center justify-center text-gray-300 text-2xl">?</div>
+                                    <div x-show="p.converted_image_url && p.image_url && p.converted_image_url !== p.image_url" class="absolute bottom-0.5 right-0.5 text-[8px] px-1 py-0.5 rounded bg-blue-600 text-white font-bold">CDN</div>
                                   </div>
-                                  <div class="flex items-center gap-3 text-gray-500">
-                                    <span x-text="'SKU: ' + p.sku"></span>
-                                    <span x-show="p.ean" x-text="'EAN: ' + p.ean"></span>
-                                    <span x-show="p.sprinter_category" class="text-purple-600" x-text="p.sprinter_category"></span>
-                                    <span x-show="p.sprinter_color" x-text="p.sprinter_color"></span>
-                                    <span x-show="p.sprinter_size" x-text="'T:' + p.sprinter_size"></span>
+                                  <!-- Info -->
+                                  <div class="flex-1 p-3 min-w-0">
+                                    <!-- Title row -->
+                                    <div class="flex items-start justify-between gap-2 mb-1.5">
+                                      <div class="min-w-0">
+                                        <p class="text-sm font-semibold text-gray-900 leading-tight" x-text="p.sprinter_title || p.name" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"></p>
+                                        <p x-show="p.is_converted && p.sprinter_title && p.sprinter_title !== p.name" class="text-[10px] text-gray-400 mt-0.5 truncate" x-text="'Original: ' + p.name"></p>
+                                      </div>
+                                      <div class="flex flex-col items-end gap-1 flex-shrink-0">
+                                        <span x-show="p.is_converted" class="text-[9px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-bold border border-blue-200">SPRINTER</span>
+                                        <span x-show="!p.is_converted" class="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium">PENDIENTE</span>
+                                        <span x-show="p.has_discount" class="text-[9px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-600 font-bold border border-amber-200">OFERTA</span>
+                                      </div>
+                                    </div>
+                                    <!-- Details grid -->
+                                    <div class="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
+                                      <div class="flex items-center gap-1">
+                                        <span class="text-gray-400 w-8">SKU</span>
+                                        <span class="text-gray-700 font-mono truncate" x-text="p.sku"></span>
+                                      </div>
+                                      <div class="flex items-center gap-1">
+                                        <span class="text-gray-400 w-8">EAN</span>
+                                        <span class="text-gray-700 font-mono" x-text="p.ean || '—'"></span>
+                                      </div>
+                                      <div class="flex items-center gap-1">
+                                        <span class="text-gray-400 w-8">Cat.</span>
+                                        <span class="text-purple-600 font-medium truncate" x-text="p.sprinter_category || p.category || '—'"></span>
+                                      </div>
+                                      <div class="flex items-center gap-1">
+                                        <span class="text-gray-400 w-8">Marca</span>
+                                        <span class="text-gray-700" x-text="p.brand || '—'"></span>
+                                      </div>
+                                      <div x-show="p.sprinter_color" class="flex items-center gap-1">
+                                        <span class="text-gray-400 w-8">Color</span>
+                                        <span class="text-gray-700" x-text="p.sprinter_color"></span>
+                                      </div>
+                                      <div x-show="p.sprinter_size" class="flex items-center gap-1">
+                                        <span class="text-gray-400 w-8">Talla</span>
+                                        <span class="text-gray-700" x-text="p.sprinter_size"></span>
+                                      </div>
+                                    </div>
+                                    <!-- Price bar -->
+                                    <div class="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                                      <div class="flex items-center gap-2">
+                                        <span class="text-sm font-bold" :class="p.has_discount ? 'text-amber-600' : 'text-gray-900'" x-text="(p.offer_price || p.price || 0) + '€'"></span>
+                                        <span x-show="p.has_discount && p.offer_discount" class="text-xs text-red-400 line-through" x-text="p.offer_discount + '€'"></span>
+                                      </div>
+                                      <div class="flex items-center gap-2 text-[11px]">
+                                        <span class="px-1.5 py-0.5 rounded" :class="(p.stock || 0) > 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-600'" x-text="'Stock: ' + (p.stock || 0)"></span>
+                                      </div>
+                                    </div>
+                                    <!-- Description preview -->
+                                    <p x-show="p.is_converted && p.sprinter_description" class="text-[10px] text-gray-400 mt-1.5 leading-tight" x-text="p.sprinter_description" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden"></p>
                                   </div>
-                                  <div x-show="p.is_converted && p.sprinter_description" class="mt-1 text-gray-400 truncate" x-text="p.sprinter_description"></div>
-                                </div>
-                                <div class="text-right flex-shrink-0">
-                                  <div class="font-bold" :class="p.has_discount ? 'text-amber-600' : 'text-gray-900'" x-text="(p.offer_price || p.price || 0) + '€'"></div>
-                                  <div x-show="p.offer_discount" class="text-[10px] text-red-500 line-through" x-text="p.offer_discount + '€'"></div>
-                                  <div class="text-gray-400 mt-0.5" x-text="'Stock: ' + (p.stock || 0)"></div>
                                 </div>
                               </div>
                             </template>
