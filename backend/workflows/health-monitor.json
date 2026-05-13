@@ -1,0 +1,310 @@
+{
+  "name": "Katalync Health Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 5 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://katalync.com",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "check-frontend",
+      "name": "Check Frontend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 0],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://api.katalync.com",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "check-n8n",
+      "name": "Check n8n Backend",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://imgproxy.reyl9a.easypanel.host",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "check-imgproxy",
+      "name": "Check ImgProxy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://image-tools-rembg.reyl9a.easypanel.host",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "check-rembg",
+      "name": "Check RemBG",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 600],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "check-supabase",
+      "name": "Check Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 800],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Evaluate all health check results\nconst services = [\n  { name: 'katalync.com (frontend)', key: 'frontend' },\n  { name: 'api.katalync.com (n8n)', key: 'n8n' },\n  { name: 'imgproxy', key: 'imgproxy' },\n  { name: 'image-tools-rembg', key: 'rembg' },\n  { name: 'supabase', key: 'supabase' }\n];\n\nconst results = [];\nlet hasDown = false;\nconst downServices = [];\n\nfor (let i = 0; i < services.length; i++) {\n  const item = $input.all()[i];\n  const statusCode = item.json.statusCode || item.json.status || 0;\n  const isUp = statusCode >= 200 && statusCode < 500;\n  const responseTime = item.json.headers ? (Date.now() - (item.json.requestStartTime || Date.now())) : -1;\n  \n  const result = {\n    service: services[i].name,\n    key: services[i].key,\n    status: isUp ? 'UP' : 'DOWN',\n    statusCode: statusCode,\n    responseTimeMs: responseTime,\n    checkedAt: new Date().toISOString()\n  };\n  \n  if (!isUp) {\n    hasDown = true;\n    downServices.push(services[i].name);\n  }\n  \n  results.push(result);\n}\n\nreturn [{\n  json: {\n    results,\n    hasDown,\n    downServices,\n    summary: hasDown \n      ? `ALERT: ${downServices.length} service(s) DOWN: ${downServices.join(', ')}` \n      : `All ${services.length} services UP`,\n    timestamp: new Date().toISOString(),\n    totalServices: services.length,\n    upCount: services.length - downServices.length,\n    downCount: downServices.length\n  }\n}];"
+      },
+      "id": "evaluate-results",
+      "name": "Evaluate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/health_checks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.results.map(r => ({ service: r.service, status: r.status, status_code: r.statusCode, response_time_ms: r.responseTimeMs, checked_at: r.checkedAt }))) }}"
+      },
+      "id": "save-to-supabase",
+      "name": "Save to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-down",
+              "leftValue": "={{ $json.hasDown }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-if-down",
+      "name": "Any Service Down?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 500]
+    },
+    {
+      "parameters": {
+        "fromEmail": "info@prometeix.com",
+        "toEmail": "alberto@prometeix.com",
+        "subject": "=KATALYNC ALERT: {{ $json.downCount }} service(s) DOWN - {{ $now.toISO() }}",
+        "emailType": "html",
+        "html": "=<html>\n<body style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n<div style=\"background: #dc2626; color: white; padding: 20px; border-radius: 8px 8px 0 0;\">\n  <h1 style=\"margin:0;\">Katalync Service Alert</h1>\n  <p style=\"margin:5px 0 0;\">{{ $json.summary }}</p>\n</div>\n<div style=\"padding: 20px; background: #f9fafb; border: 1px solid #e5e7eb;\">\n  <h3>Service Status:</h3>\n  <table style=\"width:100%; border-collapse: collapse;\">\n    <tr style=\"background:#e5e7eb;\">\n      <th style=\"padding:8px; text-align:left;\">Service</th>\n      <th style=\"padding:8px; text-align:center;\">Status</th>\n      <th style=\"padding:8px; text-align:center;\">Code</th>\n    </tr>\n    {{ $json.results.map(r => `<tr style=\"border-bottom:1px solid #e5e7eb;\"><td style=\"padding:8px;\">${r.service}</td><td style=\"padding:8px; text-align:center; color:${r.status === 'UP' ? '#16a34a' : '#dc2626'}; font-weight:bold;\">${r.status}</td><td style=\"padding:8px; text-align:center;\">${r.statusCode}</td></tr>`).join('') }}\n  </table>\n  <p style=\"margin-top:16px; color:#6b7280; font-size:12px;\">Checked at: {{ $json.timestamp }}</p>\n</div>\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "send-alert-email",
+      "name": "Send Alert Email",
+      "type": "n8n-nodes-base.sendEmail",
+      "typeVersion": 2.1,
+      "position": [1200, 400],
+      "credentials": {
+        "smtp": {
+          "id": "CONFIGURE_SMTP_CREDENTIAL_ID",
+          "name": "Katalync SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "no-op-all-ok",
+      "name": "All Services OK",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1200, 600]
+    }
+  ],
+  "connections": {
+    "Every 5 Minutes": {
+      "main": [
+        [
+          { "node": "Check Frontend", "type": "main", "index": 0 },
+          { "node": "Check n8n Backend", "type": "main", "index": 0 },
+          { "node": "Check ImgProxy", "type": "main", "index": 0 },
+          { "node": "Check RemBG", "type": "main", "index": 0 },
+          { "node": "Check Supabase", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Frontend": {
+      "main": [
+        [
+          { "node": "Evaluate Results", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check n8n Backend": {
+      "main": [
+        [
+          { "node": "Evaluate Results", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check ImgProxy": {
+      "main": [
+        [
+          { "node": "Evaluate Results", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check RemBG": {
+      "main": [
+        [
+          { "node": "Evaluate Results", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Supabase": {
+      "main": [
+        [
+          { "node": "Evaluate Results", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Evaluate Results": {
+      "main": [
+        [
+          { "node": "Save to Supabase", "type": "main", "index": 0 },
+          { "node": "Any Service Down?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Any Service Down?": {
+      "main": [
+        [
+          { "node": "Send Alert Email", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "All Services OK", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "katalync",
+      "createdAt": "2026-05-13T00:00:00.000Z",
+      "updatedAt": "2026-05-13T00:00:00.000Z"
+    },
+    {
+      "name": "monitoring",
+      "createdAt": "2026-05-13T00:00:00.000Z",
+      "updatedAt": "2026-05-13T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 1,
+  "active": false
+}

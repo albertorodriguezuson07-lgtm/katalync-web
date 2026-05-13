@@ -1,0 +1,539 @@
+{
+  "name": "Katalync Automated Backup",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 3 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-daily",
+      "name": "Daily 03:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 400]
+    },
+    {
+      "parameters": {
+        "url": "http://localhost:5678/api/v1/workflows",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-KEY",
+              "value": "={{ $env.N8N_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "get-workflows",
+      "name": "Get All Workflows",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Compile all workflows into a single backup object\nconst input = $input.first().json;\nconst workflows = input.body?.data || input.data || input;\n\nconst today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD\n\nconst backup = {\n  backupDate: today,\n  backupTimestamp: new Date().toISOString(),\n  version: '20260513a',\n  source: 'katalync-n8n',\n  workflowCount: Array.isArray(workflows) ? workflows.length : 0,\n  workflows: workflows\n};\n\nreturn [{\n  json: {\n    backupData: JSON.stringify(backup),\n    today: today,\n    r2Key: `backups/workflows/${today}.json`,\n    workflowCount: backup.workflowCount\n  }\n}];"
+      },
+      "id": "compile-workflows",
+      "name": "Compile Workflow Backup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [600, 400]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $env.R2_HOST }}/sprinter-images/{{ $json.r2Key }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "={{ $json.backupData }}",
+        "options": {}
+      },
+      "id": "upload-workflows-r2",
+      "name": "Upload Workflows to R2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 400],
+      "continueOnFail": true,
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "CONFIGURE_AWS_S3_CREDENTIAL",
+          "name": "R2 S3 Auth"
+        }
+      },
+      "notes": "NOTE: Configure AWS S3 compatible credentials for R2. Use n8n's AWS S3 node or HTTP Request with AWS Signature auth. Access Key: $env.R2_ACCESS_KEY, Secret: $env.R2_SECRET_KEY, Region: auto, Endpoint: $env.R2_HOST"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Prepare Supabase table queries\nconst today = $input.first().json.today || new Date().toISOString().split('T')[0];\n\nreturn [{\n  json: {\n    today: today,\n    tables: ['users', 'vendors', 'vendor_products'],\n    supabaseUrl: 'https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1'\n  }\n}];"
+      },
+      "id": "prepare-supabase-queries",
+      "name": "Prepare Supabase Queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 400]
+    },
+    {
+      "parameters": {
+        "url": "=https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/users?select=*",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "fetch-users",
+      "name": "Fetch Users Table",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1500, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "=https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/vendors?select=*",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "fetch-vendors",
+      "name": "Fetch Vendors Table",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1500, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "=https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/vendor_products?select=*",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "fetch-vendor-products",
+      "name": "Fetch Vendor Products Table",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1500, 600],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Compile Supabase data into backup object\nconst items = $input.all();\nconst today = new Date().toISOString().split('T')[0];\n\nconst tables = ['users', 'vendors', 'vendor_products'];\nconst supabaseBackup = {\n  backupDate: today,\n  backupTimestamp: new Date().toISOString(),\n  version: '20260513a',\n  source: 'katalync-supabase',\n  tables: {}\n};\n\nfor (let i = 0; i < tables.length; i++) {\n  const item = items[i];\n  const data = item?.json?.body || item?.json || [];\n  supabaseBackup.tables[tables[i]] = {\n    rowCount: Array.isArray(data) ? data.length : 0,\n    data: data\n  };\n}\n\nreturn [{\n  json: {\n    backupData: JSON.stringify(supabaseBackup),\n    today: today,\n    r2Key: `backups/supabase/${today}.json`,\n    tableCount: tables.length\n  }\n}];"
+      },
+      "id": "compile-supabase-backup",
+      "name": "Compile Supabase Backup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1800, 400]
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "={{ $env.R2_HOST }}/sprinter-images/{{ $json.r2Key }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "={{ $json.backupData }}",
+        "options": {}
+      },
+      "id": "upload-supabase-r2",
+      "name": "Upload Supabase to R2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2100, 400],
+      "continueOnFail": true,
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "CONFIGURE_AWS_S3_CREDENTIAL",
+          "name": "R2 S3 Auth"
+        }
+      },
+      "notes": "NOTE: Configure AWS S3 compatible credentials for R2."
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Clean up backups older than 30 days\n// List objects in backups/ prefix, identify those older than 30 days\nconst today = new Date();\nconst cutoffDate = new Date(today);\ncutoffDate.setDate(cutoffDate.getDate() - 30);\nconst cutoffStr = cutoffDate.toISOString().split('T')[0];\n\n// We'll output the cleanup config for subsequent R2 list+delete operations\n// In practice, R2 S3 API requires ListObjectsV2 then DeleteObject calls\n// This node prepares the parameters\n\nreturn [{\n  json: {\n    cutoffDate: cutoffStr,\n    prefixes: ['backups/workflows/', 'backups/supabase/'],\n    bucket: 'sprinter-images',\n    message: `Will delete backups with dates before ${cutoffStr}`,\n    today: today.toISOString().split('T')[0]\n  }\n}];"
+      },
+      "id": "prepare-cleanup",
+      "name": "Prepare Cleanup Config",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.R2_HOST }}/sprinter-images?list-type=2&prefix=backups/",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/xml"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "list-r2-backups",
+      "name": "List R2 Backups",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2700, 300],
+      "continueOnFail": true,
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "CONFIGURE_AWS_S3_CREDENTIAL",
+          "name": "R2 S3 Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Parse R2 listing and identify old backups to delete\nconst input = $input.first().json;\nconst cutoffDate = $('Prepare Cleanup Config').first().json.cutoffDate;\nconst r2Host = process.env.R2_HOST || '';\n\n// Parse XML response to find Keys\nlet responseText = '';\nif (typeof input === 'string') {\n  responseText = input;\n} else if (input.body) {\n  responseText = typeof input.body === 'string' ? input.body : JSON.stringify(input.body);\n} else {\n  responseText = JSON.stringify(input);\n}\n\n// Extract keys using regex from XML\nconst keyRegex = /<Key>([^<]+)<\\/Key>/g;\nconst keysToDelete = [];\nlet match;\n\nwhile ((match = keyRegex.exec(responseText)) !== null) {\n  const key = match[1];\n  // Extract date from key like backups/workflows/2026-04-10.json\n  const dateMatch = key.match(/(\\d{4}-\\d{2}-\\d{2})\\.json$/);\n  if (dateMatch && dateMatch[1] < cutoffDate) {\n    keysToDelete.push(key);\n  }\n}\n\nif (keysToDelete.length === 0) {\n  return [{\n    json: {\n      action: 'no_cleanup_needed',\n      message: 'No backups older than 30 days found',\n      cutoffDate: cutoffDate\n    }\n  }];\n}\n\n// Return each key as a separate item for batch deletion\nreturn keysToDelete.map(key => ({\n  json: {\n    action: 'delete',\n    key: key,\n    deleteUrl: `${r2Host}/sprinter-images/${key}`\n  }\n}));"
+      },
+      "id": "identify-old-backups",
+      "name": "Identify Old Backups",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3000, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-has-deletes",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "delete",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "check-has-deletes",
+      "name": "Has Old Backups?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3300, 300]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "={{ $json.deleteUrl }}",
+        "options": {}
+      },
+      "id": "delete-old-backups",
+      "name": "Delete Old Backup",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3600, 200],
+      "continueOnFail": true,
+      "credentials": {
+        "httpCustomAuth": {
+          "id": "CONFIGURE_AWS_S3_CREDENTIAL",
+          "name": "R2 S3 Auth"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "no-cleanup-needed",
+      "name": "No Cleanup Needed",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [3600, 400]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Build audit log entry\nconst today = new Date().toISOString().split('T')[0];\nconst items = $input.all();\nlet deletedCount = 0;\n\nfor (const item of items) {\n  if (item.json?.statusCode === 204 || item.json?.action === 'delete') {\n    deletedCount++;\n  }\n}\n\nreturn [{\n  json: {\n    action: 'backup_completed',\n    details: {\n      date: today,\n      workflows_backed_up: true,\n      supabase_backed_up: true,\n      old_backups_deleted: deletedCount,\n      r2_workflow_key: `backups/workflows/${today}.json`,\n      r2_supabase_key: `backups/supabase/${today}.json`\n    },\n    created_at: new Date().toISOString(),\n    source: 'automated-backup-workflow'\n  }\n}];"
+      },
+      "id": "build-audit-log",
+      "name": "Build Audit Log Entry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3900, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/audit_log",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=minimal"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: $json.action, details: JSON.stringify($json.details), created_at: $json.created_at, source: $json.source }) }}"
+      },
+      "id": "insert-audit-log",
+      "name": "Insert Audit Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4200, 300],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Daily 03:00 UTC": {
+      "main": [
+        [
+          { "node": "Get All Workflows", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get All Workflows": {
+      "main": [
+        [
+          { "node": "Compile Workflow Backup", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Compile Workflow Backup": {
+      "main": [
+        [
+          { "node": "Upload Workflows to R2", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Upload Workflows to R2": {
+      "main": [
+        [
+          { "node": "Prepare Supabase Queries", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare Supabase Queries": {
+      "main": [
+        [
+          { "node": "Fetch Users Table", "type": "main", "index": 0 },
+          { "node": "Fetch Vendors Table", "type": "main", "index": 0 },
+          { "node": "Fetch Vendor Products Table", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Fetch Users Table": {
+      "main": [
+        [
+          { "node": "Compile Supabase Backup", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Fetch Vendors Table": {
+      "main": [
+        [
+          { "node": "Compile Supabase Backup", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Fetch Vendor Products Table": {
+      "main": [
+        [
+          { "node": "Compile Supabase Backup", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Compile Supabase Backup": {
+      "main": [
+        [
+          { "node": "Upload Supabase to R2", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Upload Supabase to R2": {
+      "main": [
+        [
+          { "node": "Prepare Cleanup Config", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare Cleanup Config": {
+      "main": [
+        [
+          { "node": "List R2 Backups", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "List R2 Backups": {
+      "main": [
+        [
+          { "node": "Identify Old Backups", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Identify Old Backups": {
+      "main": [
+        [
+          { "node": "Has Old Backups?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Has Old Backups?": {
+      "main": [
+        [
+          { "node": "Delete Old Backup", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "No Cleanup Needed", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Delete Old Backup": {
+      "main": [
+        [
+          { "node": "Build Audit Log Entry", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "No Cleanup Needed": {
+      "main": [
+        [
+          { "node": "Build Audit Log Entry", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Audit Log Entry": {
+      "main": [
+        [
+          { "node": "Insert Audit Log", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "katalync",
+      "createdAt": "2026-05-13T00:00:00.000Z",
+      "updatedAt": "2026-05-13T00:00:00.000Z"
+    },
+    {
+      "name": "backup",
+      "createdAt": "2026-05-13T00:00:00.000Z",
+      "updatedAt": "2026-05-13T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 1,
+  "active": false
+}

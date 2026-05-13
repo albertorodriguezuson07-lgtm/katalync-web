@@ -12,6 +12,10 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+echo "--- Running tests ---"
+cd "$SCRIPT_DIR/.." && npx jest --verbose || { echo "TESTS FAILED — deploy aborted"; exit 1; }
+echo ""
 JS_FILE="$SCRIPT_DIR/process-products.js"
 WORKFLOW_ID="4R88x26cesnzRqMD"
 N8N_HOST="https://api.katalync.com"

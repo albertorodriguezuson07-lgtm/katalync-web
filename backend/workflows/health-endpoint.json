@@ -1,0 +1,92 @@
+{
+  "name": "Katalync Health Endpoint",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "health",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-health",
+      "name": "Health Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "health-endpoint"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const now = new Date().toISOString();\nreturn [{\n  json: {\n    status: 'ok',\n    timestamp: now,\n    version: '20260513a',\n    service: 'katalync',\n    uptime: process.uptime()\n  }\n}];"
+      },
+      "id": "build-response",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Cache-Control",
+                "value": "no-cache, no-store"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [600, 300]
+    }
+  ],
+  "connections": {
+    "Health Webhook": {
+      "main": [
+        [
+          { "node": "Build Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Response": {
+      "main": [
+        [
+          { "node": "Respond to Webhook", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "katalync",
+      "createdAt": "2026-05-13T00:00:00.000Z",
+      "updatedAt": "2026-05-13T00:00:00.000Z"
+    },
+    {
+      "name": "monitoring",
+      "createdAt": "2026-05-13T00:00:00.000Z",
+      "updatedAt": "2026-05-13T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 1,
+  "active": false
+}
