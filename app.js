@@ -335,6 +335,7 @@ const TRANSLATIONS = {
     sync_uploading: 'Subiendo a Sprinter...',
     sync_upload_done: 'Subida completada',
     sync_upload_result: 'productos subidos',
+    sync_no_products: 'Primero procesa un catálogo para tener productos que subir',
     sync_upload_errors: 'errores',
     sync_upload_warnings: 'advertencias',
     sync_simulating: 'Sincronizando...',
@@ -658,6 +659,7 @@ const TRANSLATIONS = {
     sync_upload_desc: 'Suba os produtos convertidos diretamente para Mirakl/Sprinter via API.',
     sync_uploading: 'A subir para Sprinter...',
     sync_upload_done: 'Subida concluída',
+    sync_no_products: 'Primeiro processe um catálogo para ter produtos para subir',
     sync_upload_result: 'produtos subidos',
     sync_upload_errors: 'erros',
     sync_upload_warnings: 'avisos',
@@ -1327,6 +1329,10 @@ function app() {
     },
 
     async uploadToSprinter() {
+      if (!this.lastProcessedProducts || this.lastProcessedProducts.length === 0) {
+        this.showToast(this.t('sync_no_products'), 'info');
+        return;
+      }
       this.syncUploadSimulating = true;
       this.syncUploadProgress = 0;
       this.syncUploadDone = false;
@@ -1334,7 +1340,7 @@ function app() {
         const resp = await fetch(N8N_BASE + '/webhook/mirakl-upload-products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: this.authToken })
+          body: JSON.stringify({ token: this.authToken, products: this.lastProcessedProducts })
         });
         const data = await resp.json();
         if (data.success) {
@@ -1344,7 +1350,7 @@ function app() {
         } else if (data.error === 'mirakl_not_configured') {
           this.showToast(this.t('sync_mirakl_not_configured'), 'info');
         } else {
-          this.showToast(data.error || 'Error', 'error');
+          this.showToast(data.message || data.error || 'Error', 'error');
         }
       } catch(e) { this.showToast(e.message, 'error'); }
       this.syncUploadSimulating = false;

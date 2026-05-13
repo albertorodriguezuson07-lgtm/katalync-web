@@ -1296,8 +1296,9 @@ for (const p of products) {
             const candidate = urlPrefix + productId + '-' + imgNum + '-original' + ext;
             if (!imageUrlsToProcess.includes(candidate)) {
               try {
-                const urlObj = new URL(candidate);
-                const headResp = await httpsGet(urlObj.hostname, urlObj.pathname, 5000);
+                const cm = candidate.match(/^https?:\/\/([^/]+)(\/[^?]*)?(\?.*)?$/);
+                if (!cm) continue;
+                const headResp = await httpsGet(cm[1], (cm[2] || '/') + (cm[3] || ''), 5000);
                 if (headResp.status === 200 && headResp.data.length > 1000) {
                   imageUrlsToProcess.push(candidate);
                 }
@@ -1316,8 +1317,9 @@ for (const p of products) {
           let imgproxyInput = encodeURIComponent(srcUrl);
           if (removeBg && imgIdx === 0) {
             try {
-              const urlObj = new URL(srcUrl);
-              const origResponse = await httpsGet(urlObj.hostname, urlObj.pathname + urlObj.search);
+              const sm = srcUrl.match(/^https?:\/\/([^/]+)(\/[^?]*)?(\?.*)?$/);
+              if (!sm) throw new Error('bad url');
+              const origResponse = await httpsGet(sm[1], (sm[2] || '/') + (sm[3] || ''));
               if (origResponse.status === 200 && origResponse.data.length > 1000) {
                 const rembgResponse = await httpsPostBinary(REMBG_HOST, '/api/remove', origResponse.data, 'application/octet-stream');
                 if (rembgResponse.status === 200 && rembgResponse.data.length > 1000) {
