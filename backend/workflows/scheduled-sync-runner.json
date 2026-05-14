@@ -35,7 +35,7 @@
         },
         "queryParameters": {
           "parameters": [
-            { "name": "sync_status", "value": "=in.(active,synced,completed_with_errors)" },
+            { "name": "sync_status", "value": "=in.(active,synced,converted,completed_with_errors,converted_with_errors)" },
             { "name": "next_sync_at", "value": "=lte.{{ new Date().toISOString() }}" },
             { "name": "select", "value": "id,name,source,sync_interval_hours,last_sync_at,next_sync_at,config" }
           ]
