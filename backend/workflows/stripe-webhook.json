@@ -1,0 +1,460 @@
+{
+  "name": "Catalog Tools - Stripe Webhook",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "stripe-webhook",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "id": "stripe-wh-entry",
+      "name": "Stripe Webhook",
+      "webhookId": "stripe-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst event = body;\nconst type = event.type || '';\nconst obj = (event.data && event.data.object) ? event.data.object : {};\n\nlet email = '';\nif (obj.customer_email) email = obj.customer_email;\nelse if (obj.customer_details && obj.customer_details.email) email = obj.customer_details.email;\nelse if (obj.metadata && obj.metadata.email) email = obj.metadata.email;\nelse if (obj.receipt_email) email = obj.receipt_email;\nif (!email && obj.lines && obj.lines.data) {\n  for (const line of obj.lines.data) {\n    if (line.metadata && line.metadata.email) { email = line.metadata.email; break; }\n  }\n}\nemail = (email || '').toLowerCase().trim();\n\nlet newStatus = null;\nlet emailType = null;\nif (type === 'checkout.session.completed') { newStatus = 'active'; emailType = 'payment_success'; }\nelse if (type === 'invoice.payment_succeeded') { newStatus = 'active'; emailType = null; }\nelse if (type === 'invoice.payment_failed') { newStatus = 'suspended'; emailType = 'payment_failed'; }\nelse if (type === 'customer.subscription.deleted') { newStatus = 'cancelled'; emailType = 'subscription_cancelled'; }\n\nconst customerName = (obj.customer_details && obj.customer_details.name) || (obj.metadata && obj.metadata.name) || '';\n\nreturn [{ json: { type, email, newStatus, emailType, customerName, customer_id: obj.customer || '', subscription_id: obj.subscription || obj.id || '' } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ],
+      "id": "stripe-wh-parse",
+      "name": "Parse Event"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.katalync.com/webhook/stripe-subscription-update",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ email: $json.email, subscription_status: $json.newStatus, source: 'stripe_webhook', event: $json.type }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        300
+      ],
+      "id": "stripe-wh-update",
+      "name": "Update Auth"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "combinator": "and"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.emailType }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        980,
+        300
+      ],
+      "id": "stripe-wh-if-email",
+      "name": "Has Email Type?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.katalync.com/webhook/katalync-email",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: $json.emailType, email: $json.email, name: $json.customerName || $json.email }) }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        200
+      ],
+      "id": "stripe-wh-email-send",
+      "name": "Send Notification Email"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { received: true } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        300
+      ],
+      "id": "stripe-wh-final",
+      "name": "Respond OK"
+    }
+  ],
+  "connections": {
+    "Stripe Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Event": {
+      "main": [
+        [
+          {
+            "node": "Update Auth",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Auth": {
+      "main": [
+        [
+          {
+            "node": "Has Email Type?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Email Type?": {
+      "main": [
+        [
+          {
+            "node": "Send Notification Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Notification Email": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": null,
+  "activeVersionId": "dd1a97f8-f42a-494f-bc3a-89a1d1698921",
+  "versionCounter": 23,
+  "shared": [
+    {
+      "updatedAt": "2026-05-10T15:30:04.175Z",
+      "createdAt": "2026-05-10T15:30:04.175Z",
+      "role": "workflow:owner",
+      "workflowId": "0F5nTWi1dy5OESXw",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rodíguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-05-10T15:39:57.688Z",
+    "createdAt": "2026-05-10T15:39:57.688Z",
+    "versionId": "dd1a97f8-f42a-494f-bc3a-89a1d1698921",
+    "workflowId": "0F5nTWi1dy5OESXw",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "stripe-webhook",
+          "httpMethod": "POST",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          260,
+          300
+        ],
+        "id": "stripe-wh-entry",
+        "name": "Stripe Webhook",
+        "webhookId": "stripe-webhook"
+      },
+      {
+        "parameters": {
+          "jsCode": "const body = $input.first().json.body;\nconst event = body;\nconst type = event.type || '';\nconst obj = (event.data && event.data.object) ? event.data.object : {};\n\nlet email = '';\nif (obj.customer_email) email = obj.customer_email;\nelse if (obj.customer_details && obj.customer_details.email) email = obj.customer_details.email;\nelse if (obj.metadata && obj.metadata.email) email = obj.metadata.email;\nelse if (obj.receipt_email) email = obj.receipt_email;\nif (!email && obj.lines && obj.lines.data) {\n  for (const line of obj.lines.data) {\n    if (line.metadata && line.metadata.email) { email = line.metadata.email; break; }\n  }\n}\nemail = (email || '').toLowerCase().trim();\n\nlet newStatus = null;\nlet emailType = null;\nif (type === 'checkout.session.completed') { newStatus = 'active'; emailType = 'payment_success'; }\nelse if (type === 'invoice.payment_succeeded') { newStatus = 'active'; emailType = null; }\nelse if (type === 'invoice.payment_failed') { newStatus = 'suspended'; emailType = 'payment_failed'; }\nelse if (type === 'customer.subscription.deleted') { newStatus = 'cancelled'; emailType = 'subscription_cancelled'; }\n\nconst customerName = (obj.customer_details && obj.customer_details.name) || (obj.metadata && obj.metadata.name) || '';\n\nreturn [{ json: { type, email, newStatus, emailType, customerName, customer_id: obj.customer || '', subscription_id: obj.subscription || obj.id || '' } }];",
+          "mode": "runOnceForAllItems"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          500,
+          300
+        ],
+        "id": "stripe-wh-parse",
+        "name": "Parse Event"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.katalync.com/webhook/stripe-subscription-update",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ email: $json.email, subscription_status: $json.newStatus, source: 'stripe_webhook', event: $json.type }) }}",
+          "options": {
+            "timeout": 10000
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          740,
+          300
+        ],
+        "id": "stripe-wh-update",
+        "name": "Update Auth"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "combinator": "and"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.emailType }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "exists"
+                }
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          980,
+          300
+        ],
+        "id": "stripe-wh-if-email",
+        "name": "Has Email Type?"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.katalync.com/webhook/katalync-email",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ type: $json.emailType, email: $json.email, name: $json.customerName || $json.email }) }}",
+          "options": {
+            "timeout": 10000,
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1220,
+          200
+        ],
+        "id": "stripe-wh-email-send",
+        "name": "Send Notification Email"
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{ json: { received: true } }];",
+          "mode": "runOnceForAllItems"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1460,
+          300
+        ],
+        "id": "stripe-wh-final",
+        "name": "Respond OK"
+      }
+    ],
+    "connections": {
+      "Stripe Webhook": {
+        "main": [
+          [
+            {
+              "node": "Parse Event",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Event": {
+        "main": [
+          [
+            {
+              "node": "Update Auth",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update Auth": {
+        "main": [
+          [
+            {
+              "node": "Has Email Type?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Has Email Type?": {
+        "main": [
+          [
+            {
+              "node": "Send Notification Email",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond OK",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Notification Email": {
+        "main": [
+          [
+            {
+              "node": "Respond OK",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rodíguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-10T15:39:57.730Z",
+        "id": 347,
+        "workflowId": "0F5nTWi1dy5OESXw",
+        "versionId": "dd1a97f8-f42a-494f-bc3a-89a1d1698921",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-10T17:11:59.404Z",
+        "id": 361,
+        "workflowId": "0F5nTWi1dy5OESXw",
+        "versionId": "dd1a97f8-f42a-494f-bc3a-89a1d1698921",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-14T16:08:18.147Z",
+        "id": 799,
+        "workflowId": "0F5nTWi1dy5OESXw",
+        "versionId": "dd1a97f8-f42a-494f-bc3a-89a1d1698921",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-10T15:39:57.717Z",
+        "id": 346,
+        "workflowId": "0F5nTWi1dy5OESXw",
+        "versionId": "dd1a97f8-f42a-494f-bc3a-89a1d1698921",
+        "event": "deactivated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-10T17:11:59.368Z",
+        "id": 360,
+        "workflowId": "0F5nTWi1dy5OESXw",
+        "versionId": "dd1a97f8-f42a-494f-bc3a-89a1d1698921",
+        "event": "deactivated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-14T16:08:18.096Z",
+        "id": 798,
+        "workflowId": "0F5nTWi1dy5OESXw",
+        "versionId": "dd1a97f8-f42a-494f-bc3a-89a1d1698921",
+        "event": "deactivated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}

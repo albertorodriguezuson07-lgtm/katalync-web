@@ -1,0 +1,309 @@
+{
+  "name": "Catalog Tools - Price Updater",
+  "description": "Processes price/offer Excel with token auth via session verification. Validates SKU/price, generates Mirakl CSV with optional discount + promo tag. ES/PT.",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "b4c94b1a-e583-4ae9-ad16-8ccab0132a6f",
+      "name": "Receive Price Data",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "price-update",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "webhookId": "a77aba55-b3f3-4a32-b59a-3f2d068151d9"
+    },
+    {
+      "id": "1680a30d-f3d6-46d8-9bba-d194952b01c4",
+      "name": "Process Prices",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const https = require('https');\n\nfunction verifyToken(token) {\n  return new Promise((resolve) => {\n    if (!token) { resolve(false); return; }\n    const postData = JSON.stringify({ token });\n    const req = https.request({ hostname: 'api.katalync.com', port: 443, path: '/webhook/auth-verify', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) } }, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => { try { const d = JSON.parse(Buffer.concat(chunks).toString()); resolve(d.success === true); } catch(e) { resolve(false); } });\n    });\n    req.on('error', () => resolve(false));\n    req.setTimeout(5000, () => { req.destroy(); resolve(false); });\n    req.write(postData);\n    req.end();\n  });\n}\n\nconst INPUT_MAP = {\n  'sku': 'sku-de-vendedor', 'SKU': 'sku-de-vendedor', 'Sku': 'sku-de-vendedor', 'referencia': 'sku-de-vendedor', 'Referencia': 'sku-de-vendedor',\n  'ean': 'ean', 'EAN': 'ean', 'ean13': 'ean', 'product-id': 'ean', 'product_id': 'ean', 'codigo_barras': 'ean',\n  'offer-sku': '_offer-sku', 'offer_sku': '_offer-sku',\n  'precio': 'price', 'Precio': 'price', 'price': 'price', 'Price': 'price', 'PVP': 'price',\n  'discount-price': 'discount-price', 'discount_price': 'discount-price', 'precio_descuento': 'discount-price',\n  'discount-start-date': 'discount-start-date', 'discount-end-date': 'discount-end-date',\n  'stock': 'quantity', 'Stock': 'quantity', 'quantity': 'quantity', 'Quantity': 'quantity', 'cantidad': 'quantity',\n  // Native Mirakl API codes (identity mapping)\n  'categorias': 'categorias',\n  'sku-de-vendedor': 'sku-de-vendedor',\n  'nombre-del-articulo': 'nombre-del-articulo',\n  'nombre-del-articulo-pt': 'nombre-del-articulo-pt',\n  'subtitulo-de-productos': 'subtitulo-de-productos',\n  'subtitulo-de-productos-pt': 'subtitulo-de-productos-pt',\n  'pais-fabricante': 'pais-fabricante',\n  'pais-fabricante-pt': 'pais-fabricante-pt',\n  'marcas': 'marcas',\n  'descripion-del-producto': 'descripion-del-producto',\n  'imagenes-1': 'imagenes-1',\n  'imagenes-2': 'imagenes-2',\n  'imagenes-3': 'imagenes-3',\n  'imagenes-4': 'imagenes-4',\n  'colores': 'colores',\n  'tipos-de-deportes': 'tipos-de-deportes',\n  'nombre-del-fabricante': 'nombre-del-fabricante',\n  'nombre-comercial-registrado-del-fabricante': 'nombre-comercial-registrado-del-fabricante',\n  'direccion-del-fabricante': 'direccion-del-fabricante',\n  'correo-electronico-del-fabricante': 'correo-electronico-del-fabricante',\n  'nombre-persona-responsable-en-eu': 'nombre-persona-responsable-en-eu',\n  'direccion-de-la-persona-responsable': 'direccion-de-la-persona-responsable',\n  'correo-electronico-de-la-persona-responsable': 'correo-electronico-de-la-persona-responsable',\n  'foto-etiqueta-del-producto': 'foto-etiqueta-del-producto',\n  'manual-de-seguridad-del-producto': 'manual-de-seguridad-del-producto',\n  'video': 'video',\n  'guia-de-tallas': 'guia-de-tallas',\n  'colecciones': 'colecciones',\n  'cuidados': 'cuidados'\n};\n\nfunction mapInputRow(row) {\n  const mapped = {};\n  for (const [key, val] of Object.entries(row)) {\n    const apiCode = INPUT_MAP[key] || INPUT_MAP[key.toLowerCase()] || key;\n    mapped[apiCode] = val;\n  }\n  return mapped;\n}\n\nconst input = $input.first().json.body;\nconst tokenValid = await verifyToken(input.token);\nif (!tokenValid) {\n  return [{ json: { status: 'error', message: 'Sesion no valida o expirada. Vuelve a iniciar sesion.', errors: 1, success: 0, errorList: [{ sku: '-', message: 'Token invalido' }], csvBase64: '', csvFilename: '', products: [] } }];\n}\n\nconst products = input.products || [];\nconst marketplace = input.marketplace || 'sprinter_es';\nconst includeDiscount = input.includeDiscount === true;\nconst promoTag = (input.promoTag || '').trim();\nconst isPT = marketplace === 'sportzone_pt';\nconst outputFormat = input.outputFormat || '';\nconst shipmentOrigin = input.shipmentOrigin || 'ES';\nconst vatPct = input.vatPct || 'ES-21%,PT-23%';\n\nconst results = [];\nconst errors = [];\n\nfor (const p of products) {\n  try {\n    const mapped = mapInputRow(p);\n    const sku = mapped['_offer-sku'] || mapped['sku-de-vendedor'] || '';\n    if (!sku) { errors.push({ sku: '?', message: 'SKU vacio' }); continue; }\n    const ean = String(mapped['ean'] || '').trim();\n    const priceRaw = mapped['price'] || '';\n    const price = String(priceRaw).replace(',', '.').replace(/[^0-9.]/g, '');\n    if (!price || isNaN(Number(price))) { errors.push({ sku, message: 'Precio invalido: ' + priceRaw }); continue; }\n    const qtyRaw = mapped['quantity'] || '';\n    const quantity = qtyRaw ? String(qtyRaw).replace(/[^0-9]/g, '') : '';\n    let discountPrice = '';\n    let discountStart = '';\n    let discountEnd = '';\n    if (includeDiscount) {\n      const dpRaw = mapped['discount-price'] || '';\n      if (dpRaw) {\n        discountPrice = String(dpRaw).replace(',', '.').replace(/[^0-9.]/g, '');\n        if (discountPrice && isNaN(Number(discountPrice))) { errors.push({ sku, message: 'Precio descuento invalido: ' + dpRaw }); continue; }\n      }\n      discountStart = mapped['discount-start-date'] || '';\n      discountEnd = mapped['discount-end-date'] || '';\n    }\n    const currency = p.currency || p.moneda || p.Currency || p.Moneda || 'EUR';\n    const offerDescription = promoTag || '';\n\n    const item = { sku, ean, price, discount_price: discountPrice, currency, offer_description: offerDescription, marketplace, quantity };\n\n    if (outputFormat === 'sprinter_mirakl') {\n      item.sprinterOffer = {\n        'sku': sku,\n        'product-id': ean,\n        'product-id-type': ean ? 'EAN' : '',\n        'description': offerDescription,\n        'internal-description': '',\n        'price': price,\n        'price-additional-info': '',\n        'quantity': quantity,\n        'min-quantity-alert': '',\n        'state': 'Nuevo',\n        'available-start-date': '',\n        'available-end-date': '',\n        'logistic-class': '',\n        'favorite-rank': '',\n        'discount-price': discountPrice,\n        'discount-start-date': discountStart,\n        'discount-end-date': discountEnd,\n        'discount-ranges': '',\n        'leadtime-to-ship': '',\n        'update-delete': '',\n        'price[channel=INIT]': price,\n        'discount-price[channel=INIT]': discountPrice,\n        'discount-start-date[channel=INIT]': discountStart,\n        'discount-end-date[channel=INIT]': discountEnd,\n        'discount-ranges[channel=INIT]': '',\n        'shipment-origin': shipmentOrigin,\n        'vat-percentage': vatPct\n      };\n    }\n\n    results.push({ json: item });\n  } catch (err) { errors.push({ sku: p.sku || p.SKU || '?', message: err.message }); }\n}\n\nif (results.length === 0) results.push({ json: { _empty: true } });\nresults[results.length - 1].json._errors = errors;\nresults[results.length - 1].json._totalInput = products.length;\nresults[results.length - 1].json._marketplace = marketplace;\nresults[results.length - 1].json._includeDiscount = includeDiscount;\nresults[results.length - 1].json._promoTag = promoTag;\nresults[results.length - 1].json._outputFormat = outputFormat;\nresults[results.length - 1].json._shipmentOrigin = shipmentOrigin;\nresults[results.length - 1].json._vatPct = vatPct;\nreturn results;"
+      }
+    },
+    {
+      "id": "18362a5f-5aa6-49ea-8668-d50873617be6",
+      "name": "Build Price Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const items = $input.all();\nconst allProducts = items.map(i => i.json).filter(p => !p._empty);\nconst last = items[items.length - 1].json;\nif (last.status === 'error') return [{ json: last }];\nconst errors = last._errors || [];\nconst totalInput = last._totalInput || allProducts.length;\nconst marketplace = last._marketplace || 'sprinter_es';\nconst includeDiscount = last._includeDiscount || false;\nconst promoTag = last._promoTag || '';\nconst outputFormat = last._outputFormat || '';\nconst isPT = marketplace === 'sportzone_pt';\nconst products = allProducts.map(p => {\n  const clean = { ...p };\n  delete clean._errors; delete clean._totalInput; delete clean._marketplace;\n  delete clean._includeDiscount; delete clean._promoTag; delete clean._outputFormat;\n  delete clean._shipmentOrigin; delete clean._vatPct;\n  return clean;\n});\n\nlet csvHeaders;\nif (includeDiscount) { csvHeaders = isPT ? ['sku','preco','preco_desconto','moeda','descricao_oferta'] : ['sku','precio','precio_descuento','moneda','descripcion_oferta']; }\nelse { csvHeaders = isPT ? ['sku','preco','moeda'] : ['sku','precio','moneda']; }\nconst BOM = '﻿';\nconst NL = String.fromCharCode(10);\nconst csvRows = products.map(p => {\n  let vals;\n  if (includeDiscount) { vals = [p.sku, p.price, p.discount_price, p.currency, p.offer_description]; }\n  else { vals = [p.sku, p.price, p.currency]; }\n  return vals.map(v => '\"' + String(v || '').replace(/\"/g, '\"\"') + '\"').join(';');\n});\nconst csv = BOM + csvHeaders.join(';') + NL + csvRows.join(NL);\nconst csvBase64 = Buffer.from(csv, 'utf-8').toString('base64');\nconst filename = (includeDiscount && promoTag ? 'ofertas_' : 'precios_') + marketplace + '_' + new Date().toISOString().slice(0,10) + '.csv';\nconst msg = isPT ? products.length + ' precos processados com sucesso' : products.length + ' precios procesados correctamente';\n\nconst response = { status: 'completed', total: totalInput, success: products.length, errors: errors.length, errorList: errors, csvBase64, csvFilename: filename, products: products.slice(0, 6).map(p => { const c = { ...p }; delete c.sprinterOffer; return c; }), message: msg };\n\nif (outputFormat === 'sprinter_mirakl') {\n  const offerRows = products.filter(p => p.sprinterOffer).map(p => p.sprinterOffer);\n  response.sprinterOfferRows = offerRows;\n  response.offersFilename = 'ofertas_sprinter_' + new Date().toISOString().slice(0,10) + '.xlsx';\n}\n\nreturn [{ json: response }];"
+      }
+    },
+    {
+      "id": "4be6b335-cc6c-4db7-8060-0645825d449f",
+      "name": "Send Results",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Receive Price Data": {
+      "main": [
+        [
+          {
+            "node": "Process Prices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Prices": {
+      "main": [
+        [
+          {
+            "node": "Build Price Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Price Response": {
+      "main": [
+        [
+          {
+            "node": "Send Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "pinData": null,
+  "activeVersionId": "117cad20-8ffa-48c2-b879-4c8c8b5f206e",
+  "versionCounter": 36,
+  "shared": [
+    {
+      "updatedAt": "2026-05-08T18:59:17.304Z",
+      "createdAt": "2026-05-08T18:59:17.304Z",
+      "role": "workflow:owner",
+      "workflowId": "VPMTfR3zFsKKKWl2",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rodíguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-05-11T16:48:58.010Z",
+    "createdAt": "2026-05-11T16:48:58.010Z",
+    "versionId": "117cad20-8ffa-48c2-b879-4c8c8b5f206e",
+    "workflowId": "VPMTfR3zFsKKKWl2",
+    "nodes": [
+      {
+        "id": "b4c94b1a-e583-4ae9-ad16-8ccab0132a6f",
+        "name": "Receive Price Data",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "price-update",
+          "responseMode": "responseNode",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Access-Control-Allow-Headers",
+                  "value": "Content-Type"
+                },
+                {
+                  "name": "Access-Control-Allow-Methods",
+                  "value": "POST, OPTIONS"
+                }
+              ]
+            }
+          }
+        },
+        "webhookId": "a77aba55-b3f3-4a32-b59a-3f2d068151d9"
+      },
+      {
+        "id": "1680a30d-f3d6-46d8-9bba-d194952b01c4",
+        "name": "Process Prices",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const https = require('https');\n\nfunction verifyToken(token) {\n  return new Promise((resolve) => {\n    if (!token) { resolve(false); return; }\n    const postData = JSON.stringify({ token });\n    const req = https.request({ hostname: 'api.katalync.com', port: 443, path: '/webhook/auth-verify', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) } }, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => { try { const d = JSON.parse(Buffer.concat(chunks).toString()); resolve(d.success === true); } catch(e) { resolve(false); } });\n    });\n    req.on('error', () => resolve(false));\n    req.setTimeout(5000, () => { req.destroy(); resolve(false); });\n    req.write(postData);\n    req.end();\n  });\n}\n\nconst INPUT_MAP = {\n  'sku': 'sku-de-vendedor', 'SKU': 'sku-de-vendedor', 'Sku': 'sku-de-vendedor', 'referencia': 'sku-de-vendedor', 'Referencia': 'sku-de-vendedor',\n  'ean': 'ean', 'EAN': 'ean', 'ean13': 'ean', 'product-id': 'ean', 'product_id': 'ean', 'codigo_barras': 'ean',\n  'offer-sku': '_offer-sku', 'offer_sku': '_offer-sku',\n  'precio': 'price', 'Precio': 'price', 'price': 'price', 'Price': 'price', 'PVP': 'price',\n  'discount-price': 'discount-price', 'discount_price': 'discount-price', 'precio_descuento': 'discount-price',\n  'discount-start-date': 'discount-start-date', 'discount-end-date': 'discount-end-date',\n  'stock': 'quantity', 'Stock': 'quantity', 'quantity': 'quantity', 'Quantity': 'quantity', 'cantidad': 'quantity',\n  // Native Mirakl API codes (identity mapping)\n  'categorias': 'categorias',\n  'sku-de-vendedor': 'sku-de-vendedor',\n  'nombre-del-articulo': 'nombre-del-articulo',\n  'nombre-del-articulo-pt': 'nombre-del-articulo-pt',\n  'subtitulo-de-productos': 'subtitulo-de-productos',\n  'subtitulo-de-productos-pt': 'subtitulo-de-productos-pt',\n  'pais-fabricante': 'pais-fabricante',\n  'pais-fabricante-pt': 'pais-fabricante-pt',\n  'marcas': 'marcas',\n  'descripion-del-producto': 'descripion-del-producto',\n  'imagenes-1': 'imagenes-1',\n  'imagenes-2': 'imagenes-2',\n  'imagenes-3': 'imagenes-3',\n  'imagenes-4': 'imagenes-4',\n  'colores': 'colores',\n  'tipos-de-deportes': 'tipos-de-deportes',\n  'nombre-del-fabricante': 'nombre-del-fabricante',\n  'nombre-comercial-registrado-del-fabricante': 'nombre-comercial-registrado-del-fabricante',\n  'direccion-del-fabricante': 'direccion-del-fabricante',\n  'correo-electronico-del-fabricante': 'correo-electronico-del-fabricante',\n  'nombre-persona-responsable-en-eu': 'nombre-persona-responsable-en-eu',\n  'direccion-de-la-persona-responsable': 'direccion-de-la-persona-responsable',\n  'correo-electronico-de-la-persona-responsable': 'correo-electronico-de-la-persona-responsable',\n  'foto-etiqueta-del-producto': 'foto-etiqueta-del-producto',\n  'manual-de-seguridad-del-producto': 'manual-de-seguridad-del-producto',\n  'video': 'video',\n  'guia-de-tallas': 'guia-de-tallas',\n  'colecciones': 'colecciones',\n  'cuidados': 'cuidados'\n};\n\nfunction mapInputRow(row) {\n  const mapped = {};\n  for (const [key, val] of Object.entries(row)) {\n    const apiCode = INPUT_MAP[key] || INPUT_MAP[key.toLowerCase()] || key;\n    mapped[apiCode] = val;\n  }\n  return mapped;\n}\n\nconst input = $input.first().json.body;\nconst tokenValid = await verifyToken(input.token);\nif (!tokenValid) {\n  return [{ json: { status: 'error', message: 'Sesion no valida o expirada. Vuelve a iniciar sesion.', errors: 1, success: 0, errorList: [{ sku: '-', message: 'Token invalido' }], csvBase64: '', csvFilename: '', products: [] } }];\n}\n\nconst products = input.products || [];\nconst marketplace = input.marketplace || 'sprinter_es';\nconst includeDiscount = input.includeDiscount === true;\nconst promoTag = (input.promoTag || '').trim();\nconst isPT = marketplace === 'sportzone_pt';\nconst outputFormat = input.outputFormat || '';\nconst shipmentOrigin = input.shipmentOrigin || 'ES';\nconst vatPct = input.vatPct || 'ES-21%,PT-23%';\n\nconst results = [];\nconst errors = [];\n\nfor (const p of products) {\n  try {\n    const mapped = mapInputRow(p);\n    const sku = mapped['_offer-sku'] || mapped['sku-de-vendedor'] || '';\n    if (!sku) { errors.push({ sku: '?', message: 'SKU vacio' }); continue; }\n    const ean = String(mapped['ean'] || '').trim();\n    const priceRaw = mapped['price'] || '';\n    const price = String(priceRaw).replace(',', '.').replace(/[^0-9.]/g, '');\n    if (!price || isNaN(Number(price))) { errors.push({ sku, message: 'Precio invalido: ' + priceRaw }); continue; }\n    const qtyRaw = mapped['quantity'] || '';\n    const quantity = qtyRaw ? String(qtyRaw).replace(/[^0-9]/g, '') : '';\n    let discountPrice = '';\n    let discountStart = '';\n    let discountEnd = '';\n    if (includeDiscount) {\n      const dpRaw = mapped['discount-price'] || '';\n      if (dpRaw) {\n        discountPrice = String(dpRaw).replace(',', '.').replace(/[^0-9.]/g, '');\n        if (discountPrice && isNaN(Number(discountPrice))) { errors.push({ sku, message: 'Precio descuento invalido: ' + dpRaw }); continue; }\n      }\n      discountStart = mapped['discount-start-date'] || '';\n      discountEnd = mapped['discount-end-date'] || '';\n    }\n    const currency = p.currency || p.moneda || p.Currency || p.Moneda || 'EUR';\n    const offerDescription = promoTag || '';\n\n    const item = { sku, ean, price, discount_price: discountPrice, currency, offer_description: offerDescription, marketplace, quantity };\n\n    if (outputFormat === 'sprinter_mirakl') {\n      item.sprinterOffer = {\n        'sku': sku,\n        'product-id': ean,\n        'product-id-type': ean ? 'EAN' : '',\n        'description': offerDescription,\n        'internal-description': '',\n        'price': price,\n        'price-additional-info': '',\n        'quantity': quantity,\n        'min-quantity-alert': '',\n        'state': 'Nuevo',\n        'available-start-date': '',\n        'available-end-date': '',\n        'logistic-class': '',\n        'favorite-rank': '',\n        'discount-price': discountPrice,\n        'discount-start-date': discountStart,\n        'discount-end-date': discountEnd,\n        'discount-ranges': '',\n        'leadtime-to-ship': '',\n        'update-delete': '',\n        'price[channel=INIT]': price,\n        'discount-price[channel=INIT]': discountPrice,\n        'discount-start-date[channel=INIT]': discountStart,\n        'discount-end-date[channel=INIT]': discountEnd,\n        'discount-ranges[channel=INIT]': '',\n        'shipment-origin': shipmentOrigin,\n        'vat-percentage': vatPct\n      };\n    }\n\n    results.push({ json: item });\n  } catch (err) { errors.push({ sku: p.sku || p.SKU || '?', message: err.message }); }\n}\n\nif (results.length === 0) results.push({ json: { _empty: true } });\nresults[results.length - 1].json._errors = errors;\nresults[results.length - 1].json._totalInput = products.length;\nresults[results.length - 1].json._marketplace = marketplace;\nresults[results.length - 1].json._includeDiscount = includeDiscount;\nresults[results.length - 1].json._promoTag = promoTag;\nresults[results.length - 1].json._outputFormat = outputFormat;\nresults[results.length - 1].json._shipmentOrigin = shipmentOrigin;\nresults[results.length - 1].json._vatPct = vatPct;\nreturn results;"
+        }
+      },
+      {
+        "id": "18362a5f-5aa6-49ea-8668-d50873617be6",
+        "name": "Build Price Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const items = $input.all();\nconst allProducts = items.map(i => i.json).filter(p => !p._empty);\nconst last = items[items.length - 1].json;\nif (last.status === 'error') return [{ json: last }];\nconst errors = last._errors || [];\nconst totalInput = last._totalInput || allProducts.length;\nconst marketplace = last._marketplace || 'sprinter_es';\nconst includeDiscount = last._includeDiscount || false;\nconst promoTag = last._promoTag || '';\nconst outputFormat = last._outputFormat || '';\nconst isPT = marketplace === 'sportzone_pt';\nconst products = allProducts.map(p => {\n  const clean = { ...p };\n  delete clean._errors; delete clean._totalInput; delete clean._marketplace;\n  delete clean._includeDiscount; delete clean._promoTag; delete clean._outputFormat;\n  delete clean._shipmentOrigin; delete clean._vatPct;\n  return clean;\n});\n\nlet csvHeaders;\nif (includeDiscount) { csvHeaders = isPT ? ['sku','preco','preco_desconto','moeda','descricao_oferta'] : ['sku','precio','precio_descuento','moneda','descripcion_oferta']; }\nelse { csvHeaders = isPT ? ['sku','preco','moeda'] : ['sku','precio','moneda']; }\nconst BOM = '﻿';\nconst NL = String.fromCharCode(10);\nconst csvRows = products.map(p => {\n  let vals;\n  if (includeDiscount) { vals = [p.sku, p.price, p.discount_price, p.currency, p.offer_description]; }\n  else { vals = [p.sku, p.price, p.currency]; }\n  return vals.map(v => '\"' + String(v || '').replace(/\"/g, '\"\"') + '\"').join(';');\n});\nconst csv = BOM + csvHeaders.join(';') + NL + csvRows.join(NL);\nconst csvBase64 = Buffer.from(csv, 'utf-8').toString('base64');\nconst filename = (includeDiscount && promoTag ? 'ofertas_' : 'precios_') + marketplace + '_' + new Date().toISOString().slice(0,10) + '.csv';\nconst msg = isPT ? products.length + ' precos processados com sucesso' : products.length + ' precios procesados correctamente';\n\nconst response = { status: 'completed', total: totalInput, success: products.length, errors: errors.length, errorList: errors, csvBase64, csvFilename: filename, products: products.slice(0, 6).map(p => { const c = { ...p }; delete c.sprinterOffer; return c; }), message: msg };\n\nif (outputFormat === 'sprinter_mirakl') {\n  const offerRows = products.filter(p => p.sprinterOffer).map(p => p.sprinterOffer);\n  response.sprinterOfferRows = offerRows;\n  response.offersFilename = 'ofertas_sprinter_' + new Date().toISOString().slice(0,10) + '.xlsx';\n}\n\nreturn [{ json: response }];"
+        }
+      },
+      {
+        "id": "4be6b335-cc6c-4db7-8060-0645825d449f",
+        "name": "Send Results",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {
+          "respondWith": "firstIncomingItem",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Receive Price Data": {
+        "main": [
+          [
+            {
+              "node": "Process Prices",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Prices": {
+        "main": [
+          [
+            {
+              "node": "Build Price Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Price Response": {
+        "main": [
+          [
+            {
+              "node": "Send Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rodíguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-11T16:48:58.052Z",
+        "id": 386,
+        "workflowId": "VPMTfR3zFsKKKWl2",
+        "versionId": "117cad20-8ffa-48c2-b879-4c8c8b5f206e",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-11T16:48:58.036Z",
+        "id": 385,
+        "workflowId": "VPMTfR3zFsKKKWl2",
+        "versionId": "117cad20-8ffa-48c2-b879-4c8c8b5f206e",
+        "event": "deactivated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}

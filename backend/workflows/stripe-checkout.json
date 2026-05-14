@@ -1,0 +1,354 @@
+{
+  "name": "Catalog Tools - Stripe Checkout",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "stripe-create-checkout",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "id": "stripe-checkout-webhook",
+      "name": "Checkout Webhook",
+      "webhookId": "stripe-create-checkout"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// Get user email from request body or query\nconst body = $input.first().json.body || {};\nconst query = $input.first().json.query || {};\nconst email = (body.email || query.email || '').toLowerCase().trim();\n\nif (!email) {\n  return [{ json: { error: 'Email required' } }];\n}\n\n// Determine plan based on role (sent from frontend or looked up)\nconst role = body.role || 'user';\nconst isAdmin = role === 'marketplace_admin';\n\n// Return data for Stripe API call\nreturn [{ json: { email, isAdmin, role } }];\n",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ],
+      "id": "parse-request",
+      "name": "Parse Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/checkout/sessions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "stripeApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "mode",
+              "value": "subscription"
+            },
+            {
+              "name": "success_url",
+              "value": "https://katalync.com/app?payment=success"
+            },
+            {
+              "name": "cancel_url",
+              "value": "https://katalync.com/app?payment=cancelled"
+            },
+            {
+              "name": "customer_email",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "line_items[0][quantity]",
+              "value": "1"
+            },
+            {
+              "name": "metadata[email]",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "metadata[role]",
+              "value": "={{ $json.role }}"
+            },
+            {
+              "name": "allow_promotion_codes",
+              "value": "true"
+            },
+            {
+              "name": "line_items[0][price]",
+              "value": "={{ $json.isAdmin ? 'price_1TX1lcRLNtHKo8l3jSVAI3g1' : 'price_1TX1lbRLNtHKo8l3uDM6gyov' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        300
+      ],
+      "id": "stripe-create-session",
+      "name": "Create Stripe Session",
+      "credentials": {
+        "stripeApi": {
+          "id": "DZeHvLiIbPc1CkGF",
+          "name": "Stripe Live"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst session = $input.first().json;\nif (session.url) {\n  return [{ json: { success: true, checkout_url: session.url, session_id: session.id } }];\n} else {\n  return [{ json: { success: false, error: session.error?.message || 'Error creating checkout session' } }];\n}\n",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        300
+      ],
+      "id": "format-response",
+      "name": "Format Response"
+    }
+  ],
+  "connections": {
+    "Checkout Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Request": {
+      "main": [
+        [
+          {
+            "node": "Create Stripe Session",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Stripe Session": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": null,
+  "activeVersionId": "df26efa7-ff70-40d4-9bfc-435f83249030",
+  "versionCounter": 17,
+  "shared": [
+    {
+      "updatedAt": "2026-05-10T15:10:28.186Z",
+      "createdAt": "2026-05-10T15:10:28.186Z",
+      "role": "workflow:owner",
+      "workflowId": "vhfT4sJRmS5aATqP",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rodíguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-05-14T16:08:17.512Z",
+    "createdAt": "2026-05-14T16:08:17.512Z",
+    "versionId": "df26efa7-ff70-40d4-9bfc-435f83249030",
+    "workflowId": "vhfT4sJRmS5aATqP",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "stripe-create-checkout",
+          "httpMethod": "POST",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          260,
+          300
+        ],
+        "id": "stripe-checkout-webhook",
+        "name": "Checkout Webhook",
+        "webhookId": "stripe-create-checkout"
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// Get user email from request body or query\nconst body = $input.first().json.body || {};\nconst query = $input.first().json.query || {};\nconst email = (body.email || query.email || '').toLowerCase().trim();\n\nif (!email) {\n  return [{ json: { error: 'Email required' } }];\n}\n\n// Determine plan based on role (sent from frontend or looked up)\nconst role = body.role || 'user';\nconst isAdmin = role === 'marketplace_admin';\n\n// Return data for Stripe API call\nreturn [{ json: { email, isAdmin, role } }];\n",
+          "mode": "runOnceForAllItems"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          500,
+          300
+        ],
+        "id": "parse-request",
+        "name": "Parse Request"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.stripe.com/v1/checkout/sessions",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "stripeApi",
+          "sendBody": true,
+          "contentType": "form-urlencoded",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "mode",
+                "value": "subscription"
+              },
+              {
+                "name": "success_url",
+                "value": "https://katalync.com/app?payment=success"
+              },
+              {
+                "name": "cancel_url",
+                "value": "https://katalync.com/app?payment=cancelled"
+              },
+              {
+                "name": "customer_email",
+                "value": "={{ $json.email }}"
+              },
+              {
+                "name": "line_items[0][quantity]",
+                "value": "1"
+              },
+              {
+                "name": "metadata[email]",
+                "value": "={{ $json.email }}"
+              },
+              {
+                "name": "metadata[role]",
+                "value": "={{ $json.role }}"
+              },
+              {
+                "name": "allow_promotion_codes",
+                "value": "true"
+              },
+              {
+                "name": "line_items[0][price]",
+                "value": "={{ $json.isAdmin ? 'price_1TX1lcRLNtHKo8l3jSVAI3g1' : 'price_1TX1lbRLNtHKo8l3uDM6gyov' }}"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          740,
+          300
+        ],
+        "id": "stripe-create-session",
+        "name": "Create Stripe Session",
+        "credentials": {
+          "stripeApi": {
+            "id": "DZeHvLiIbPc1CkGF",
+            "name": "Stripe Live"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "\nconst session = $input.first().json;\nif (session.url) {\n  return [{ json: { success: true, checkout_url: session.url, session_id: session.id } }];\n} else {\n  return [{ json: { success: false, error: session.error?.message || 'Error creating checkout session' } }];\n}\n",
+          "mode": "runOnceForAllItems"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          980,
+          300
+        ],
+        "id": "format-response",
+        "name": "Format Response"
+      }
+    ],
+    "connections": {
+      "Checkout Webhook": {
+        "main": [
+          [
+            {
+              "node": "Parse Request",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Request": {
+        "main": [
+          [
+            {
+              "node": "Create Stripe Session",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Stripe Session": {
+        "main": [
+          [
+            {
+              "node": "Format Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rodíguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-14T16:08:17.600Z",
+        "id": 795,
+        "workflowId": "vhfT4sJRmS5aATqP",
+        "versionId": "df26efa7-ff70-40d4-9bfc-435f83249030",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-14T16:08:17.563Z",
+        "id": 794,
+        "workflowId": "vhfT4sJRmS5aATqP",
+        "versionId": "df26efa7-ff70-40d4-9bfc-435f83249030",
+        "event": "deactivated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}

@@ -1,0 +1,347 @@
+{
+  "name": "Catalog Tools - Image Pipeline",
+  "description": "Receives product data via webhook, converts images to 2:3 ratio via imgproxy, uploads to Cloudflare R2 CDN, and returns Mirakl-ready CSV with public URLs.",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "73d7bb63-fca9-468c-98ba-78e8db5c6309",
+      "name": "Receive Image Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "image-process",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "webhookId": "4cfd8594-8361-4e0d-8bac-d1f5a35717b9"
+    },
+    {
+      "id": "62b3bc60-ea3b-468c-b3dc-bedda75de2cd",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst body = $input.first().json.body;\nconst token = body.token;\n\nif (token !== 'pmtx_img_2026') {\n  return [{ json: { error: true, message: 'Unauthorized', status: 401 } }];\n}\n\nconst products = body.products;\nconst marketplace = body.marketplace || 'sprinter_es';\n\nif (!products || !Array.isArray(products) || products.length === 0) {\n  return [{ json: { error: true, message: 'No products provided', status: 400 } }];\n}\n\nconst invalid = products.filter(p => !p.sku || !p.image_url);\nif (invalid.length > 0) {\n  return [{ json: { error: true, message: 'Products missing sku or image_url: ' + invalid.map(p => p.sku || 'unknown').join(', '), status: 400 } }];\n}\n\nreturn [{ json: { error: false, products, marketplace, total: products.length } }];\n"
+      }
+    },
+    {
+      "id": "6819fae6-8690-470b-abf4-15ff4714422a",
+      "name": "Process Images Pipeline",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst input = $input.first().json;\n\nif (input.error) {\n  return [{ json: input }];\n}\n\nconst products = input.products;\nconst marketplace = input.marketplace;\n\nconst IMGPROXY_HOST = 'imgproxy.reyl9a.easypanel.host';\nconst R2_HOST = '1ad99f42539d9623984dd787e28151ba.r2.cloudflarestorage.com';\nconst R2_BUCKET = 'sprinter-images';\nconst R2_ACCESS_KEY = '81e11f2adc76f7cb3da11063e4f2d9d4';\nconst R2_SECRET_KEY = '1172046df1975dea35c76f7d73df05669cc9a331ce1f1b0620225e73eb257265';\nconst CDN_BASE = 'https://pub-3dd3844245694c3f82abf1a5f3f07c43.r2.dev';\n\nconst { createHmac, createHash } = require('crypto');\nconst https = require('https');\n\nfunction hmacSHA256(key, data) {\n  return createHmac('sha256', key).update(data).digest();\n}\n\nfunction sha256hex(data) {\n  return createHash('sha256').update(data).digest('hex');\n}\n\nfunction httpsGet(hostname, path) {\n  return new Promise((resolve, reject) => {\n    const req = https.request({ hostname, path, port: 443, method: 'GET' }, (res) => {\n      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {\n        const loc = res.headers.location;\n        const match = loc.match(/^https:\\/\\/([^/]+)(\\/.*)$/);\n        if (match) {\n          httpsGet(match[1], match[2]).then(resolve).catch(reject);\n        } else {\n          reject(new Error('Bad redirect: ' + loc));\n        }\n        return;\n      }\n      const chunks = [];\n      res.on('data', (chunk) => chunks.push(chunk));\n      res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks) }));\n    });\n    req.on('error', reject);\n    req.setTimeout(60000, () => { req.destroy(); reject(new Error('Timeout')); });\n    req.end();\n  });\n}\n\nfunction httpsPut(hostname, path, headers, body) {\n  return new Promise((resolve, reject) => {\n    const req = https.request({ hostname, path, port: 443, method: 'PUT', headers }, (res) => {\n      const chunks = [];\n      res.on('data', (chunk) => chunks.push(chunk));\n      res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks) }));\n    });\n    req.on('error', reject);\n    req.setTimeout(60000, () => { req.destroy(); reject(new Error('Timeout')); });\n    req.write(body);\n    req.end();\n  });\n}\n\nconst results = [];\nconst errors = [];\nconst cdnUrls = [];\nconst previews = [];\n\nfor (let i = 0; i < products.length; i++) {\n  const product = products[i];\n  const sku = product.sku;\n\n  try {\n    const imgproxyPath = '/insecure/rs:fit:1000:1000:1/bg:FFFFFF/pd:250:0:250:0/format:jpg/quality:90/plain/' + encodeURIComponent(product.image_url);\n\n    const imgResponse = await httpsGet(IMGPROXY_HOST, imgproxyPath);\n    if (imgResponse.status !== 200) {\n      throw new Error('imgproxy HTTP ' + imgResponse.status);\n    }\n    const imageBuffer = imgResponse.data;\n    const objectKey = 'sprinter/' + sku.toLowerCase().replace(/[^a-z0-9-_]/g, '-') + '.jpg';\n\n    const now = new Date();\n    const dateStamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';\n    const shortDate = dateStamp.substring(0, 8);\n    const region = 'auto';\n    const svc = 's3';\n    const payloadHash = sha256hex(imageBuffer);\n    const canonicalUri = '/' + R2_BUCKET + '/' + objectKey;\n\n    const NL = String.fromCharCode(10);\n    const canonicalHeaders = 'content-type:image/jpeg' + NL + 'host:' + R2_HOST + NL + 'x-amz-content-sha256:' + payloadHash + NL + 'x-amz-date:' + dateStamp + NL;\n    const signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';\n    const canonicalRequest = 'PUT' + NL + canonicalUri + NL + NL + canonicalHeaders + NL + signedHeaders + NL + payloadHash;\n\n    const credentialScope = shortDate + '/' + region + '/' + svc + '/aws4_request';\n    const stringToSign = 'AWS4-HMAC-SHA256' + NL + dateStamp + NL + credentialScope + NL + sha256hex(canonicalRequest);\n\n    const signingKey = hmacSHA256(hmacSHA256(hmacSHA256(hmacSHA256('AWS4' + R2_SECRET_KEY, shortDate), region), svc), 'aws4_request');\n    const signature = createHmac('sha256', signingKey).update(stringToSign).digest('hex');\n\n    const authHeader = 'AWS4-HMAC-SHA256 Credential=' + R2_ACCESS_KEY + '/' + credentialScope + ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;\n    const uploadPath = '/' + R2_BUCKET + '/' + objectKey;\n\n    const uploadResponse = await httpsPut(R2_HOST, uploadPath, {\n      'Content-Type': 'image/jpeg',\n      'Host': R2_HOST,\n      'x-amz-content-sha256': payloadHash,\n      'x-amz-date': dateStamp,\n      'Authorization': authHeader,\n      'Content-Length': imageBuffer.length\n    }, imageBuffer);\n\n    if (uploadResponse.status !== 200) {\n      throw new Error('R2 HTTP ' + uploadResponse.status + ': ' + uploadResponse.data.toString().substring(0, 200));\n    }\n\n    const cdnUrl = CDN_BASE + '/' + objectKey;\n    cdnUrls.push({ sku, cdnUrl });\n    results.push({ sku, title: product.title || '', brand: product.brand || '', original_url: product.image_url, cdn_url: cdnUrl, status: 'success' });\n    if (previews.length < 4) { previews.push({ sku, original: product.image_url, converted: cdnUrl }); }\n\n  } catch (err) {\n    errors.push({ sku, error: err.message });\n    results.push({ sku, title: product.title || '', original_url: product.image_url, cdn_url: '', status: 'error', error: err.message });\n  }\n}\n\nreturn [{ json: { error: false, success: results.filter(r => r.status === 'success').length, errors: errors.length, total: products.length, previews, errorList: errors, cdnUrls, results, marketplace } }];\n"
+      }
+    },
+    {
+      "id": "5f765e3a-2eee-41aa-bb22-372b6689e2b6",
+      "name": "Generate Mirakl CSV",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "\nconst data = $input.first().json;\nif (data.error) { return [{ json: data }]; }\n\nconst results = data.results.filter(r => r.status === 'success');\nconst NL = String.fromCharCode(10);\nconst csvHeaders = ['sku', 'title', 'brand', 'image_url_1', 'original_url', 'status'];\nconst csvRows = results.map(r => [r.sku, '\"' + (r.title || '').replace(/\"/g, '\"\"') + '\"', '\"' + (r.brand || '').replace(/\"/g, '\"\"') + '\"', r.cdn_url, r.original_url, r.status].join(';'));\nconst csvContent = csvHeaders.join(';') + NL + csvRows.join(NL);\nconst csvBase64 = Buffer.from(csvContent, 'utf-8').toString('base64');\nconst filename = 'mirakl_images_' + data.marketplace + '_' + new Date().toISOString().split('T')[0] + '.csv';\n\nreturn [{ json: { error: false, csvBase64, csvFilename: filename, imagesProcessed: data.total, success: data.success, errors: data.errors, previews: data.previews, errorList: data.errorList, cdnUrls: data.cdnUrls } }];\n"
+      }
+    },
+    {
+      "id": "0f7fb66d-9064-4ff0-b132-82d44443e8ba",
+      "name": "Send Results",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Receive Image Request": {
+      "main": [
+        [
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          {
+            "node": "Process Images Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Images Pipeline": {
+      "main": [
+        [
+          {
+            "node": "Generate Mirakl CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Mirakl CSV": {
+      "main": [
+        [
+          {
+            "node": "Send Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "pinData": null,
+  "activeVersionId": "35613295-682d-409e-8e2e-8f236cd30ed4",
+  "versionCounter": 25,
+  "shared": [
+    {
+      "updatedAt": "2026-05-09T01:17:49.656Z",
+      "createdAt": "2026-05-09T01:17:49.656Z",
+      "role": "workflow:owner",
+      "workflowId": "trrTJKDwkrc9OZDY",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rodíguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-05-09T10:13:56.778Z",
+    "createdAt": "2026-05-09T10:13:56.778Z",
+    "versionId": "35613295-682d-409e-8e2e-8f236cd30ed4",
+    "workflowId": "trrTJKDwkrc9OZDY",
+    "nodes": [
+      {
+        "id": "73d7bb63-fca9-468c-98ba-78e8db5c6309",
+        "name": "Receive Image Request",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "image-process",
+          "responseMode": "responseNode",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Access-Control-Allow-Headers",
+                  "value": "Content-Type, Authorization"
+                },
+                {
+                  "name": "Access-Control-Allow-Methods",
+                  "value": "POST, OPTIONS"
+                }
+              ]
+            }
+          }
+        },
+        "webhookId": "4cfd8594-8361-4e0d-8bac-d1f5a35717b9"
+      },
+      {
+        "id": "62b3bc60-ea3b-468c-b3dc-bedda75de2cd",
+        "name": "Validate Input",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "\nconst body = $input.first().json.body;\nconst token = body.token;\n\nif (token !== 'pmtx_img_2026') {\n  return [{ json: { error: true, message: 'Unauthorized', status: 401 } }];\n}\n\nconst products = body.products;\nconst marketplace = body.marketplace || 'sprinter_es';\n\nif (!products || !Array.isArray(products) || products.length === 0) {\n  return [{ json: { error: true, message: 'No products provided', status: 400 } }];\n}\n\nconst invalid = products.filter(p => !p.sku || !p.image_url);\nif (invalid.length > 0) {\n  return [{ json: { error: true, message: 'Products missing sku or image_url: ' + invalid.map(p => p.sku || 'unknown').join(', '), status: 400 } }];\n}\n\nreturn [{ json: { error: false, products, marketplace, total: products.length } }];\n"
+        }
+      },
+      {
+        "id": "6819fae6-8690-470b-abf4-15ff4714422a",
+        "name": "Process Images Pipeline",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "\nconst input = $input.first().json;\n\nif (input.error) {\n  return [{ json: input }];\n}\n\nconst products = input.products;\nconst marketplace = input.marketplace;\n\nconst IMGPROXY_HOST = 'imgproxy.reyl9a.easypanel.host';\nconst R2_HOST = '1ad99f42539d9623984dd787e28151ba.r2.cloudflarestorage.com';\nconst R2_BUCKET = 'sprinter-images';\nconst R2_ACCESS_KEY = '81e11f2adc76f7cb3da11063e4f2d9d4';\nconst R2_SECRET_KEY = '1172046df1975dea35c76f7d73df05669cc9a331ce1f1b0620225e73eb257265';\nconst CDN_BASE = 'https://pub-3dd3844245694c3f82abf1a5f3f07c43.r2.dev';\n\nconst { createHmac, createHash } = require('crypto');\nconst https = require('https');\n\nfunction hmacSHA256(key, data) {\n  return createHmac('sha256', key).update(data).digest();\n}\n\nfunction sha256hex(data) {\n  return createHash('sha256').update(data).digest('hex');\n}\n\nfunction httpsGet(hostname, path) {\n  return new Promise((resolve, reject) => {\n    const req = https.request({ hostname, path, port: 443, method: 'GET' }, (res) => {\n      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {\n        const loc = res.headers.location;\n        const match = loc.match(/^https:\\/\\/([^/]+)(\\/.*)$/);\n        if (match) {\n          httpsGet(match[1], match[2]).then(resolve).catch(reject);\n        } else {\n          reject(new Error('Bad redirect: ' + loc));\n        }\n        return;\n      }\n      const chunks = [];\n      res.on('data', (chunk) => chunks.push(chunk));\n      res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks) }));\n    });\n    req.on('error', reject);\n    req.setTimeout(60000, () => { req.destroy(); reject(new Error('Timeout')); });\n    req.end();\n  });\n}\n\nfunction httpsPut(hostname, path, headers, body) {\n  return new Promise((resolve, reject) => {\n    const req = https.request({ hostname, path, port: 443, method: 'PUT', headers }, (res) => {\n      const chunks = [];\n      res.on('data', (chunk) => chunks.push(chunk));\n      res.on('end', () => resolve({ status: res.statusCode, data: Buffer.concat(chunks) }));\n    });\n    req.on('error', reject);\n    req.setTimeout(60000, () => { req.destroy(); reject(new Error('Timeout')); });\n    req.write(body);\n    req.end();\n  });\n}\n\nconst results = [];\nconst errors = [];\nconst cdnUrls = [];\nconst previews = [];\n\nfor (let i = 0; i < products.length; i++) {\n  const product = products[i];\n  const sku = product.sku;\n\n  try {\n    const imgproxyPath = '/insecure/rs:fit:1000:1000:1/bg:FFFFFF/pd:250:0:250:0/format:jpg/quality:90/plain/' + encodeURIComponent(product.image_url);\n\n    const imgResponse = await httpsGet(IMGPROXY_HOST, imgproxyPath);\n    if (imgResponse.status !== 200) {\n      throw new Error('imgproxy HTTP ' + imgResponse.status);\n    }\n    const imageBuffer = imgResponse.data;\n    const objectKey = 'sprinter/' + sku.toLowerCase().replace(/[^a-z0-9-_]/g, '-') + '.jpg';\n\n    const now = new Date();\n    const dateStamp = now.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';\n    const shortDate = dateStamp.substring(0, 8);\n    const region = 'auto';\n    const svc = 's3';\n    const payloadHash = sha256hex(imageBuffer);\n    const canonicalUri = '/' + R2_BUCKET + '/' + objectKey;\n\n    const NL = String.fromCharCode(10);\n    const canonicalHeaders = 'content-type:image/jpeg' + NL + 'host:' + R2_HOST + NL + 'x-amz-content-sha256:' + payloadHash + NL + 'x-amz-date:' + dateStamp + NL;\n    const signedHeaders = 'content-type;host;x-amz-content-sha256;x-amz-date';\n    const canonicalRequest = 'PUT' + NL + canonicalUri + NL + NL + canonicalHeaders + NL + signedHeaders + NL + payloadHash;\n\n    const credentialScope = shortDate + '/' + region + '/' + svc + '/aws4_request';\n    const stringToSign = 'AWS4-HMAC-SHA256' + NL + dateStamp + NL + credentialScope + NL + sha256hex(canonicalRequest);\n\n    const signingKey = hmacSHA256(hmacSHA256(hmacSHA256(hmacSHA256('AWS4' + R2_SECRET_KEY, shortDate), region), svc), 'aws4_request');\n    const signature = createHmac('sha256', signingKey).update(stringToSign).digest('hex');\n\n    const authHeader = 'AWS4-HMAC-SHA256 Credential=' + R2_ACCESS_KEY + '/' + credentialScope + ', SignedHeaders=' + signedHeaders + ', Signature=' + signature;\n    const uploadPath = '/' + R2_BUCKET + '/' + objectKey;\n\n    const uploadResponse = await httpsPut(R2_HOST, uploadPath, {\n      'Content-Type': 'image/jpeg',\n      'Host': R2_HOST,\n      'x-amz-content-sha256': payloadHash,\n      'x-amz-date': dateStamp,\n      'Authorization': authHeader,\n      'Content-Length': imageBuffer.length\n    }, imageBuffer);\n\n    if (uploadResponse.status !== 200) {\n      throw new Error('R2 HTTP ' + uploadResponse.status + ': ' + uploadResponse.data.toString().substring(0, 200));\n    }\n\n    const cdnUrl = CDN_BASE + '/' + objectKey;\n    cdnUrls.push({ sku, cdnUrl });\n    results.push({ sku, title: product.title || '', brand: product.brand || '', original_url: product.image_url, cdn_url: cdnUrl, status: 'success' });\n    if (previews.length < 4) { previews.push({ sku, original: product.image_url, converted: cdnUrl }); }\n\n  } catch (err) {\n    errors.push({ sku, error: err.message });\n    results.push({ sku, title: product.title || '', original_url: product.image_url, cdn_url: '', status: 'error', error: err.message });\n  }\n}\n\nreturn [{ json: { error: false, success: results.filter(r => r.status === 'success').length, errors: errors.length, total: products.length, previews, errorList: errors, cdnUrls, results, marketplace } }];\n"
+        }
+      },
+      {
+        "id": "5f765e3a-2eee-41aa-bb22-372b6689e2b6",
+        "name": "Generate Mirakl CSV",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "\nconst data = $input.first().json;\nif (data.error) { return [{ json: data }]; }\n\nconst results = data.results.filter(r => r.status === 'success');\nconst NL = String.fromCharCode(10);\nconst csvHeaders = ['sku', 'title', 'brand', 'image_url_1', 'original_url', 'status'];\nconst csvRows = results.map(r => [r.sku, '\"' + (r.title || '').replace(/\"/g, '\"\"') + '\"', '\"' + (r.brand || '').replace(/\"/g, '\"\"') + '\"', r.cdn_url, r.original_url, r.status].join(';'));\nconst csvContent = csvHeaders.join(';') + NL + csvRows.join(NL);\nconst csvBase64 = Buffer.from(csvContent, 'utf-8').toString('base64');\nconst filename = 'mirakl_images_' + data.marketplace + '_' + new Date().toISOString().split('T')[0] + '.csv';\n\nreturn [{ json: { error: false, csvBase64, csvFilename: filename, imagesProcessed: data.total, success: data.success, errors: data.errors, previews: data.previews, errorList: data.errorList, cdnUrls: data.cdnUrls } }];\n"
+        }
+      },
+      {
+        "id": "0f7fb66d-9064-4ff0-b132-82d44443e8ba",
+        "name": "Send Results",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          896,
+          0
+        ],
+        "parameters": {
+          "respondWith": "firstIncomingItem",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Receive Image Request": {
+        "main": [
+          [
+            {
+              "node": "Validate Input",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate Input": {
+        "main": [
+          [
+            {
+              "node": "Process Images Pipeline",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Images Pipeline": {
+        "main": [
+          [
+            {
+              "node": "Generate Mirakl CSV",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Mirakl CSV": {
+        "main": [
+          [
+            {
+              "node": "Send Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rodíguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-09T10:14:04.850Z",
+        "id": 278,
+        "workflowId": "trrTJKDwkrc9OZDY",
+        "versionId": "35613295-682d-409e-8e2e-8f236cd30ed4",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}

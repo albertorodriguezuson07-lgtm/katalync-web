@@ -1,0 +1,510 @@
+{
+  "name": "Catalog Tools - Stripe Portal",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "stripe-portal",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "id": "portal-webhook",
+      "name": "Portal Webhook",
+      "webhookId": "stripe-portal"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.stripe.com/v1/customers?email={{ encodeURIComponent($json.body.email) }}&limit=1",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "stripeApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        300
+      ],
+      "id": "portal-find",
+      "name": "Find Customer",
+      "credentials": {
+        "stripeApi": {
+          "id": "DZeHvLiIbPc1CkGF",
+          "name": "Stripe Live"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nif (!data.data || data.data.length === 0) {\n  return [{ json: { success: false, error: 'No se encontró tu cuenta de facturación. Si acabas de suscribirte, espera unos minutos e inténtalo de nuevo.' } }];\n}\nreturn [{ json: { customer_id: data.data[0].id } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        300
+      ],
+      "id": "portal-check",
+      "name": "Check Customer"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "combinator": "and"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.customer_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              }
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        980,
+        300
+      ],
+      "id": "portal-if",
+      "name": "Has Customer?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.stripe.com/v1/billing_portal/sessions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "stripeApi",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "customer",
+              "value": "={{ $json.customer_id }}"
+            },
+            {
+              "name": "return_url",
+              "value": "https://katalync.com/app.html"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1220,
+        200
+      ],
+      "id": "portal-create",
+      "name": "Create Portal",
+      "credentials": {
+        "stripeApi": {
+          "id": "DZeHvLiIbPc1CkGF",
+          "name": "Stripe Live"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nif (data.url) {\n  return [{ json: { success: true, portal_url: data.url } }];\n}\nreturn [{ json: { success: false, error: data.error?.message || 'Error al crear el portal de facturación. Contacta con soporte.' } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        200
+      ],
+      "id": "portal-ok",
+      "name": "Portal OK"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nreturn [{ json: { success: false, error: data.error || 'No se encontró tu cuenta de facturación.' } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        400
+      ],
+      "id": "portal-no-customer",
+      "name": "No Customer"
+    }
+  ],
+  "connections": {
+    "Portal Webhook": {
+      "main": [
+        [
+          {
+            "node": "Find Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Customer": {
+      "main": [
+        [
+          {
+            "node": "Check Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Customer": {
+      "main": [
+        [
+          {
+            "node": "Has Customer?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Customer?": {
+      "main": [
+        [
+          {
+            "node": "Create Portal",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Portal": {
+      "main": [
+        [
+          {
+            "node": "Portal OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": null,
+  "activeVersionId": "d29760b5-171a-4170-b55c-f803a535ed58",
+  "versionCounter": 14,
+  "shared": [
+    {
+      "updatedAt": "2026-05-10T15:32:28.081Z",
+      "createdAt": "2026-05-10T15:32:28.081Z",
+      "role": "workflow:owner",
+      "workflowId": "fQDcdWiVntsFY6ie",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rodíguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-05-14T16:08:17.778Z",
+    "createdAt": "2026-05-14T16:08:17.778Z",
+    "versionId": "d29760b5-171a-4170-b55c-f803a535ed58",
+    "workflowId": "fQDcdWiVntsFY6ie",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "stripe-portal",
+          "httpMethod": "POST",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          260,
+          300
+        ],
+        "id": "portal-webhook",
+        "name": "Portal Webhook",
+        "webhookId": "stripe-portal"
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "=https://api.stripe.com/v1/customers?email={{ encodeURIComponent($json.body.email) }}&limit=1",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "stripeApi",
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          500,
+          300
+        ],
+        "id": "portal-find",
+        "name": "Find Customer",
+        "credentials": {
+          "stripeApi": {
+            "id": "DZeHvLiIbPc1CkGF",
+            "name": "Stripe Live"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const data = $input.first().json;\nif (!data.data || data.data.length === 0) {\n  return [{ json: { success: false, error: 'No se encontró tu cuenta de facturación. Si acabas de suscribirte, espera unos minutos e inténtalo de nuevo.' } }];\n}\nreturn [{ json: { customer_id: data.data[0].id } }];",
+          "mode": "runOnceForAllItems"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          740,
+          300
+        ],
+        "id": "portal-check",
+        "name": "Check Customer"
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 2,
+              "combinator": "and"
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.customer_id }}",
+                "rightValue": "",
+                "operator": {
+                  "type": "string",
+                  "operation": "exists"
+                }
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          980,
+          300
+        ],
+        "id": "portal-if",
+        "name": "Has Customer?"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.stripe.com/v1/billing_portal/sessions",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "stripeApi",
+          "sendBody": true,
+          "contentType": "form-urlencoded",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "customer",
+                "value": "={{ $json.customer_id }}"
+              },
+              {
+                "name": "return_url",
+                "value": "https://katalync.com/app.html"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "neverError": true
+              }
+            }
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          1220,
+          200
+        ],
+        "id": "portal-create",
+        "name": "Create Portal",
+        "credentials": {
+          "stripeApi": {
+            "id": "DZeHvLiIbPc1CkGF",
+            "name": "Stripe Live"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const data = $input.first().json;\nif (data.url) {\n  return [{ json: { success: true, portal_url: data.url } }];\n}\nreturn [{ json: { success: false, error: data.error?.message || 'Error al crear el portal de facturación. Contacta con soporte.' } }];",
+          "mode": "runOnceForAllItems"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1460,
+          200
+        ],
+        "id": "portal-ok",
+        "name": "Portal OK"
+      },
+      {
+        "parameters": {
+          "jsCode": "const data = $input.first().json;\nreturn [{ json: { success: false, error: data.error || 'No se encontró tu cuenta de facturación.' } }];",
+          "mode": "runOnceForAllItems"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1220,
+          400
+        ],
+        "id": "portal-no-customer",
+        "name": "No Customer"
+      }
+    ],
+    "connections": {
+      "Portal Webhook": {
+        "main": [
+          [
+            {
+              "node": "Find Customer",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Find Customer": {
+        "main": [
+          [
+            {
+              "node": "Check Customer",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Customer": {
+        "main": [
+          [
+            {
+              "node": "Has Customer?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Has Customer?": {
+        "main": [
+          [
+            {
+              "node": "Create Portal",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "No Customer",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Create Portal": {
+        "main": [
+          [
+            {
+              "node": "Portal OK",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rodíguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-14T16:08:17.833Z",
+        "id": 797,
+        "workflowId": "fQDcdWiVntsFY6ie",
+        "versionId": "d29760b5-171a-4170-b55c-f803a535ed58",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-14T16:08:17.817Z",
+        "id": 796,
+        "workflowId": "fQDcdWiVntsFY6ie",
+        "versionId": "d29760b5-171a-4170-b55c-f803a535ed58",
+        "event": "deactivated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}

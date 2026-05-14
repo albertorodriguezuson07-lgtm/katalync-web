@@ -1,0 +1,191 @@
+{
+  "name": "Catalog Tools - Validator",
+  "description": "Validates product catalog Excel with token auth via session verification. Checks EAN-13, required fields. Returns detailed summary.",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "427a8ae8-6c24-472e-8142-4b9c50c113c8",
+      "name": "Receive Validation Data",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "catalog-validate",
+        "responseMode": "lastNode",
+        "responseData": "firstEntryJson",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "webhookId": "ea5d748b-d131-46e1-a5c3-fba9853e9ac3"
+    },
+    {
+      "id": "19af6eae-fe85-40b0-a2c4-0e277a933b74",
+      "name": "Validate Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const https = require('https');\n\nfunction verifyToken(token) {\n  return new Promise((resolve) => {\n    if (!token) { resolve(false); return; }\n    const postData = JSON.stringify({ token });\n    const req = https.request({ hostname: 'api.katalync.com', port: 443, path: '/webhook/auth-verify', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) } }, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => { try { const d = JSON.parse(Buffer.concat(chunks).toString()); resolve(d.success === true); } catch(e) { resolve(false); } });\n    });\n    req.on('error', () => resolve(false));\n    req.setTimeout(5000, () => { req.destroy(); resolve(false); });\n    req.write(postData);\n    req.end();\n  });\n}\n\nconst INPUT_MAP = {\n  'sku': 'sku-de-vendedor', 'SKU': 'sku-de-vendedor', 'referencia': 'sku-de-vendedor', 'Referencia': 'sku-de-vendedor',\n  'ean': 'ean', 'EAN': 'ean', 'ean13': 'ean', 'product-id': 'ean', 'product_id': 'ean', 'codigo_barras': 'ean',\n  'marca': 'marcas', 'Marca': 'marcas', 'brand': 'marcas', 'Brand': 'marcas',\n  'nombre': 'nombre-del-articulo', 'Nombre': 'nombre-del-articulo', 'product_name': 'nombre-del-articulo', 'name': 'nombre-del-articulo',\n  'categoria': 'categorias', 'Categoria': 'categorias', 'category': 'categorias', 'Category': 'categorias', 'Tipo de producto': 'categorias',\n  'genero': 'genero', 'Genero': 'genero', 'gender': 'genero', 'Gender': 'genero', 'Sexo': 'genero',\n  'color': 'colores', 'Color': 'colores',\n  'talla': 'talla', 'Talla': 'talla', 'size': 'talla', 'Size': 'talla',\n  'material': 'material-composicion', 'Material': 'material-composicion', 'composicion': 'material-composicion',\n  'imagen': 'imagenes-1', 'Imagen': 'imagenes-1', 'image_url': 'imagenes-1', 'imageUrl': 'imagenes-1', 'foto': 'imagenes-1',\n  'precio': 'price', 'Precio': 'price', 'price': 'price', 'Price': 'price', 'PVP': 'price',\n  'stock': 'quantity', 'Stock': 'quantity', 'quantity': 'quantity', 'cantidad': 'quantity',\n  'descripcion': 'descripion-del-producto', 'Descripcion': 'descripion-del-producto', 'description': 'descripion-del-producto',\n  'variant_group_code': 'variant_group_code', 'grupo_variantes': 'variant_group_code',\n  'pais_fabricacion': 'pais-fabricante', 'pais fabricacion': 'pais-fabricante',\n  'fabricante_nombre': 'nombre-del-fabricante', 'fabricante_nombre_comercial': 'nombre-comercial-registrado-del-fabricante',\n  'fabricante_direccion': 'direccion-del-fabricante', 'fabricante_email': 'correo-electronico-del-fabricante',\n  'responsable_ue_nombre': 'nombre-persona-responsable-en-eu', 'responsable_ue_direccion': 'direccion-de-la-persona-responsable',\n  'responsable_ue_email': 'correo-electronico-de-la-persona-responsable',\n  'coleccion': 'colecciones', 'collection': 'colecciones',\n  'cuidados': 'cuidados', 'care': 'cuidados',\n  'offer-sku': '_offer-sku', 'offer_sku': '_offer-sku',\n  // Native Mirakl API codes (identity mapping)\n  'categorias': 'categorias',\n  'sku-de-vendedor': 'sku-de-vendedor',\n  'nombre-del-articulo': 'nombre-del-articulo',\n  'nombre-del-articulo-pt': 'nombre-del-articulo-pt',\n  'subtitulo-de-productos': 'subtitulo-de-productos',\n  'subtitulo-de-productos-pt': 'subtitulo-de-productos-pt',\n  'pais-fabricante': 'pais-fabricante',\n  'pais-fabricante-pt': 'pais-fabricante-pt',\n  'marcas': 'marcas',\n  'descripion-del-producto': 'descripion-del-producto',\n  'imagenes-1': 'imagenes-1',\n  'imagenes-2': 'imagenes-2',\n  'imagenes-3': 'imagenes-3',\n  'imagenes-4': 'imagenes-4',\n  'colores': 'colores',\n  'tipos-de-deportes': 'tipos-de-deportes',\n  'nombre-del-fabricante': 'nombre-del-fabricante',\n  'nombre-comercial-registrado-del-fabricante': 'nombre-comercial-registrado-del-fabricante',\n  'direccion-del-fabricante': 'direccion-del-fabricante',\n  'correo-electronico-del-fabricante': 'correo-electronico-del-fabricante',\n  'nombre-persona-responsable-en-eu': 'nombre-persona-responsable-en-eu',\n  'direccion-de-la-persona-responsable': 'direccion-de-la-persona-responsable',\n  'correo-electronico-de-la-persona-responsable': 'correo-electronico-de-la-persona-responsable',\n  'foto-etiqueta-del-producto': 'foto-etiqueta-del-producto',\n  'manual-de-seguridad-del-producto': 'manual-de-seguridad-del-producto',\n  'video': 'video',\n  'guia-de-tallas': 'guia-de-tallas',\n  'colecciones': 'colecciones',\n  'cuidados': 'cuidados'\n};\n\nfunction mapInputRow(row) {\n  const mapped = {};\n  for (const [key, val] of Object.entries(row)) {\n    const apiCode = INPUT_MAP[key] || INPUT_MAP[key.toLowerCase()] || key;\n    mapped[apiCode] = val;\n  }\n  return mapped;\n}\n\nconst input = $input.first().json.body;\nconst tokenValid = await verifyToken(input.token);\nif (!tokenValid) {\n  return [{ json: { status: 'error', message: 'Sesion no valida o expirada. Vuelve a iniciar sesion.' } }];\n}\n\nconst products = input.products || [];\nconst marketplace = input.marketplace || 'sprinter_es';\nconst isPT = marketplace === 'sportzone_pt';\n\nconst PRODUCTS_RED = [\n  { code: 'categorias', label: 'Categoría' },\n  { code: 'sku-de-vendedor', label: 'SKU' },\n  { code: 'nombre-del-articulo', label: 'Nombre', autoGen: true },\n  { code: 'pais-fabricante', label: 'GPSR País Fabricación' },\n  { code: 'marcas', label: 'Marca' },\n  { code: 'genero', label: 'Género' },\n  { code: 'ean', label: 'EAN' },\n  { code: 'descripion-del-producto', label: 'Descripción', autoGen: true },\n  { code: 'imagenes-1', label: 'Imagen 1', autoGen: true },\n  { code: 'nombre-del-fabricante', label: 'GPSR Nombre Fabricante' },\n  { code: 'nombre-comercial-registrado-del-fabricante', label: 'GPSR Nombre Comercial' },\n  { code: 'direccion-del-fabricante', label: 'GPSR Dirección Fabricante' },\n  { code: 'correo-electronico-del-fabricante', label: 'GPSR Email Fabricante' },\n  { code: 'colores', label: 'Color' },\n  { code: 'talla', label: 'Talla' },\n  { code: 'material-composicion', label: 'Material/Composición' },\n  { code: 'variant_group_code', label: 'Variant Group Code' }\n];\n\nconst OFFERS_RED = [\n  { code: 'ean', label: 'EAN (product-id)' },\n  { code: 'price', label: 'Precio' },\n  { code: 'quantity', label: 'Cantidad/Stock' }\n];\n\nconst CAMPAIGN_FIELDS = [\n  { code: 'nombre-persona-responsable-en-eu', label: 'GPSR Resp. UE Nombre' },\n  { code: 'direccion-de-la-persona-responsable', label: 'GPSR Resp. UE Dirección' },\n  { code: 'correo-electronico-de-la-persona-responsable', label: 'GPSR Resp. UE Email' }\n];\n\nconst warnings = [];\nconst errors = [];\nconst valid = [];\nconst fieldCounts = {};\n\nfunction inc(field, type) {\n  if (!fieldCounts[field]) fieldCounts[field] = { missing: 0, invalid: 0 };\n  fieldCounts[field][type]++;\n}\n\nfunction validateEAN13(ean) {\n  if (!ean || ean.length !== 13 || !/^\\d{13}$/.test(ean)) return 'format';\n  let sum = 0;\n  for (let i = 0; i < 12; i++) { sum += parseInt(ean[i]) * (i % 2 === 0 ? 1 : 3); }\n  const check = (10 - (sum % 10)) % 10;\n  if (check !== parseInt(ean[12])) return 'checksum';\n  return 'valid';\n}\n\nfor (let i = 0; i < products.length; i++) {\n  const p = products[i];\n  const row = i + 2;\n  const mapped = mapInputRow(p);\n  const sku = mapped['sku-de-vendedor'] || mapped['_offer-sku'] || '';\n  const rowId = sku || ((isPT ? 'Linha ' : 'Fila ') + row);\n  let rowErrors = [];\n  let rowWarnings = [];\n\n  for (const f of PRODUCTS_RED) {\n    const val = String(mapped[f.code] || '').trim();\n    if (!val) {\n      if (f.autoGen) {\n        rowWarnings.push((isPT ? 'Sem ' : 'Sin ') + f.label + (isPT ? ' (será gerado)' : ' (se generará)'));\n      } else {\n        rowErrors.push((isPT ? 'OBRIGATÓRIO vazio: ' : 'OBLIGATORIO vacío: ') + f.label);\n        inc(f.code, 'missing');\n      }\n    }\n  }\n\n  const ean = String(mapped['ean'] || '').trim();\n  if (ean) {\n    const eanResult = validateEAN13(ean);\n    if (eanResult === 'format') { rowErrors.push((isPT ? 'EAN-13 formato inválido: ' : 'EAN-13 formato inválido: ') + ean); inc('ean', 'invalid'); }\n    else if (eanResult === 'checksum') { rowWarnings.push((isPT ? 'EAN-13 checksum incorreto: ' : 'EAN-13 checksum incorrecto: ') + ean); }\n  }\n\n  for (const f of OFFERS_RED) {\n    const val = String(mapped[f.code] || '').trim();\n    if (!val) {\n      rowWarnings.push((isPT ? 'Ofertas sem: ' : 'Ofertas sin: ') + f.label);\n      inc('offer_' + f.code, 'missing');\n    }\n  }\n\n  const priceVal = String(mapped['price'] || '').replace(',','.').replace(/[^0-9.]/g,'');\n  if (priceVal && (isNaN(Number(priceVal)) || Number(priceVal) <= 0)) {\n    rowErrors.push((isPT ? 'Preço inválido: ' : 'Precio inválido: ') + mapped['price']);\n    inc('price', 'invalid');\n  }\n\n  for (const f of CAMPAIGN_FIELDS) {\n    const val = String(mapped[f.code] || '').trim();\n    if (!val) {\n      rowWarnings.push((isPT ? 'Campo campaña vazio: ' : 'Campo campaña vacío: ') + f.label);\n    }\n  }\n\n  const imgUrl = String(mapped['imagenes-1'] || '').trim();\n  if (imgUrl) {\n    if (!/^https?:\\/\\//i.test(imgUrl)) {\n      rowWarnings.push(isPT ? 'URL imagem inválida' : 'URL imagen inválida');\n    }\n    if (/drive\\.google|dropbox|icloud/i.test(imgUrl)) {\n      rowErrors.push(isPT ? 'URL imagem bloqueada (Google Drive/Dropbox/iCloud)' : 'URL imagen bloqueada (Google Drive/Dropbox/iCloud)');\n    }\n  }\n\n  if (rowErrors.length > 0) { errors.push({ sku: rowId, message: rowErrors.join(' | '), row }); }\n  else { valid.push({ sku: rowId, row }); }\n  if (rowWarnings.length > 0) { warnings.push({ sku: rowId, message: rowWarnings.join(' | '), row }); }\n}\n\nconst total = products.length;\nconst checks = [];\n\nfor (const f of PRODUCTS_RED) {\n  if (f.autoGen) continue;\n  const missed = (fieldCounts[f.code] || {}).missing || 0;\n  const invalid = (fieldCounts[f.code] || {}).invalid || 0;\n  checks.push({ name: f.label + ' (Productos)', passed: total - missed - invalid, failed: missed + invalid, warnings: 0, critical: true });\n}\n\nfor (const f of OFFERS_RED) {\n  const missed = (fieldCounts['offer_' + f.code] || {}).missing || 0;\n  checks.push({ name: f.label + ' (Ofertas)', passed: total - missed, failed: 0, warnings: missed, critical: false });\n}\n\nfor (const f of CAMPAIGN_FIELDS) {\n  let campMissing = 0;\n  for (const p of products) { const m = mapInputRow(p); if (!String(m[f.code] || '').trim()) campMissing++; }\n  checks.push({ name: f.label + ' (Campaña)', passed: total - campMissing, failed: 0, warnings: campMissing, critical: false });\n}\n\nconst summary = { total, valid: valid.length, withErrors: errors.length, withWarnings: warnings.length, checks };\nconst msg = isPT ? valid.length + ' de ' + total + ' produtos válidos para Sprinter/Mirakl' : valid.length + ' de ' + total + ' productos válidos para Sprinter/Mirakl';\nreturn [{ json: { status: 'completed', summary, errors: errors.slice(0, 50), warnings: warnings.slice(0, 50), message: msg } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Receive Validation Data": {
+      "main": [
+        [
+          {
+            "node": "Validate Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "pinData": null,
+  "activeVersionId": "2bdaf280-0deb-42e9-8287-dff5999b4b68",
+  "versionCounter": 39,
+  "shared": [
+    {
+      "updatedAt": "2026-05-08T19:11:38.827Z",
+      "createdAt": "2026-05-08T19:11:38.827Z",
+      "role": "workflow:owner",
+      "workflowId": "YPSuKMmeiHtqE7BR",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rodíguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-05-13T06:33:02.601Z",
+    "createdAt": "2026-05-13T06:33:02.601Z",
+    "versionId": "2bdaf280-0deb-42e9-8287-dff5999b4b68",
+    "workflowId": "YPSuKMmeiHtqE7BR",
+    "nodes": [
+      {
+        "id": "427a8ae8-6c24-472e-8142-4b9c50c113c8",
+        "name": "Receive Validation Data",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "catalog-validate",
+          "responseMode": "lastNode",
+          "responseData": "firstEntryJson",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Access-Control-Allow-Headers",
+                  "value": "Content-Type"
+                },
+                {
+                  "name": "Access-Control-Allow-Methods",
+                  "value": "POST, OPTIONS"
+                }
+              ]
+            }
+          }
+        },
+        "webhookId": "ea5d748b-d131-46e1-a5c3-fba9853e9ac3"
+      },
+      {
+        "id": "19af6eae-fe85-40b0-a2c4-0e277a933b74",
+        "name": "Validate Products",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const https = require('https');\n\nfunction verifyToken(token) {\n  return new Promise((resolve) => {\n    if (!token) { resolve(false); return; }\n    const postData = JSON.stringify({ token });\n    const req = https.request({ hostname: 'api.katalync.com', port: 443, path: '/webhook/auth-verify', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) } }, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => { try { const d = JSON.parse(Buffer.concat(chunks).toString()); resolve(d.success === true); } catch(e) { resolve(false); } });\n    });\n    req.on('error', () => resolve(false));\n    req.setTimeout(5000, () => { req.destroy(); resolve(false); });\n    req.write(postData);\n    req.end();\n  });\n}\n\nconst INPUT_MAP = {\n  'sku': 'sku-de-vendedor', 'SKU': 'sku-de-vendedor', 'referencia': 'sku-de-vendedor', 'Referencia': 'sku-de-vendedor',\n  'ean': 'ean', 'EAN': 'ean', 'ean13': 'ean', 'product-id': 'ean', 'product_id': 'ean', 'codigo_barras': 'ean',\n  'marca': 'marcas', 'Marca': 'marcas', 'brand': 'marcas', 'Brand': 'marcas',\n  'nombre': 'nombre-del-articulo', 'Nombre': 'nombre-del-articulo', 'product_name': 'nombre-del-articulo', 'name': 'nombre-del-articulo',\n  'categoria': 'categorias', 'Categoria': 'categorias', 'category': 'categorias', 'Category': 'categorias', 'Tipo de producto': 'categorias',\n  'genero': 'genero', 'Genero': 'genero', 'gender': 'genero', 'Gender': 'genero', 'Sexo': 'genero',\n  'color': 'colores', 'Color': 'colores',\n  'talla': 'talla', 'Talla': 'talla', 'size': 'talla', 'Size': 'talla',\n  'material': 'material-composicion', 'Material': 'material-composicion', 'composicion': 'material-composicion',\n  'imagen': 'imagenes-1', 'Imagen': 'imagenes-1', 'image_url': 'imagenes-1', 'imageUrl': 'imagenes-1', 'foto': 'imagenes-1',\n  'precio': 'price', 'Precio': 'price', 'price': 'price', 'Price': 'price', 'PVP': 'price',\n  'stock': 'quantity', 'Stock': 'quantity', 'quantity': 'quantity', 'cantidad': 'quantity',\n  'descripcion': 'descripion-del-producto', 'Descripcion': 'descripion-del-producto', 'description': 'descripion-del-producto',\n  'variant_group_code': 'variant_group_code', 'grupo_variantes': 'variant_group_code',\n  'pais_fabricacion': 'pais-fabricante', 'pais fabricacion': 'pais-fabricante',\n  'fabricante_nombre': 'nombre-del-fabricante', 'fabricante_nombre_comercial': 'nombre-comercial-registrado-del-fabricante',\n  'fabricante_direccion': 'direccion-del-fabricante', 'fabricante_email': 'correo-electronico-del-fabricante',\n  'responsable_ue_nombre': 'nombre-persona-responsable-en-eu', 'responsable_ue_direccion': 'direccion-de-la-persona-responsable',\n  'responsable_ue_email': 'correo-electronico-de-la-persona-responsable',\n  'coleccion': 'colecciones', 'collection': 'colecciones',\n  'cuidados': 'cuidados', 'care': 'cuidados',\n  'offer-sku': '_offer-sku', 'offer_sku': '_offer-sku',\n  // Native Mirakl API codes (identity mapping)\n  'categorias': 'categorias',\n  'sku-de-vendedor': 'sku-de-vendedor',\n  'nombre-del-articulo': 'nombre-del-articulo',\n  'nombre-del-articulo-pt': 'nombre-del-articulo-pt',\n  'subtitulo-de-productos': 'subtitulo-de-productos',\n  'subtitulo-de-productos-pt': 'subtitulo-de-productos-pt',\n  'pais-fabricante': 'pais-fabricante',\n  'pais-fabricante-pt': 'pais-fabricante-pt',\n  'marcas': 'marcas',\n  'descripion-del-producto': 'descripion-del-producto',\n  'imagenes-1': 'imagenes-1',\n  'imagenes-2': 'imagenes-2',\n  'imagenes-3': 'imagenes-3',\n  'imagenes-4': 'imagenes-4',\n  'colores': 'colores',\n  'tipos-de-deportes': 'tipos-de-deportes',\n  'nombre-del-fabricante': 'nombre-del-fabricante',\n  'nombre-comercial-registrado-del-fabricante': 'nombre-comercial-registrado-del-fabricante',\n  'direccion-del-fabricante': 'direccion-del-fabricante',\n  'correo-electronico-del-fabricante': 'correo-electronico-del-fabricante',\n  'nombre-persona-responsable-en-eu': 'nombre-persona-responsable-en-eu',\n  'direccion-de-la-persona-responsable': 'direccion-de-la-persona-responsable',\n  'correo-electronico-de-la-persona-responsable': 'correo-electronico-de-la-persona-responsable',\n  'foto-etiqueta-del-producto': 'foto-etiqueta-del-producto',\n  'manual-de-seguridad-del-producto': 'manual-de-seguridad-del-producto',\n  'video': 'video',\n  'guia-de-tallas': 'guia-de-tallas',\n  'colecciones': 'colecciones',\n  'cuidados': 'cuidados'\n};\n\nfunction mapInputRow(row) {\n  const mapped = {};\n  for (const [key, val] of Object.entries(row)) {\n    const apiCode = INPUT_MAP[key] || INPUT_MAP[key.toLowerCase()] || key;\n    mapped[apiCode] = val;\n  }\n  return mapped;\n}\n\nconst input = $input.first().json.body;\nconst tokenValid = await verifyToken(input.token);\nif (!tokenValid) {\n  return [{ json: { status: 'error', message: 'Sesion no valida o expirada. Vuelve a iniciar sesion.' } }];\n}\n\nconst products = input.products || [];\nconst marketplace = input.marketplace || 'sprinter_es';\nconst isPT = marketplace === 'sportzone_pt';\n\nconst PRODUCTS_RED = [\n  { code: 'categorias', label: 'Categoría' },\n  { code: 'sku-de-vendedor', label: 'SKU' },\n  { code: 'nombre-del-articulo', label: 'Nombre', autoGen: true },\n  { code: 'pais-fabricante', label: 'GPSR País Fabricación' },\n  { code: 'marcas', label: 'Marca' },\n  { code: 'genero', label: 'Género' },\n  { code: 'ean', label: 'EAN' },\n  { code: 'descripion-del-producto', label: 'Descripción', autoGen: true },\n  { code: 'imagenes-1', label: 'Imagen 1', autoGen: true },\n  { code: 'nombre-del-fabricante', label: 'GPSR Nombre Fabricante' },\n  { code: 'nombre-comercial-registrado-del-fabricante', label: 'GPSR Nombre Comercial' },\n  { code: 'direccion-del-fabricante', label: 'GPSR Dirección Fabricante' },\n  { code: 'correo-electronico-del-fabricante', label: 'GPSR Email Fabricante' },\n  { code: 'colores', label: 'Color' },\n  { code: 'talla', label: 'Talla' },\n  { code: 'material-composicion', label: 'Material/Composición' },\n  { code: 'variant_group_code', label: 'Variant Group Code' }\n];\n\nconst OFFERS_RED = [\n  { code: 'ean', label: 'EAN (product-id)' },\n  { code: 'price', label: 'Precio' },\n  { code: 'quantity', label: 'Cantidad/Stock' }\n];\n\nconst CAMPAIGN_FIELDS = [\n  { code: 'nombre-persona-responsable-en-eu', label: 'GPSR Resp. UE Nombre' },\n  { code: 'direccion-de-la-persona-responsable', label: 'GPSR Resp. UE Dirección' },\n  { code: 'correo-electronico-de-la-persona-responsable', label: 'GPSR Resp. UE Email' }\n];\n\nconst warnings = [];\nconst errors = [];\nconst valid = [];\nconst fieldCounts = {};\n\nfunction inc(field, type) {\n  if (!fieldCounts[field]) fieldCounts[field] = { missing: 0, invalid: 0 };\n  fieldCounts[field][type]++;\n}\n\nfunction validateEAN13(ean) {\n  if (!ean || ean.length !== 13 || !/^\\d{13}$/.test(ean)) return 'format';\n  let sum = 0;\n  for (let i = 0; i < 12; i++) { sum += parseInt(ean[i]) * (i % 2 === 0 ? 1 : 3); }\n  const check = (10 - (sum % 10)) % 10;\n  if (check !== parseInt(ean[12])) return 'checksum';\n  return 'valid';\n}\n\nfor (let i = 0; i < products.length; i++) {\n  const p = products[i];\n  const row = i + 2;\n  const mapped = mapInputRow(p);\n  const sku = mapped['sku-de-vendedor'] || mapped['_offer-sku'] || '';\n  const rowId = sku || ((isPT ? 'Linha ' : 'Fila ') + row);\n  let rowErrors = [];\n  let rowWarnings = [];\n\n  for (const f of PRODUCTS_RED) {\n    const val = String(mapped[f.code] || '').trim();\n    if (!val) {\n      if (f.autoGen) {\n        rowWarnings.push((isPT ? 'Sem ' : 'Sin ') + f.label + (isPT ? ' (será gerado)' : ' (se generará)'));\n      } else {\n        rowErrors.push((isPT ? 'OBRIGATÓRIO vazio: ' : 'OBLIGATORIO vacío: ') + f.label);\n        inc(f.code, 'missing');\n      }\n    }\n  }\n\n  const ean = String(mapped['ean'] || '').trim();\n  if (ean) {\n    const eanResult = validateEAN13(ean);\n    if (eanResult === 'format') { rowErrors.push((isPT ? 'EAN-13 formato inválido: ' : 'EAN-13 formato inválido: ') + ean); inc('ean', 'invalid'); }\n    else if (eanResult === 'checksum') { rowWarnings.push((isPT ? 'EAN-13 checksum incorreto: ' : 'EAN-13 checksum incorrecto: ') + ean); }\n  }\n\n  for (const f of OFFERS_RED) {\n    const val = String(mapped[f.code] || '').trim();\n    if (!val) {\n      rowWarnings.push((isPT ? 'Ofertas sem: ' : 'Ofertas sin: ') + f.label);\n      inc('offer_' + f.code, 'missing');\n    }\n  }\n\n  const priceVal = String(mapped['price'] || '').replace(',','.').replace(/[^0-9.]/g,'');\n  if (priceVal && (isNaN(Number(priceVal)) || Number(priceVal) <= 0)) {\n    rowErrors.push((isPT ? 'Preço inválido: ' : 'Precio inválido: ') + mapped['price']);\n    inc('price', 'invalid');\n  }\n\n  for (const f of CAMPAIGN_FIELDS) {\n    const val = String(mapped[f.code] || '').trim();\n    if (!val) {\n      rowWarnings.push((isPT ? 'Campo campaña vazio: ' : 'Campo campaña vacío: ') + f.label);\n    }\n  }\n\n  const imgUrl = String(mapped['imagenes-1'] || '').trim();\n  if (imgUrl) {\n    if (!/^https?:\\/\\//i.test(imgUrl)) {\n      rowWarnings.push(isPT ? 'URL imagem inválida' : 'URL imagen inválida');\n    }\n    if (/drive\\.google|dropbox|icloud/i.test(imgUrl)) {\n      rowErrors.push(isPT ? 'URL imagem bloqueada (Google Drive/Dropbox/iCloud)' : 'URL imagen bloqueada (Google Drive/Dropbox/iCloud)');\n    }\n  }\n\n  if (rowErrors.length > 0) { errors.push({ sku: rowId, message: rowErrors.join(' | '), row }); }\n  else { valid.push({ sku: rowId, row }); }\n  if (rowWarnings.length > 0) { warnings.push({ sku: rowId, message: rowWarnings.join(' | '), row }); }\n}\n\nconst total = products.length;\nconst checks = [];\n\nfor (const f of PRODUCTS_RED) {\n  if (f.autoGen) continue;\n  const missed = (fieldCounts[f.code] || {}).missing || 0;\n  const invalid = (fieldCounts[f.code] || {}).invalid || 0;\n  checks.push({ name: f.label + ' (Productos)', passed: total - missed - invalid, failed: missed + invalid, warnings: 0, critical: true });\n}\n\nfor (const f of OFFERS_RED) {\n  const missed = (fieldCounts['offer_' + f.code] || {}).missing || 0;\n  checks.push({ name: f.label + ' (Ofertas)', passed: total - missed, failed: 0, warnings: missed, critical: false });\n}\n\nfor (const f of CAMPAIGN_FIELDS) {\n  let campMissing = 0;\n  for (const p of products) { const m = mapInputRow(p); if (!String(m[f.code] || '').trim()) campMissing++; }\n  checks.push({ name: f.label + ' (Campaña)', passed: total - campMissing, failed: 0, warnings: campMissing, critical: false });\n}\n\nconst summary = { total, valid: valid.length, withErrors: errors.length, withWarnings: warnings.length, checks };\nconst msg = isPT ? valid.length + ' de ' + total + ' produtos válidos para Sprinter/Mirakl' : valid.length + ' de ' + total + ' productos válidos para Sprinter/Mirakl';\nreturn [{ json: { status: 'completed', summary, errors: errors.slice(0, 50), warnings: warnings.slice(0, 50), message: msg } }];"
+        }
+      }
+    ],
+    "connections": {
+      "Receive Validation Data": {
+        "main": [
+          [
+            {
+              "node": "Validate Products",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rodíguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-13T06:33:02.694Z",
+        "id": 469,
+        "workflowId": "YPSuKMmeiHtqE7BR",
+        "versionId": "2bdaf280-0deb-42e9-8287-dff5999b4b68",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-13T06:33:02.657Z",
+        "id": 468,
+        "workflowId": "YPSuKMmeiHtqE7BR",
+        "versionId": "2bdaf280-0deb-42e9-8287-dff5999b4b68",
+        "event": "deactivated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}

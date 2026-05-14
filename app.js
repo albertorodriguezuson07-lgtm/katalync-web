@@ -222,7 +222,7 @@ const TRANSLATIONS = {
     no_saved_files: 'No tienes archivos guardados', no_saved_files_hint: 'Los archivos generados se guardan aquí durante 15 días',
     tag_stock_upper: 'STOCK',
     tag_images_upper: 'IMÁGENES',
-    login_invite_only: 'Acceso solo por invitación. Contacta con el administrador.',
+    login_invite_only: 'Acceso solo por invitación. Contacta con el administrador.', have_account: '¿Ya tienes cuenta?', login_link: 'Inicia sesión',
     login_placeholder_email: 'tu@email.com',
     greeting: 'Hola, ',
     activity_by_tool: 'Actividad por herramienta',
@@ -286,6 +286,10 @@ const TRANSLATIONS = {
     chat_no_match: 'No he encontrado una respuesta específica. Puedes contactar con soporte desde el menú de usuario para asistencia personalizada.',
     chat_blocked: 'Solo puedo responder preguntas sobre el uso de Katalync.',
     register_disabled: 'Registro desactivado. Contacta con el administrador.',
+    verify_title: 'Verifica tu email', verify_sub: 'Introduce el código de 6 dígitos enviado a tu correo',
+    verify_code_placeholder: 'Código de 6 dígitos', verify_btn: 'Verificar', verifying: 'Verificando...',
+    verify_resend: '¿No recibiste el código?', verify_resend_link: 'Reenviar', verify_back: 'Volver al registro',
+    verify_code_sent: 'Código de verificación enviado a tu email', verify_error: 'Código incorrecto o expirado',
     empty_credentials: 'Introduce email y contraseña',
     rate_limit: 'Demasiados intentos. Espera 1 minuto.',
     max_products_error: 'Máximo {max} productos por lote. Tu archivo tiene {count}',
@@ -317,6 +321,7 @@ const TRANSLATIONS = {
     billing_portal: 'Facturación',
     billing_portal_loading: 'Abriendo portal...',
     billing_portal_error: 'No se pudo abrir el portal de facturación',
+    payment_confirmed: 'Pago confirmado. Tu suscripción está activa.',
     nav_sync: 'Sync',
     sync_title: 'Centro de Sincronización',
     sync_sub: 'Gestiona la conexión automática entre tus vendedores, Katalync y Sprinter.',
@@ -573,7 +578,7 @@ const TRANSLATIONS = {
     no_saved_files: 'Você não tem arquivos salvos', no_saved_files_hint: 'Os arquivos gerados são salvos aqui por 15 dias',
     tag_stock_upper: 'ESTOQUE',
     tag_images_upper: 'IMAGENS',
-    login_invite_only: 'Acesso somente por convite. Contacte o administrador.',
+    login_invite_only: 'Acesso somente por convite. Contacte o administrador.', have_account: 'Já tem conta?', login_link: 'Faça login',
     login_placeholder_email: 'seu@email.com',
     greeting: 'Olá, ',
     activity_by_tool: 'Atividade por ferramenta',
@@ -637,6 +642,10 @@ const TRANSLATIONS = {
     chat_no_match: 'Não encontrei uma resposta específica. Pode contactar o suporte no menu do usuário para assistência personalizada.',
     chat_blocked: 'Só posso responder perguntas sobre o uso do Katalync.',
     register_disabled: 'Registro desativado. Contate o administrador.',
+    verify_title: 'Verifique seu email', verify_sub: 'Insira o código de 6 dígitos enviado ao seu email',
+    verify_code_placeholder: 'Código de 6 dígitos', verify_btn: 'Verificar', verifying: 'Verificando...',
+    verify_resend: 'Não recebeu o código?', verify_resend_link: 'Reenviar', verify_back: 'Voltar ao registro',
+    verify_code_sent: 'Código de verificação enviado ao seu email', verify_error: 'Código incorreto ou expirado',
     empty_credentials: 'Insira email e senha',
     rate_limit: 'Muitas tentativas. Aguarde 1 minuto.',
     max_products_error: 'Máximo {max} produtos por lote. Seu arquivo tem {count}',
@@ -668,6 +677,7 @@ const TRANSLATIONS = {
     billing_portal: 'Faturação',
     billing_portal_loading: 'Abrindo portal...',
     billing_portal_error: 'Não foi possível abrir o portal de faturação',
+    payment_confirmed: 'Pagamento confirmado. Sua assinatura está ativa.',
     nav_sync: 'Sync',
     sync_title: 'Centro de Sincronização',
     sync_sub: 'Gere a conexão automática entre os seus vendedores, Katalync e Sprinter.',
@@ -828,7 +838,7 @@ function app() {
     toastMsg: '', toastType: 'success', toastVisible: false,
     showToast(msg, type) { this.toastMsg = msg; this.toastType = type || 'success'; this.toastVisible = true; setTimeout(() => { this.toastVisible = false; }, type === 'error' ? 6000 : 4000); },
 
-    authPage: 'login', authEmail: '', authPassword: '', authName: '', authError: '', authBusy: false, authLoading: true,
+    authPage: 'login', authEmail: '', authPassword: '', authName: '', authError: '', authBusy: false, authLoading: true, verifyCode: '',
     currentUser: null, authToken: null, showLoginPass: false, showRegisterPass: false, showPwdCurrent: false, showPwdNew: false,
 
     showOnboarding: false, onboardStep: 1, onboardCompany: '', onboardLang: safeGetLang(), onboardBusy: false, paymentJustCompleted: false,
@@ -993,11 +1003,77 @@ function app() {
       if (urlParams.get('payment') === 'success') {
         this.paymentJustCompleted = true;
         window.history.replaceState({}, '', window.location.pathname);
+        this._pollPaymentStatus();
+      }
+    },
+
+    async _pollPaymentStatus() {
+      for (let i = 0; i < 12; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        if (!this.authToken) return;
+        try {
+          const resp = await fetch(N8N_BASE + '/webhook/auth-verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken }) });
+          const data = await resp.json();
+          if (data.success && data.subscription_status === 'active') {
+            this.currentUser.subscription_status = 'active';
+            this.showToast(this.t('payment_confirmed'), 'success');
+            return;
+          }
+        } catch(e) {}
       }
     },
 
     async doRegister() {
-      this.authError = this.t('register_disabled');
+      if (this.authBusy) return;
+      this.authError = '';
+      if (!this.authName || !this.authEmail || !this.authPassword) { this.authError = this.t('empty_credentials'); return; }
+      if (this.authPassword.length < 8) { this.authError = this.t('min_chars'); return; }
+      if (!_rateLimiter.check('register', 3, 60000)) { this.authError = this.t('rate_limit'); return; }
+      this.authBusy = true;
+      try {
+        const resp = await fetch(N8N_BASE + '/webhook/auth-register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: this.authName, email: this.authEmail, password: this.authPassword }) });
+        const data = await resp.json();
+        if (!data.success) { this.authError = data.error || this.t('login_error_fallback'); this.authBusy = false; return; }
+        if (data.pending_verification) {
+          this.authPage = 'verify';
+          this.showToast(this.t('verify_code_sent'), 'success');
+        } else {
+          this.showToast(data.message || 'OK', 'success');
+          this.authPage = 'login';
+        }
+      } catch(e) { this.authError = this.t('connection_error'); }
+      this.authBusy = false;
+    },
+
+    async doVerifyEmail() {
+      if (this.authBusy) return;
+      this.authError = '';
+      if (!this.verifyCode || this.verifyCode.length !== 6) { this.authError = this.t('verify_error'); return; }
+      this.authBusy = true;
+      try {
+        const resp = await fetch(N8N_BASE + '/webhook/auth-verify-email', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: this.authEmail, code: this.verifyCode }) });
+        const data = await resp.json();
+        if (!data.success) { this.authError = data.error || this.t('verify_error'); this.authBusy = false; return; }
+        this.authToken = data.token;
+        const role = data.role === 'admin' ? 'super_admin' : (data.role || 'user');
+        this.currentUser = { name: data.name, email: data.email, role, marketplace_id: '', company: '', onboarded: data.onboarded !== false, subscription_status: data.subscription_status || 'pending_payment', stripe_checkout_url: '' };
+        safeSaveToken(data.token);
+        this.authPassword = '';
+        this.verifyCode = '';
+        if (!this.currentUser.onboarded) { this.showOnboarding = true; }
+      } catch(e) { this.authError = this.t('connection_error'); }
+      this.authBusy = false;
+    },
+
+    async resendVerifyCode() {
+      if (this.authBusy) return;
+      if (!_rateLimiter.check('resend', 2, 60000)) { this.authError = this.t('rate_limit'); return; }
+      this.authBusy = true;
+      try {
+        await fetch(N8N_BASE + '/webhook/auth-register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: this.authName, email: this.authEmail, password: this.authPassword }) });
+        this.showToast(this.t('verify_code_sent'), 'success');
+      } catch(e) { this.authError = this.t('connection_error'); }
+      this.authBusy = false;
     },
 
     async doLogin() {
@@ -1035,10 +1111,6 @@ function app() {
           this.profileName = data.name; this.profileCompany = data.company || ''; this.profileLang = data.lang || this.lang;
           if (!this.currentUser.onboarded) { this.showOnboarding = true; }
           this.loadSavedFiles();
-          if (this.paymentJustCompleted && this.currentUser.subscription_status !== 'active') {
-            this.currentUser.subscription_status = 'active';
-            fetch(N8N_BASE + '/webhook/auth-admin-subscription', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, email: this.currentUser.email, subscription_status: 'active', source: 'stripe_redirect' }) });
-          }
         } else { safeClearToken(); this.authToken = null; }
       } catch(e) { safeClearToken(); this.authToken = null; }
       this.authLoading = false;
@@ -1479,7 +1551,8 @@ function app() {
     },
 
     async uploadToSprinter() {
-      if (!this.lastProcessedProducts || this.lastProcessedProducts.length === 0) {
+      const convertedVendors = this.syncVendors.filter(v => v.sync_status === 'converted' || v.sync_status === 'synced');
+      if (convertedVendors.length === 0) {
         this.showToast(this.t('sync_no_products'), 'info');
         return;
       }
@@ -1487,10 +1560,30 @@ function app() {
       this.syncUploadProgress = 0;
       this.syncUploadDone = false;
       try {
+        const allProducts = [];
+        for (let i = 0; i < convertedVendors.length; i++) {
+          this.syncUploadProgress = Math.round((i / convertedVendors.length) * 50);
+          const resp = await fetch(N8N_BASE + '/webhook/vendor-products', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: this.authToken, vendor_id: convertedVendors[i].id, page_size: 10000 })
+          });
+          const data = await resp.json();
+          if (data.success && data.products) {
+            const converted = data.products.filter(p => p.sprinter_product);
+            allProducts.push(...converted);
+          }
+        }
+        if (allProducts.length === 0) {
+          this.showToast(this.t('sync_no_products'), 'info');
+          this.syncUploadSimulating = false;
+          return;
+        }
+        this.syncUploadProgress = 60;
         const resp = await fetch(N8N_BASE + '/webhook/mirakl-upload-products', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: this.authToken, products: this.lastProcessedProducts })
+          body: JSON.stringify({ token: this.authToken, products: allProducts })
         });
         const data = await resp.json();
         if (data.success) {
@@ -1524,16 +1617,15 @@ function app() {
     async connectShopifyOAuth(vendorId) {
       const vendor = this.syncVendors.find(v => v.id === vendorId);
       if (!vendor) return;
-      if (!vendor.source_url || !vendor.source_api_key || !vendor.source_api_secret) {
+      if (!vendor.source_url || !vendor.source_api_key) {
         this.showToast(this.t('shopify_oauth_missing'), 'error');
         return;
       }
       const shop = vendor.source_url.replace(/^https?:\/\//, '').replace(/\/+$/, '');
       const clientId = vendor.source_api_key;
-      const clientSecret = vendor.source_api_secret;
       const redirectUri = N8N_BASE + '/webhook/shopify-oauth-callback';
       const scopes = 'read_products,read_inventory';
-      const state = btoa(JSON.stringify({ vendor_id: vendorId, client_id: clientId, client_secret: clientSecret }));
+      const state = btoa(JSON.stringify({ vendor_id: vendorId }));
       const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${clientId}&scope=${scopes}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${state}`;
       window.open(authUrl, '_blank');
     },

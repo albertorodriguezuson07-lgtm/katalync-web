@@ -1,0 +1,257 @@
+{
+  "name": "Catalog Tools - Stock Updater",
+  "description": "Generates Mirakl-ready stock CSV with token auth via session verification. Receives SKU+quantity via webhook, validates, returns CSV.",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "6dcdafd3-0802-428a-a9d6-863fecfb346d",
+      "name": "Stock Update Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "stock-update",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "webhookId": "63f46427-dcef-4d1b-ab62-5031dc317f47"
+    },
+    {
+      "id": "c8d1170f-b910-4ddd-8cfc-a80d6a82b86c",
+      "name": "Generate Stock CSV",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const https = require('https');\n\nfunction verifyToken(token) {\n  return new Promise((resolve) => {\n    if (!token) { resolve(false); return; }\n    const postData = JSON.stringify({ token });\n    const req = https.request({ hostname: 'api.katalync.com', port: 443, path: '/webhook/auth-verify', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) } }, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => { try { const d = JSON.parse(Buffer.concat(chunks).toString()); resolve(d.success === true); } catch(e) { resolve(false); } });\n    });\n    req.on('error', () => resolve(false));\n    req.setTimeout(5000, () => { req.destroy(); resolve(false); });\n    req.write(postData);\n    req.end();\n  });\n}\n\nconst INPUT_MAP = {\n  'sku': 'sku-de-vendedor', 'SKU': 'sku-de-vendedor', 'Sku': 'sku-de-vendedor', 'referencia': 'sku-de-vendedor', 'Referencia': 'sku-de-vendedor',\n  'ean': 'ean', 'EAN': 'ean', 'ean13': 'ean', 'product-id': 'ean', 'product_id': 'ean',\n  'offer-sku': '_offer-sku', 'offer_sku': '_offer-sku',\n  'stock': 'quantity', 'Stock': 'quantity', 'quantity': 'quantity', 'Quantity': 'quantity', 'cantidad': 'quantity', 'qty': 'quantity',\n  // Native Mirakl API codes (identity mapping)\n  'categorias': 'categorias',\n  'sku-de-vendedor': 'sku-de-vendedor',\n  'nombre-del-articulo': 'nombre-del-articulo',\n  'nombre-del-articulo-pt': 'nombre-del-articulo-pt',\n  'subtitulo-de-productos': 'subtitulo-de-productos',\n  'subtitulo-de-productos-pt': 'subtitulo-de-productos-pt',\n  'pais-fabricante': 'pais-fabricante',\n  'pais-fabricante-pt': 'pais-fabricante-pt',\n  'marcas': 'marcas',\n  'descripion-del-producto': 'descripion-del-producto',\n  'imagenes-1': 'imagenes-1',\n  'imagenes-2': 'imagenes-2',\n  'imagenes-3': 'imagenes-3',\n  'imagenes-4': 'imagenes-4',\n  'colores': 'colores',\n  'tipos-de-deportes': 'tipos-de-deportes',\n  'nombre-del-fabricante': 'nombre-del-fabricante',\n  'nombre-comercial-registrado-del-fabricante': 'nombre-comercial-registrado-del-fabricante',\n  'direccion-del-fabricante': 'direccion-del-fabricante',\n  'correo-electronico-del-fabricante': 'correo-electronico-del-fabricante',\n  'nombre-persona-responsable-en-eu': 'nombre-persona-responsable-en-eu',\n  'direccion-de-la-persona-responsable': 'direccion-de-la-persona-responsable',\n  'correo-electronico-de-la-persona-responsable': 'correo-electronico-de-la-persona-responsable',\n  'foto-etiqueta-del-producto': 'foto-etiqueta-del-producto',\n  'manual-de-seguridad-del-producto': 'manual-de-seguridad-del-producto',\n  'video': 'video',\n  'guia-de-tallas': 'guia-de-tallas',\n  'colecciones': 'colecciones',\n  'cuidados': 'cuidados'\n};\n\nfunction mapInputRow(row) {\n  const mapped = {};\n  for (const [key, val] of Object.entries(row)) {\n    const apiCode = INPUT_MAP[key] || INPUT_MAP[key.toLowerCase()] || key;\n    mapped[apiCode] = val;\n  }\n  return mapped;\n}\n\nconst input = $input.first().json.body;\nconst tokenValid = await verifyToken(input.token);\nif (!tokenValid) {\n  return [{ json: { status: 'error', message: 'Sesion no valida o expirada. Vuelve a iniciar sesion.', errors: 1, success: 0, errorList: [{ sku: '-', message: 'Token invalido' }], csvBase64: '', csvFilename: '', products: [] } }];\n}\n\nconst body = input;\nconst products = body.products || [];\nconst marketplace = body.marketplace || 'sprinter_es';\nconst isPT = marketplace === 'sportzone_pt';\nconst outputFormat = body.outputFormat || '';\nconst shipmentOrigin = body.shipmentOrigin || 'ES';\nconst vatPct = body.vatPct || 'ES-21%,PT-23%';\n\nif (!products.length) {\n  return [{ json: { success: 0, error: 'No products provided', errors: 0, products: [], errorList: [] } }];\n}\n\nconst config = { separator: ';', skuCol: 'shop_sku', qtyCol: 'quantity' };\nconst sep = config.separator;\n\nlet successCount = 0;\nlet errorCount = 0;\nconst errorList = [];\nconst previews = [];\nconst BOM = '﻿';\nconst csvRows = [config.skuCol + sep + config.qtyCol];\nconst sprinterOfferRows = [];\n\nfor (const p of products) {\n  const mapped = mapInputRow(p);\n  const sku = mapped['_offer-sku'] || mapped['sku-de-vendedor'] || '';\n  const ean = String(mapped['ean'] || '').trim();\n  const rawQty = mapped['quantity'] || 0;\n  const qty = parseInt(String(rawQty), 10);\n\n  if (!sku) { errorCount++; errorList.push({ sku: '(vacio)', message: isPT ? 'SKU vazio ou nao encontrado' : 'SKU vacio o no encontrado' }); continue; }\n  if (isNaN(qty) || qty < 0) { errorCount++; errorList.push({ sku, message: isPT ? 'Quantidade invalida: ' + rawQty : 'Cantidad invalida: ' + rawQty }); continue; }\n\n  csvRows.push(sku + sep + qty);\n  successCount++;\n  if (previews.length < 6) { previews.push({ sku, quantity: qty }); }\n\n  if (outputFormat === 'sprinter_mirakl') {\n    sprinterOfferRows.push({\n      'sku': sku,\n      'product-id': ean,\n      'product-id-type': ean ? 'EAN' : '',\n      'description': '',\n      'internal-description': '',\n      'price': '',\n      'price-additional-info': '',\n      'quantity': String(qty),\n      'min-quantity-alert': '',\n      'state': '',\n      'available-start-date': '',\n      'available-end-date': '',\n      'logistic-class': '',\n      'favorite-rank': '',\n      'discount-price': '',\n      'discount-start-date': '',\n      'discount-end-date': '',\n      'discount-ranges': '',\n      'leadtime-to-ship': '',\n      'update-delete': '',\n      'price[channel=INIT]': '',\n      'discount-price[channel=INIT]': '',\n      'discount-start-date[channel=INIT]': '',\n      'discount-end-date[channel=INIT]': '',\n      'discount-ranges[channel=INIT]': '',\n      'shipment-origin': shipmentOrigin,\n      'vat-percentage': vatPct\n    });\n  }\n}\n\nconst csvContent = BOM + csvRows.join('\\n');\nconst csvBase64 = Buffer.from(csvContent, 'utf-8').toString('base64');\nconst timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');\nconst csvFilename = 'stock_' + marketplace + '_' + timestamp + '.csv';\nconst msg = isPT ? successCount + ' produtos de stock processados com sucesso' : successCount + ' productos de stock procesados correctamente';\n\nconst response = { success: successCount, errors: errorCount, message: msg, products: previews, errorList: errorList, csvBase64: csvBase64, csvFilename: csvFilename };\n\nif (outputFormat === 'sprinter_mirakl' && sprinterOfferRows.length > 0) {\n  response.sprinterOfferRows = sprinterOfferRows;\n  response.offersFilename = 'stock_sprinter_' + new Date().toISOString().slice(0,10) + '.xlsx';\n}\n\nreturn [{ json: response }];"
+      }
+    },
+    {
+      "id": "bc456b3e-f5c6-49e6-92ef-c316584b5a4e",
+      "name": "Return Stock Results",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Stock Update Webhook": {
+      "main": [
+        [
+          {
+            "node": "Generate Stock CSV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Stock CSV": {
+      "main": [
+        [
+          {
+            "node": "Return Stock Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "pinData": null,
+  "activeVersionId": "a04c39f8-558d-4f11-9fae-ccc3609c8e27",
+  "versionCounter": 30,
+  "shared": [
+    {
+      "updatedAt": "2026-05-08T21:03:35.720Z",
+      "createdAt": "2026-05-08T21:03:35.720Z",
+      "role": "workflow:owner",
+      "workflowId": "ILhG1rOU2Jm3uN8n",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rodíguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-05-11T16:48:57.472Z",
+    "createdAt": "2026-05-11T16:48:57.472Z",
+    "versionId": "a04c39f8-558d-4f11-9fae-ccc3609c8e27",
+    "workflowId": "ILhG1rOU2Jm3uN8n",
+    "nodes": [
+      {
+        "id": "6dcdafd3-0802-428a-a9d6-863fecfb346d",
+        "name": "Stock Update Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "stock-update",
+          "responseMode": "responseNode",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Access-Control-Allow-Headers",
+                  "value": "Content-Type"
+                },
+                {
+                  "name": "Access-Control-Allow-Methods",
+                  "value": "POST, OPTIONS"
+                }
+              ]
+            }
+          }
+        },
+        "webhookId": "63f46427-dcef-4d1b-ab62-5031dc317f47"
+      },
+      {
+        "id": "c8d1170f-b910-4ddd-8cfc-a80d6a82b86c",
+        "name": "Generate Stock CSV",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const https = require('https');\n\nfunction verifyToken(token) {\n  return new Promise((resolve) => {\n    if (!token) { resolve(false); return; }\n    const postData = JSON.stringify({ token });\n    const req = https.request({ hostname: 'api.katalync.com', port: 443, path: '/webhook/auth-verify', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) } }, (res) => {\n      const chunks = [];\n      res.on('data', (c) => chunks.push(c));\n      res.on('end', () => { try { const d = JSON.parse(Buffer.concat(chunks).toString()); resolve(d.success === true); } catch(e) { resolve(false); } });\n    });\n    req.on('error', () => resolve(false));\n    req.setTimeout(5000, () => { req.destroy(); resolve(false); });\n    req.write(postData);\n    req.end();\n  });\n}\n\nconst INPUT_MAP = {\n  'sku': 'sku-de-vendedor', 'SKU': 'sku-de-vendedor', 'Sku': 'sku-de-vendedor', 'referencia': 'sku-de-vendedor', 'Referencia': 'sku-de-vendedor',\n  'ean': 'ean', 'EAN': 'ean', 'ean13': 'ean', 'product-id': 'ean', 'product_id': 'ean',\n  'offer-sku': '_offer-sku', 'offer_sku': '_offer-sku',\n  'stock': 'quantity', 'Stock': 'quantity', 'quantity': 'quantity', 'Quantity': 'quantity', 'cantidad': 'quantity', 'qty': 'quantity',\n  // Native Mirakl API codes (identity mapping)\n  'categorias': 'categorias',\n  'sku-de-vendedor': 'sku-de-vendedor',\n  'nombre-del-articulo': 'nombre-del-articulo',\n  'nombre-del-articulo-pt': 'nombre-del-articulo-pt',\n  'subtitulo-de-productos': 'subtitulo-de-productos',\n  'subtitulo-de-productos-pt': 'subtitulo-de-productos-pt',\n  'pais-fabricante': 'pais-fabricante',\n  'pais-fabricante-pt': 'pais-fabricante-pt',\n  'marcas': 'marcas',\n  'descripion-del-producto': 'descripion-del-producto',\n  'imagenes-1': 'imagenes-1',\n  'imagenes-2': 'imagenes-2',\n  'imagenes-3': 'imagenes-3',\n  'imagenes-4': 'imagenes-4',\n  'colores': 'colores',\n  'tipos-de-deportes': 'tipos-de-deportes',\n  'nombre-del-fabricante': 'nombre-del-fabricante',\n  'nombre-comercial-registrado-del-fabricante': 'nombre-comercial-registrado-del-fabricante',\n  'direccion-del-fabricante': 'direccion-del-fabricante',\n  'correo-electronico-del-fabricante': 'correo-electronico-del-fabricante',\n  'nombre-persona-responsable-en-eu': 'nombre-persona-responsable-en-eu',\n  'direccion-de-la-persona-responsable': 'direccion-de-la-persona-responsable',\n  'correo-electronico-de-la-persona-responsable': 'correo-electronico-de-la-persona-responsable',\n  'foto-etiqueta-del-producto': 'foto-etiqueta-del-producto',\n  'manual-de-seguridad-del-producto': 'manual-de-seguridad-del-producto',\n  'video': 'video',\n  'guia-de-tallas': 'guia-de-tallas',\n  'colecciones': 'colecciones',\n  'cuidados': 'cuidados'\n};\n\nfunction mapInputRow(row) {\n  const mapped = {};\n  for (const [key, val] of Object.entries(row)) {\n    const apiCode = INPUT_MAP[key] || INPUT_MAP[key.toLowerCase()] || key;\n    mapped[apiCode] = val;\n  }\n  return mapped;\n}\n\nconst input = $input.first().json.body;\nconst tokenValid = await verifyToken(input.token);\nif (!tokenValid) {\n  return [{ json: { status: 'error', message: 'Sesion no valida o expirada. Vuelve a iniciar sesion.', errors: 1, success: 0, errorList: [{ sku: '-', message: 'Token invalido' }], csvBase64: '', csvFilename: '', products: [] } }];\n}\n\nconst body = input;\nconst products = body.products || [];\nconst marketplace = body.marketplace || 'sprinter_es';\nconst isPT = marketplace === 'sportzone_pt';\nconst outputFormat = body.outputFormat || '';\nconst shipmentOrigin = body.shipmentOrigin || 'ES';\nconst vatPct = body.vatPct || 'ES-21%,PT-23%';\n\nif (!products.length) {\n  return [{ json: { success: 0, error: 'No products provided', errors: 0, products: [], errorList: [] } }];\n}\n\nconst config = { separator: ';', skuCol: 'shop_sku', qtyCol: 'quantity' };\nconst sep = config.separator;\n\nlet successCount = 0;\nlet errorCount = 0;\nconst errorList = [];\nconst previews = [];\nconst BOM = '﻿';\nconst csvRows = [config.skuCol + sep + config.qtyCol];\nconst sprinterOfferRows = [];\n\nfor (const p of products) {\n  const mapped = mapInputRow(p);\n  const sku = mapped['_offer-sku'] || mapped['sku-de-vendedor'] || '';\n  const ean = String(mapped['ean'] || '').trim();\n  const rawQty = mapped['quantity'] || 0;\n  const qty = parseInt(String(rawQty), 10);\n\n  if (!sku) { errorCount++; errorList.push({ sku: '(vacio)', message: isPT ? 'SKU vazio ou nao encontrado' : 'SKU vacio o no encontrado' }); continue; }\n  if (isNaN(qty) || qty < 0) { errorCount++; errorList.push({ sku, message: isPT ? 'Quantidade invalida: ' + rawQty : 'Cantidad invalida: ' + rawQty }); continue; }\n\n  csvRows.push(sku + sep + qty);\n  successCount++;\n  if (previews.length < 6) { previews.push({ sku, quantity: qty }); }\n\n  if (outputFormat === 'sprinter_mirakl') {\n    sprinterOfferRows.push({\n      'sku': sku,\n      'product-id': ean,\n      'product-id-type': ean ? 'EAN' : '',\n      'description': '',\n      'internal-description': '',\n      'price': '',\n      'price-additional-info': '',\n      'quantity': String(qty),\n      'min-quantity-alert': '',\n      'state': '',\n      'available-start-date': '',\n      'available-end-date': '',\n      'logistic-class': '',\n      'favorite-rank': '',\n      'discount-price': '',\n      'discount-start-date': '',\n      'discount-end-date': '',\n      'discount-ranges': '',\n      'leadtime-to-ship': '',\n      'update-delete': '',\n      'price[channel=INIT]': '',\n      'discount-price[channel=INIT]': '',\n      'discount-start-date[channel=INIT]': '',\n      'discount-end-date[channel=INIT]': '',\n      'discount-ranges[channel=INIT]': '',\n      'shipment-origin': shipmentOrigin,\n      'vat-percentage': vatPct\n    });\n  }\n}\n\nconst csvContent = BOM + csvRows.join('\\n');\nconst csvBase64 = Buffer.from(csvContent, 'utf-8').toString('base64');\nconst timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '');\nconst csvFilename = 'stock_' + marketplace + '_' + timestamp + '.csv';\nconst msg = isPT ? successCount + ' produtos de stock processados com sucesso' : successCount + ' productos de stock procesados correctamente';\n\nconst response = { success: successCount, errors: errorCount, message: msg, products: previews, errorList: errorList, csvBase64: csvBase64, csvFilename: csvFilename };\n\nif (outputFormat === 'sprinter_mirakl' && sprinterOfferRows.length > 0) {\n  response.sprinterOfferRows = sprinterOfferRows;\n  response.offersFilename = 'stock_sprinter_' + new Date().toISOString().slice(0,10) + '.xlsx';\n}\n\nreturn [{ json: response }];"
+        }
+      },
+      {
+        "id": "bc456b3e-f5c6-49e6-92ef-c316584b5a4e",
+        "name": "Return Stock Results",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "respondWith": "firstIncomingItem",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Stock Update Webhook": {
+        "main": [
+          [
+            {
+              "node": "Generate Stock CSV",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Stock CSV": {
+        "main": [
+          [
+            {
+              "node": "Return Stock Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rodíguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-11T16:48:57.517Z",
+        "id": 384,
+        "workflowId": "ILhG1rOU2Jm3uN8n",
+        "versionId": "a04c39f8-558d-4f11-9fae-ccc3609c8e27",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-11T16:48:57.501Z",
+        "id": 383,
+        "workflowId": "ILhG1rOU2Jm3uN8n",
+        "versionId": "a04c39f8-558d-4f11-9fae-ccc3609c8e27",
+        "event": "deactivated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}

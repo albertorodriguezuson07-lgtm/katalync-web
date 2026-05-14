@@ -1,0 +1,272 @@
+{
+  "name": "Katalync - AI Parse Product",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-parse-product",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-in",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "ai-parse-product"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Eres un experto en productos deportivos. Del texto que te doy, extrae la información del producto. Responde SOLO con JSON válido, sin markdown ni explicaciones.\\n\\nCampos a extraer:\\n- productType: tipo de producto en singular y castellano. Valores válidos: Zapatilla, Chancla, Bota, Sandalia, Zueco, Camiseta, Sudadera, Chaqueta, Pantalón, Malla, Chándal, Conjunto, Polo, Chaleco, Bañador, Bikini, Body, Mono, Vestido, Falda, Calcetín, Camisa, Top, Cortavientos, Chubasquero, Mochila, Bolsa, Gorra, Gorro, Guante, Gafa, Reloj, Bufanda, Balón, Raqueta, Pala, Protección, Rodillera, Espinillera, Codera, Casco, Esterilla, Pesa, Bicicleta, Neopreno, Culotte, Producto.\\n- model: nombre del modelo (sin marca, sin tipo, sin color, sin talla, sin género, sin año). Solo las palabras que identifican el modelo específico.\\n- color: color principal detectado, en castellano, primera letra mayúscula.\\n\\nSi no puedes determinar algún campo, usa cadena vacía.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify('Marca: ' + ($json.body.brand || '?') + '. Texto completo: ' + ($json.body.name || '')) }}\n    }\n  ],\n  \"temperature\": 0,\n  \"max_tokens\": 150,\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "call-openai",
+      "name": "Call OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        470,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "Tspxvhbk9zt3Hwih",
+          "name": "PROMETEIX"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nlet result = { productType: '', model: '', color: '' };\ntry {\n  const content = input.choices[0].message.content;\n  result = JSON.parse(content);\n} catch(e) {}\nreturn [{ json: result }];"
+      },
+      "id": "parse-response",
+      "name": "Parse Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        910,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Parse Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": null,
+  "activeVersionId": "2d7340ee-ea86-441e-8610-da80a511d505",
+  "versionCounter": 7,
+  "shared": [
+    {
+      "updatedAt": "2026-05-12T17:08:16.160Z",
+      "createdAt": "2026-05-12T17:08:16.160Z",
+      "role": "workflow:owner",
+      "workflowId": "LszBbb5fixW9HJfG",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rodíguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-05-12T17:08:16.163Z",
+    "createdAt": "2026-05-12T17:08:16.163Z",
+    "versionId": "2d7340ee-ea86-441e-8610-da80a511d505",
+    "workflowId": "LszBbb5fixW9HJfG",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "ai-parse-product",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "id": "webhook-in",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          250,
+          300
+        ],
+        "webhookId": "ai-parse-product"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.openai.com/v1/chat/completions",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "openAiApi",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Eres un experto en productos deportivos. Del texto que te doy, extrae la información del producto. Responde SOLO con JSON válido, sin markdown ni explicaciones.\\n\\nCampos a extraer:\\n- productType: tipo de producto en singular y castellano. Valores válidos: Zapatilla, Chancla, Bota, Sandalia, Zueco, Camiseta, Sudadera, Chaqueta, Pantalón, Malla, Chándal, Conjunto, Polo, Chaleco, Bañador, Bikini, Body, Mono, Vestido, Falda, Calcetín, Camisa, Top, Cortavientos, Chubasquero, Mochila, Bolsa, Gorra, Gorro, Guante, Gafa, Reloj, Bufanda, Balón, Raqueta, Pala, Protección, Rodillera, Espinillera, Codera, Casco, Esterilla, Pesa, Bicicleta, Neopreno, Culotte, Producto.\\n- model: nombre del modelo (sin marca, sin tipo, sin color, sin talla, sin género, sin año). Solo las palabras que identifican el modelo específico.\\n- color: color principal detectado, en castellano, primera letra mayúscula.\\n\\nSi no puedes determinar algún campo, usa cadena vacía.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify('Marca: ' + ($json.body.brand || '?') + '. Texto completo: ' + ($json.body.name || '')) }}\n    }\n  ],\n  \"temperature\": 0,\n  \"max_tokens\": 150,\n  \"response_format\": { \"type\": \"json_object\" }\n}",
+          "options": {
+            "timeout": 8000
+          }
+        },
+        "id": "call-openai",
+        "name": "Call OpenAI",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          470,
+          300
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "Tspxvhbk9zt3Hwih",
+            "name": "PROMETEIX"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $input.first().json;\nlet result = { productType: '', model: '', color: '' };\ntry {\n  const content = input.choices[0].message.content;\n  result = JSON.parse(content);\n} catch(e) {}\nreturn [{ json: result }];"
+        },
+        "id": "parse-response",
+        "name": "Parse Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          690,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json) }}",
+          "options": {}
+        },
+        "id": "respond",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          910,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Call OpenAI",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Call OpenAI": {
+        "main": [
+          [
+            {
+              "node": "Parse Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Response": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rodíguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-12T17:08:26.330Z",
+        "id": 461,
+        "workflowId": "LszBbb5fixW9HJfG",
+        "versionId": "2d7340ee-ea86-441e-8610-da80a511d505",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}

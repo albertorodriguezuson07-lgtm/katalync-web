@@ -1,0 +1,268 @@
+{
+  "name": "Catalog Tools - Email Notifications",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "katalync-email",
+        "httpMethod": "POST",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "id": "email-webhook",
+      "name": "Email Webhook",
+      "webhookId": "katalync-email"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst type = body.type || '';\nconst email = (body.email || '').toLowerCase().trim();\nconst name = body.name || '';\nconst data = body.data || {};\n\nif (!email || !type) return [{ json: { success: false, error: 'type and email required' } }];\n\nconst brandColor = '#0d9488';\nconst logo = 'https://katalync.com/assets/logo.svg';\n\nfunction wrap(title, content) {\n  return `<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif\"><div style=\"max-width:560px;margin:0 auto;padding:32px 16px\"><div style=\"background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1)\"><div style=\"background:linear-gradient(135deg,${brandColor},#06b6d4);padding:32px 24px;text-align:center\"><h1 style=\"color:white;margin:0;font-size:22px;font-weight:700\">${title}</h1></div><div style=\"padding:32px 24px\">${content}</div><div style=\"padding:16px 24px;border-top:1px solid #f3f4f6;text-align:center\"><p style=\"margin:0;font-size:12px;color:#9ca3af\">Katalync — Automatización de catálogos para marketplace</p><p style=\"margin:4px 0 0;font-size:11px;color:#d1d5db\"><a href=\"https://katalync.com\" style=\"color:#9ca3af\">katalync.com</a></p></div></div></div></body></html>`;\n}\n\nlet subject = '';\nlet html = '';\n\nswitch(type) {\n  case 'welcome': {\n    subject = '¡Bienvenido a Katalync, ' + name + '!';\n    html = wrap('¡Bienvenido a Katalync!', `<p style=\"color:#374151;font-size:15px;line-height:1.6\">Hola <strong>${name}</strong>,</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Tu cuenta ha sido creada correctamente. Estás a un paso de empezar a automatizar la preparación de tus catálogos para marketplace.</p><div style=\"text-align:center;margin:24px 0\"><a href=\"https://katalync.com/app.html\" style=\"display:inline-block;background:linear-gradient(135deg,${brandColor},#06b6d4);color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px\">Acceder a Katalync</a></div><p style=\"color:#6b7280;font-size:13px\">Si tienes alguna duda, responde a este email.</p>`);\n    break;\n  }\n  case 'payment_success': {\n    subject = '¡Suscripción activada!';\n    html = wrap('¡Pago confirmado!', `<p style=\"color:#374151;font-size:15px;line-height:1.6\">Hola <strong>${name}</strong>,</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Tu suscripción a Katalync ha sido activada correctamente. Ya tienes acceso completo a todas las herramientas:</p><ul style=\"color:#374151;font-size:14px;line-height:2\"><li>Conversor de Catálogo</li><li>Actualización de Precios</li><li>Sincronización de Stock</li><li>Validación Pre-Upload</li><li>Repricing automático</li></ul><div style=\"text-align:center;margin:24px 0\"><a href=\"https://katalync.com/app.html\" style=\"display:inline-block;background:linear-gradient(135deg,${brandColor},#06b6d4);color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px\">Empezar a trabajar</a></div>`);\n    break;\n  }\n  case 'payment_failed': {\n    subject = 'Problema con tu pago - Katalync';\n    html = wrap('Problema con tu pago', `<p style=\"color:#374151;font-size:15px;line-height:1.6\">Hola <strong>${name}</strong>,</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">No hemos podido procesar tu último pago. Tu acceso a las herramientas ha sido suspendido temporalmente.</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Para resolver esto, actualiza tu método de pago:</p><div style=\"text-align:center;margin:24px 0\"><a href=\"https://katalync.com/app.html\" style=\"display:inline-block;background:#ef4444;color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px\">Actualizar método de pago</a></div><p style=\"color:#6b7280;font-size:13px\">Si crees que es un error, responde a este email.</p>`);\n    break;\n  }\n  case 'subscription_cancelled': {\n    subject = 'Tu suscripción ha sido cancelada - Katalync';\n    html = wrap('Suscripción cancelada', `<p style=\"color:#374151;font-size:15px;line-height:1.6\">Hola <strong>${name}</strong>,</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Tu suscripción a Katalync ha sido cancelada. Lamentamos verte partir.</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Si cambias de opinión, siempre puedes volver a suscribirte:</p><div style=\"text-align:center;margin:24px 0\"><a href=\"https://katalync.com/app.html\" style=\"display:inline-block;background:linear-gradient(135deg,${brandColor},#06b6d4);color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px\">Reactivar suscripción</a></div>`);\n    break;\n  }\n  case 'processing_complete': {\n    const tool = data.tool || 'catálogo';\n    const count = data.count || 0;\n    const fileName = data.fileName || '';\n    subject = `✓ ${count} productos procesados - Katalync`;\n    html = wrap('Procesamiento completado', `<p style=\"color:#374151;font-size:15px;line-height:1.6\">Hola <strong>${name}</strong>,</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Tu archivo ha sido procesado correctamente:</p><div style=\"background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px 20px;margin:16px 0\"><p style=\"margin:0;font-size:14px;color:#166534\"><strong>${count} productos</strong> procesados con la herramienta de <strong>${tool}</strong></p>${fileName ? '<p style=\"margin:4px 0 0;font-size:12px;color:#4ade80\">'+fileName+'</p>' : ''}</div><div style=\"text-align:center;margin:24px 0\"><a href=\"https://katalync.com/app.html\" style=\"display:inline-block;background:linear-gradient(135deg,${brandColor},#06b6d4);color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px\">Ver resultados</a></div>`);\n    break;\n  }\n\n  case 'verify_code': {\n    const code = data.code || '000000';\n    subject = 'Tu codigo de verificacion - Katalync';\n    html = wrap('Verifica tu email', `<p style=\"color:#374151;font-size:15px;line-height:1.6\">Hola <strong>${name}</strong>,</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Tu codigo de verificacion es:</p><div style=\"text-align:center;margin:24px 0\"><div style=\"display:inline-block;background:#f0fdf4;border:2px solid ${brandColor};border-radius:16px;padding:20px 40px\"><span style=\"font-size:36px;font-weight:800;letter-spacing:12px;color:${brandColor}\">${code}</span></div></div><p style=\"color:#6b7280;font-size:13px;text-align:center\">Este codigo expira en 10 minutos.</p><p style=\"color:#6b7280;font-size:13px\">Si no solicitaste este codigo, ignora este email.</p>`);\n    break;\n  }\n  default:\n    return [{ json: { success: false, error: 'Unknown email type: ' + type } }];\n}\n\nreturn [{ json: { success: true, to: email, subject, html, name } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ],
+      "id": "email-template",
+      "name": "Build Email"
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false,
+          "senderName": "Katalync"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        740,
+        300
+      ],
+      "id": "email-send",
+      "name": "Send Email",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "7vvNh39J5wd8C9Ix",
+          "name": "Alberto@prometeix.com"
+        }
+      },
+      "webhookId": "b3614834-b88d-4928-bb22-78551d05adee"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { success: true, sent: true } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        300
+      ],
+      "id": "email-respond",
+      "name": "Respond"
+    }
+  ],
+  "connections": {
+    "Email Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Email": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": null,
+  "activeVersionId": "7891aa08-6063-4701-a1c7-dd3c0c63cd66",
+  "versionCounter": 10,
+  "shared": [
+    {
+      "updatedAt": "2026-05-10T15:37:11.898Z",
+      "createdAt": "2026-05-10T15:37:11.898Z",
+      "role": "workflow:owner",
+      "workflowId": "HYICYonfI2shmoPg",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rodíguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-05-10T15:37:57.929Z",
+    "createdAt": "2026-05-10T15:37:57.929Z",
+    "versionId": "7891aa08-6063-4701-a1c7-dd3c0c63cd66",
+    "workflowId": "HYICYonfI2shmoPg",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "katalync-email",
+          "httpMethod": "POST",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          260,
+          300
+        ],
+        "id": "email-webhook",
+        "name": "Email Webhook",
+        "webhookId": "katalync-email"
+      },
+      {
+        "parameters": {
+          "jsCode": "const body = $input.first().json.body;\nconst type = body.type || '';\nconst email = (body.email || '').toLowerCase().trim();\nconst name = body.name || '';\nconst data = body.data || {};\n\nif (!email || !type) return [{ json: { success: false, error: 'type and email required' } }];\n\nconst brandColor = '#0d9488';\nconst logo = 'https://katalync.com/assets/logo.svg';\n\nfunction wrap(title, content) {\n  return `<!DOCTYPE html><html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"></head><body style=\"margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif\"><div style=\"max-width:560px;margin:0 auto;padding:32px 16px\"><div style=\"background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.1)\"><div style=\"background:linear-gradient(135deg,${brandColor},#06b6d4);padding:32px 24px;text-align:center\"><h1 style=\"color:white;margin:0;font-size:22px;font-weight:700\">${title}</h1></div><div style=\"padding:32px 24px\">${content}</div><div style=\"padding:16px 24px;border-top:1px solid #f3f4f6;text-align:center\"><p style=\"margin:0;font-size:12px;color:#9ca3af\">Katalync — Automatización de catálogos para marketplace</p><p style=\"margin:4px 0 0;font-size:11px;color:#d1d5db\"><a href=\"https://katalync.com\" style=\"color:#9ca3af\">katalync.com</a></p></div></div></div></body></html>`;\n}\n\nlet subject = '';\nlet html = '';\n\nswitch(type) {\n  case 'welcome': {\n    subject = '¡Bienvenido a Katalync, ' + name + '!';\n    html = wrap('¡Bienvenido a Katalync!', `<p style=\"color:#374151;font-size:15px;line-height:1.6\">Hola <strong>${name}</strong>,</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Tu cuenta ha sido creada correctamente. Estás a un paso de empezar a automatizar la preparación de tus catálogos para marketplace.</p><div style=\"text-align:center;margin:24px 0\"><a href=\"https://katalync.com/app.html\" style=\"display:inline-block;background:linear-gradient(135deg,${brandColor},#06b6d4);color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px\">Acceder a Katalync</a></div><p style=\"color:#6b7280;font-size:13px\">Si tienes alguna duda, responde a este email.</p>`);\n    break;\n  }\n  case 'payment_success': {\n    subject = '¡Suscripción activada!';\n    html = wrap('¡Pago confirmado!', `<p style=\"color:#374151;font-size:15px;line-height:1.6\">Hola <strong>${name}</strong>,</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Tu suscripción a Katalync ha sido activada correctamente. Ya tienes acceso completo a todas las herramientas:</p><ul style=\"color:#374151;font-size:14px;line-height:2\"><li>Conversor de Catálogo</li><li>Actualización de Precios</li><li>Sincronización de Stock</li><li>Validación Pre-Upload</li><li>Repricing automático</li></ul><div style=\"text-align:center;margin:24px 0\"><a href=\"https://katalync.com/app.html\" style=\"display:inline-block;background:linear-gradient(135deg,${brandColor},#06b6d4);color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px\">Empezar a trabajar</a></div>`);\n    break;\n  }\n  case 'payment_failed': {\n    subject = 'Problema con tu pago - Katalync';\n    html = wrap('Problema con tu pago', `<p style=\"color:#374151;font-size:15px;line-height:1.6\">Hola <strong>${name}</strong>,</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">No hemos podido procesar tu último pago. Tu acceso a las herramientas ha sido suspendido temporalmente.</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Para resolver esto, actualiza tu método de pago:</p><div style=\"text-align:center;margin:24px 0\"><a href=\"https://katalync.com/app.html\" style=\"display:inline-block;background:#ef4444;color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px\">Actualizar método de pago</a></div><p style=\"color:#6b7280;font-size:13px\">Si crees que es un error, responde a este email.</p>`);\n    break;\n  }\n  case 'subscription_cancelled': {\n    subject = 'Tu suscripción ha sido cancelada - Katalync';\n    html = wrap('Suscripción cancelada', `<p style=\"color:#374151;font-size:15px;line-height:1.6\">Hola <strong>${name}</strong>,</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Tu suscripción a Katalync ha sido cancelada. Lamentamos verte partir.</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Si cambias de opinión, siempre puedes volver a suscribirte:</p><div style=\"text-align:center;margin:24px 0\"><a href=\"https://katalync.com/app.html\" style=\"display:inline-block;background:linear-gradient(135deg,${brandColor},#06b6d4);color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px\">Reactivar suscripción</a></div>`);\n    break;\n  }\n  case 'processing_complete': {\n    const tool = data.tool || 'catálogo';\n    const count = data.count || 0;\n    const fileName = data.fileName || '';\n    subject = `✓ ${count} productos procesados - Katalync`;\n    html = wrap('Procesamiento completado', `<p style=\"color:#374151;font-size:15px;line-height:1.6\">Hola <strong>${name}</strong>,</p><p style=\"color:#374151;font-size:15px;line-height:1.6\">Tu archivo ha sido procesado correctamente:</p><div style=\"background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px 20px;margin:16px 0\"><p style=\"margin:0;font-size:14px;color:#166534\"><strong>${count} productos</strong> procesados con la herramienta de <strong>${tool}</strong></p>${fileName ? '<p style=\"margin:4px 0 0;font-size:12px;color:#4ade80\">'+fileName+'</p>' : ''}</div><div style=\"text-align:center;margin:24px 0\"><a href=\"https://katalync.com/app.html\" style=\"display:inline-block;background:linear-gradient(135deg,${brandColor},#06b6d4);color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:600;font-size:15px\">Ver resultados</a></div>`);\n    break;\n  }\n  default:\n    return [{ json: { success: false, error: 'Unknown email type: ' + type } }];\n}\n\nreturn [{ json: { success: true, to: email, subject, html, name } }];",
+          "mode": "runOnceForAllItems"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          500,
+          300
+        ],
+        "id": "email-template",
+        "name": "Build Email"
+      },
+      {
+        "parameters": {
+          "sendTo": "={{ $json.to }}",
+          "subject": "={{ $json.subject }}",
+          "message": "={{ $json.html }}",
+          "options": {
+            "appendAttribution": false,
+            "senderName": "Katalync"
+          }
+        },
+        "type": "n8n-nodes-base.gmail",
+        "typeVersion": 2.2,
+        "position": [
+          740,
+          300
+        ],
+        "id": "email-send",
+        "name": "Send Email",
+        "credentials": {
+          "gmailOAuth2": {
+            "id": "7vvNh39J5wd8C9Ix",
+            "name": "Alberto@prometeix.com"
+          }
+        },
+        "webhookId": "b3614834-b88d-4928-bb22-78551d05adee"
+      },
+      {
+        "parameters": {
+          "jsCode": "return [{ json: { success: true, sent: true } }];",
+          "mode": "runOnceForAllItems"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          980,
+          300
+        ],
+        "id": "email-respond",
+        "name": "Respond"
+      }
+    ],
+    "connections": {
+      "Email Webhook": {
+        "main": [
+          [
+            {
+              "node": "Build Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Email": {
+        "main": [
+          [
+            {
+              "node": "Send Email",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send Email": {
+        "main": [
+          [
+            {
+              "node": "Respond",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rodíguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-10T15:37:58.204Z",
+        "id": 339,
+        "workflowId": "HYICYonfI2shmoPg",
+        "versionId": "7891aa08-6063-4701-a1c7-dd3c0c63cd66",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}

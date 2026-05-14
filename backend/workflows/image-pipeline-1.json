@@ -1,0 +1,279 @@
+{
+  "name": "Catalog Tools - Image Pipeline",
+  "description": "Image pipeline using this.helpers.httpRequest for imgproxy calls. Converts 1:1 to 2:3 with white padding.",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "aecea50a-fa80-498d-8101-7f203a463480",
+      "name": "Image Pipeline Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "image-pipeline",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "webhookId": "beb1c4f0-9ead-4396-badb-821c47a8831e"
+    },
+    {
+      "id": "61c66d08-3d96-4631-b35c-1039eec1da43",
+      "name": "Process Images",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || input;\nconst products = body.products || [];\nconst marketplace = body.marketplace || 'unknown';\nconst vendorId = body.vendorId || 'unknown';\n\nif (products.length > 500) {\n  return [{ json: { success: 0, errors: 1, total: 0, products: [], errorList: [{ sku: 'N/A', message: 'Maximo 500 productos' }], marketplace, vendorId } }];\n}\nif (products.length === 0) {\n  return [{ json: { success: 0, errors: 0, total: 0, products: [], errorList: [], marketplace, vendorId } }];\n}\n\nconst IMGPROXY_BASE = 'https://image-tools-imgproxy.reyl9a.easypanel.host/insecure/rs:fit:1000:1500/bg:ffffff/extend:1:ce/format:jpg/quality:90';\nconst includeBase64 = products.length <= 20;\nconst results = [];\nconst errorList = [];\nlet successCount = 0;\nlet errorCount = 0;\n\nfor (const product of products) {\n  const { sku, imageUrl } = product;\n  if (!sku || !imageUrl) {\n    errorCount++;\n    errorList.push({ sku: sku || 'unknown', message: 'Falta sku o imageUrl' });\n    results.push({ sku: sku || 'unknown', originalUrl: imageUrl || '', convertedUrl: '', status: 'error', imageBase64: null });\n    continue;\n  }\n  try {\n    const encodedUrl = Buffer.from(imageUrl).toString('base64url');\n    const imgproxyUrl = IMGPROXY_BASE + '/' + encodedUrl;\n    const response = await this.helpers.httpRequest({\n      method: 'GET',\n      url: imgproxyUrl,\n      encoding: 'arraybuffer',\n      returnFullResponse: true,\n      timeout: 15000\n    });\n    const imageBuffer = Buffer.from(response.body);\n    const imageBase64 = includeBase64 ? imageBuffer.toString('base64') : null;\n    const cdnUrl = 'https://cdn.prometeix.com/' + marketplace + '/' + vendorId + '/' + sku + '.jpg';\n    successCount++;\n    results.push({ sku, originalUrl: imageUrl, convertedUrl: cdnUrl, status: 'ok', imageBase64 });\n  } catch (err) {\n    errorCount++;\n    errorList.push({ sku, message: err.message || 'Error desconocido' });\n    results.push({ sku, originalUrl: imageUrl, convertedUrl: '', status: 'error', imageBase64: null });\n  }\n}\n\nreturn [{ json: { success: successCount, errors: errorCount, total: products.length, products: results, errorList, marketplace, vendorId, includeBase64 } }];"
+      }
+    },
+    {
+      "id": "1df740f2-6320-4008-a8f1-f0a120aa2f34",
+      "name": "Generate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const data = $input.first().json;\nconst response = {\n  success: data.success,\n  errors: data.errors,\n  total: data.total,\n  marketplace: data.marketplace,\n  vendorId: data.vendorId,\n  products: data.products.map(p => {\n    const item = { sku: p.sku, originalUrl: p.originalUrl, convertedUrl: p.convertedUrl, status: p.status };\n    if (data.includeBase64 && p.imageBase64) item.imageBase64 = p.imageBase64;\n    return item;\n  }),\n  errorList: data.errorList,\n  processedAt: new Date().toISOString()\n};\nreturn [{ json: response }];"
+      }
+    },
+    {
+      "id": "8b859b40-6f50-4590-b3b2-50e7f8c56266",
+      "name": "Respond with Results",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "respondWith": "firstIncomingItem",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Image Pipeline Webhook": {
+      "main": [
+        [
+          {
+            "node": "Process Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Images": {
+      "main": [
+        [
+          {
+            "node": "Generate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Results": {
+      "main": [
+        [
+          {
+            "node": "Respond with Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "pinData": null,
+  "activeVersionId": "9f3457b0-2364-495c-80b4-ed44486725f9",
+  "versionCounter": 21,
+  "shared": [
+    {
+      "updatedAt": "2026-05-09T00:44:26.497Z",
+      "createdAt": "2026-05-09T00:44:26.497Z",
+      "role": "workflow:owner",
+      "workflowId": "aPDLPL32Omn6b7EQ",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rodíguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-05-09T00:49:21.678Z",
+    "createdAt": "2026-05-09T00:49:21.678Z",
+    "versionId": "9f3457b0-2364-495c-80b4-ed44486725f9",
+    "workflowId": "aPDLPL32Omn6b7EQ",
+    "nodes": [
+      {
+        "id": "aecea50a-fa80-498d-8101-7f203a463480",
+        "name": "Image Pipeline Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2.1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "image-pipeline",
+          "responseMode": "responseNode",
+          "options": {
+            "allowedOrigins": "*"
+          }
+        },
+        "webhookId": "beb1c4f0-9ead-4396-badb-821c47a8831e"
+      },
+      {
+        "id": "61c66d08-3d96-4631-b35c-1039eec1da43",
+        "name": "Process Images",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const input = $input.first().json;\nconst body = input.body || input;\nconst products = body.products || [];\nconst marketplace = body.marketplace || 'unknown';\nconst vendorId = body.vendorId || 'unknown';\n\nif (products.length > 500) {\n  return [{ json: { success: 0, errors: 1, total: 0, products: [], errorList: [{ sku: 'N/A', message: 'Maximo 500 productos' }], marketplace, vendorId } }];\n}\nif (products.length === 0) {\n  return [{ json: { success: 0, errors: 0, total: 0, products: [], errorList: [], marketplace, vendorId } }];\n}\n\nconst IMGPROXY_BASE = 'https://image-tools-imgproxy.reyl9a.easypanel.host/insecure/rs:fit:1000:1500/bg:ffffff/extend:1:ce/format:jpg/quality:90';\nconst includeBase64 = products.length <= 20;\nconst results = [];\nconst errorList = [];\nlet successCount = 0;\nlet errorCount = 0;\n\nfor (const product of products) {\n  const { sku, imageUrl } = product;\n  if (!sku || !imageUrl) {\n    errorCount++;\n    errorList.push({ sku: sku || 'unknown', message: 'Falta sku o imageUrl' });\n    results.push({ sku: sku || 'unknown', originalUrl: imageUrl || '', convertedUrl: '', status: 'error', imageBase64: null });\n    continue;\n  }\n  try {\n    const encodedUrl = Buffer.from(imageUrl).toString('base64url');\n    const imgproxyUrl = IMGPROXY_BASE + '/' + encodedUrl;\n    const response = await this.helpers.httpRequest({\n      method: 'GET',\n      url: imgproxyUrl,\n      encoding: 'arraybuffer',\n      returnFullResponse: true,\n      timeout: 15000\n    });\n    const imageBuffer = Buffer.from(response.body);\n    const imageBase64 = includeBase64 ? imageBuffer.toString('base64') : null;\n    const cdnUrl = 'https://cdn.prometeix.com/' + marketplace + '/' + vendorId + '/' + sku + '.jpg';\n    successCount++;\n    results.push({ sku, originalUrl: imageUrl, convertedUrl: cdnUrl, status: 'ok', imageBase64 });\n  } catch (err) {\n    errorCount++;\n    errorList.push({ sku, message: err.message || 'Error desconocido' });\n    results.push({ sku, originalUrl: imageUrl, convertedUrl: '', status: 'error', imageBase64: null });\n  }\n}\n\nreturn [{ json: { success: successCount, errors: errorCount, total: products.length, products: results, errorList, marketplace, vendorId, includeBase64 } }];"
+        }
+      },
+      {
+        "id": "1df740f2-6320-4008-a8f1-f0a120aa2f34",
+        "name": "Generate Results",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "language": "javaScript",
+          "jsCode": "const data = $input.first().json;\nconst response = {\n  success: data.success,\n  errors: data.errors,\n  total: data.total,\n  marketplace: data.marketplace,\n  vendorId: data.vendorId,\n  products: data.products.map(p => {\n    const item = { sku: p.sku, originalUrl: p.originalUrl, convertedUrl: p.convertedUrl, status: p.status };\n    if (data.includeBase64 && p.imageBase64) item.imageBase64 = p.imageBase64;\n    return item;\n  }),\n  errorList: data.errorList,\n  processedAt: new Date().toISOString()\n};\nreturn [{ json: response }];"
+        }
+      },
+      {
+        "id": "8b859b40-6f50-4590-b3b2-50e7f8c56266",
+        "name": "Respond with Results",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {
+          "respondWith": "firstIncomingItem",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Image Pipeline Webhook": {
+        "main": [
+          [
+            {
+              "node": "Process Images",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Process Images": {
+        "main": [
+          [
+            {
+              "node": "Generate Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Generate Results": {
+        "main": [
+          [
+            {
+              "node": "Respond with Results",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rodíguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-09T00:49:27.239Z",
+        "id": 269,
+        "workflowId": "aPDLPL32Omn6b7EQ",
+        "versionId": "9f3457b0-2364-495c-80b4-ed44486725f9",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}

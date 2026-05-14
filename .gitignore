@@ -5,3 +5,10 @@ backend/backups/
 .env
 .env.*
 backend/.env
+backend/workflows/saved-files.json
+backend/workflows/web-app.json
+code-node-content.txt
+html-escaped-js.txt
+html-escaped.txt
+generate_sprinter_presentation.py
+Katalync_Presentacion_Sprinter.pptx

@@ -1,0 +1,322 @@
+{
+  "name": "Katalync Chat AI",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "katalync-chat-ai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "katalync-chat-ai"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build Prompt for OpenAI — with user account context\nconst https = require('https');\nconst body = $input.first().json.body;\nconst question = body.question || '';\nconst history = body.history || [];\nconst lang = body.lang || 'es';\nconst token = body.token || '';\nconst appContext = body.appContext || '';\n\n// Verify token and get user info\nlet userInfo = null;\nif (token) {\n  try {\n    const postData = JSON.stringify({ token });\n    const result = await new Promise((resolve, reject) => {\n      const req = https.request({\n        hostname: 'prometeix-servidor-n8n.reyl9a.easypanel.host',\n        port: 443, path: '/webhook/auth-verify', method: 'POST',\n        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }\n      }, (res) => {\n        const chunks = [];\n        res.on('data', c => chunks.push(c));\n        res.on('end', () => {\n          try { resolve(JSON.parse(Buffer.concat(chunks).toString())); }\n          catch(e) { resolve(null); }\n        });\n      });\n      req.on('error', () => resolve(null));\n      req.setTimeout(5000, () => { req.destroy(); resolve(null); });\n      req.write(postData);\n      req.end();\n    });\n    if (result && result.success) userInfo = result;\n  } catch(e) { /* ignore */ }\n}\n\nconst userContext = userInfo ? `\n\n## Datos de la cuenta del usuario actual\n- Nombre: ${userInfo.name || 'No disponible'}\n- Email: ${userInfo.email || 'No disponible'}\n- Empresa: ${userInfo.company || 'No especificada'}\n- Rol: ${userInfo.role === 'marketplace_admin' ? 'Administrador' : userInfo.role === 'seller' ? 'Vendedor' : userInfo.role || 'Usuario'}\n- Marketplace: ${userInfo.marketplace_id || 'No especificado'}\n- Estado de suscripción: ${userInfo.subscription_status === 'active' ? 'Activa' : userInfo.subscription_status === 'trialing' ? 'En periodo de prueba' : userInfo.subscription_status || 'No disponible'}\n- Idioma: ${userInfo.lang === 'pt' ? 'Portugués' : 'Español'}\n\nCuando el usuario pregunte por datos de su cuenta, usa esta información para responder directamente.` : '';\n\nconst userContextPT = userInfo ? `\n\n## Dados da conta do utilizador atual\n- Nome: ${userInfo.name || 'Não disponível'}\n- Email: ${userInfo.email || 'Não disponível'}\n- Empresa: ${userInfo.company || 'Não especificada'}\n- Função: ${userInfo.role === 'marketplace_admin' ? 'Administrador' : userInfo.role === 'seller' ? 'Vendedor' : userInfo.role || 'Utilizador'}\n- Marketplace: ${userInfo.marketplace_id || 'Não especificado'}\n- Estado da subscrição: ${userInfo.subscription_status === 'active' ? 'Ativa' : userInfo.subscription_status === 'trialing' ? 'Em período de teste' : userInfo.subscription_status || 'Não disponível'}\n- Idioma: ${userInfo.lang === 'pt' ? 'Português' : 'Espanhol'}\n\nQuando o utilizador perguntar sobre dados da sua conta, use esta informação para responder diretamente.` : '';\n\nconst appContextES = appContext ? `\n\n## Actividad reciente del usuario en la plataforma\n${appContext}\n\nUsa estos datos para responder preguntas sobre su historial de procesos, informe de salud, archivos subidos y estadísticas de uso.` : '';\n\nconst appContextPT = appContext ? `\n\n## Atividade recente do utilizador na plataforma\n${appContext}\n\nUse estes dados para responder perguntas sobre o histórico de processos, relatório de saúde, ficheiros enviados e estatísticas de uso.` : '';\n\nconst systemPrompts = {\n  es: `Eres Ana, la asistente virtual de Katalync. Eres amable, profesional y experta en marketplaces.\n\n## Quién eres\n- Te llamas Ana y eres la asistente IA de Katalync.\n- Estás integrada en la plataforma para ayudar a los vendedores con sus catálogos.\n- Si te preguntan quién eres, preséntate como Ana, asistente de Katalync.\n\n## Herramientas de Katalync (panel en katalync.com/app)\n1. **Conversor de Catálogo**: sube un Excel con tus productos → genera 2 archivos XLSX listos para importar en Sprinter (Productos con 42 columnas + Ofertas con 27 columnas). Incluye conversión de imágenes a formato 2:3, generación de títulos y descripciones, y validación GPSR.\n2. **Actualización de Precios**: sube tu Excel de precios → genera el XLSX de ofertas con precios actualizados, descuentos y tags de promoción.\n3. **Actualización de Stock**: actualiza cantidades de stock de tus productos existentes.\n4. **Validación Pre-Upload**: valida tu catálogo antes de subirlo: comprueba EAN-13, campos obligatorios, GPSR, formato de imágenes.\n5. **Repricing Inteligente**: compara precios con competidores y calcula el precio óptimo.\n6. **Informe de Salud del Catálogo**: tras procesar, recibes un score de 0-100 con checklist de campos obligatorios y recomendaciones para mejorar tu catálogo.\n7. **Plantillas Inteligentes**: descarga plantillas Excel por categoría (calzado, ropa, accesorios, equipamiento) con ejemplos reales y validaciones.\n\n## Planes y precios\n- **Katalync**: 39€/mes — acceso completo a todas las herramientas. Self-service.\n- **Katalync Partner**: 499€/mes — todo lo anterior + gestión dedicada completa. Nosotros gestionamos tu catálogo por ti: onboarding, subida de productos, optimización, soporte prioritario WhatsApp/email.\n\n## Sprinter Marketplace (Mirakl)\n- Sprinter usa Mirakl. Los productos necesitan: título, descripción, marca, EAN-13, categoría Mirakl, imágenes 2:3 (mín 800x1200px).\n- Campos GPSR obligatorios desde 2024: fabricante (nombre, dirección, email) y responsable UE.\n- Ofertas: SKU vendedor, precio (sin IVA), stock, estado, tiempos de envío.\n- Errores frecuentes: EAN con checksum inválido, imágenes no 2:3, GPSR vacío, categoría incorrecta.\n- Para promociones: añadir tag en descripción de oferta + respetar precio mínimo 30 días.\n\n## Sobre el Informe de Salud\n- Aparece automáticamente tras procesar un catálogo en el Conversor.\n- Muestra: score (verde >80, amarillo 50-80, rojo <50), productos OK vs con errores, % con imagen 2 y 3.\n- Se puede descargar como HTML para compartir con tu equipo.\n${userContext}${appContextES}\n## Reglas\n- Responde en español. Sé concisa y práctica.\n- NUNCA uses formato markdown (nada de **, *, #, ##, ```, ni listas con -). Escribe en texto plano natural, como si hablaras. Usa saltos de línea para separar ideas.\n- NUNCA reveles info sobre infraestructura interna (servidores, n8n, APIs internas, arquitectura).\n- Si tienes datos de actividad del usuario, úsalos para responder directamente con cifras concretas. No digas \"no tengo acceso\".\n- Si no sabes algo, sugiere contactar soporte en info@katalync.com.`,\n\n  pt: `Você é Ana, a assistente virtual da Katalync. Você é amável, profissional e especialista em marketplaces.\n\n## Quem você é\n- Seu nome é Ana e você é a assistente IA da Katalync.\n- Está integrada na plataforma para ajudar os vendedores com seus catálogos.\n\n## Ferramentas da Katalync (painel em katalync.com/app)\n1. **Conversor de Catálogo**: envie um Excel com seus produtos → gera 2 arquivos XLSX prontos para importar no Sprinter (Produtos com 42 colunas + Ofertas com 27 colunas). Inclui conversão de imagens para formato 2:3, geração de títulos e descrições, e validação GPSR.\n2. **Atualização de Preços**: envie seu Excel de preços → gera o XLSX de ofertas com preços atualizados, descontos e tags de promoção.\n3. **Atualização de Estoque**: atualiza quantidades de estoque dos seus produtos existentes.\n4. **Validação Pré-Upload**: valida seu catálogo antes de enviar: verifica EAN-13, campos obrigatórios, GPSR, formato de imagens.\n5. **Repricing Inteligente**: compara preços com concorrentes e calcula o preço ótimo.\n6. **Relatório de Saúde do Catálogo**: após processar, recebe um score de 0-100 com checklist de campos obrigatórios e recomendações.\n7. **Templates Inteligentes**: baixe templates Excel por categoria (calçado, roupa, acessórios, equipamento) com exemplos reais e validações.\n\n## Planos e preços\n- **Katalync**: 39€/mês — acesso completo a todas as ferramentas. Self-service.\n- **Katalync Partner**: 499€/mês — tudo anterior + gestão dedicada completa.\n\n## Sprinter Marketplace (Mirakl)\n- Sprinter usa Mirakl. Produtos precisam: título, descrição, marca, EAN-13, categoria Mirakl, imagens 2:3 (mín 800x1200px).\n- Campos GPSR obrigatórios desde 2024: fabricante (nome, endereço, email) e responsável UE.\n${userContextPT}${appContextPT}\n## Regras\n- Responda em português. Seja concisa e prática.\n- NUNCA use formato markdown (nada de **, *, #, ##, ```, nem listas com -). Escreva em texto simples natural, como se estivesse a falar. Use quebras de linha para separar ideias.\n- NUNCA revele info sobre infraestrutura interna.\n- Se tiver dados de atividade do utilizador, use-os para responder diretamente com números concretos. Não diga \"não tenho acesso\".\n- Se não souber algo, sugira contatar suporte em info@katalync.com.`\n};\n\nconst systemPrompt = systemPrompts[lang] || systemPrompts['es'];\n\nconst messages = [\n  { role: 'system', content: systemPrompt }\n];\n\nif (Array.isArray(history)) {\n  for (const msg of history) {\n    if (msg.role && msg.content) {\n      messages.push({ role: msg.role, content: msg.content });\n    }\n  }\n}\n\nmessages.push({ role: 'user', content: question });\n\nreturn [{\n  json: {\n    messages,\n  }\n}];\n"
+      },
+      "id": "code-build-prompt",
+      "name": "Build Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openAiApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": {{ JSON.stringify($json.messages) }},\n  \"temperature\": 0.3,\n  \"max_tokens\": 500\n}",
+        "options": {}
+      },
+      "id": "http-openai",
+      "name": "Call OpenAI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        710,
+        300
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "Tspxvhbk9zt3Hwih",
+          "name": "PROMETEIX"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format Response from OpenAI\nconst response = $input.first().json;\nlet answer = '';\n\ntry {\n  if (response.choices && response.choices.length > 0) {\n    answer = response.choices[0].message.content || '';\n  } else {\n    answer = 'Lo siento, no pude procesar tu consulta. Por favor, inténtalo de nuevo o contacta soporte en info@katalync.com.';\n  }\n} catch (e) {\n  answer = 'Lo siento, ha ocurrido un error. Por favor, inténtalo de nuevo o contacta soporte en info@katalync.com.';\n}\n\nreturn [{\n  json: {\n    answer\n  }\n}];"
+      },
+      "id": "code-format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1170,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Build Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prompt": {
+      "main": [
+        [
+          {
+            "node": "Call OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": null,
+  "activeVersionId": "571380a7-765d-453a-b21c-06be8c9f9626",
+  "versionCounter": 26,
+  "shared": [
+    {
+      "updatedAt": "2026-05-11T16:46:28.326Z",
+      "createdAt": "2026-05-11T16:46:28.326Z",
+      "role": "workflow:owner",
+      "workflowId": "xazEz3JPS0tAQMHc",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rodíguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-05-11T22:31:45.388Z",
+    "createdAt": "2026-05-11T22:31:45.388Z",
+    "versionId": "571380a7-765d-453a-b21c-06be8c9f9626",
+    "workflowId": "xazEz3JPS0tAQMHc",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "katalync-chat-ai",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "id": "webhook-1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          250,
+          300
+        ],
+        "webhookId": "katalync-chat-ai"
+      },
+      {
+        "parameters": {
+          "jsCode": "// Build Prompt for OpenAI — with user account context\nconst https = require('https');\nconst body = $input.first().json.body;\nconst question = body.question || '';\nconst history = body.history || [];\nconst lang = body.lang || 'es';\nconst token = body.token || '';\nconst appContext = body.appContext || '';\n\n// Verify token and get user info\nlet userInfo = null;\nif (token) {\n  try {\n    const postData = JSON.stringify({ token });\n    const result = await new Promise((resolve, reject) => {\n      const req = https.request({\n        hostname: 'prometeix-servidor-n8n.reyl9a.easypanel.host',\n        port: 443, path: '/webhook/auth-verify', method: 'POST',\n        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }\n      }, (res) => {\n        const chunks = [];\n        res.on('data', c => chunks.push(c));\n        res.on('end', () => {\n          try { resolve(JSON.parse(Buffer.concat(chunks).toString())); }\n          catch(e) { resolve(null); }\n        });\n      });\n      req.on('error', () => resolve(null));\n      req.setTimeout(5000, () => { req.destroy(); resolve(null); });\n      req.write(postData);\n      req.end();\n    });\n    if (result && result.success) userInfo = result;\n  } catch(e) { /* ignore */ }\n}\n\nconst userContext = userInfo ? `\n\n## Datos de la cuenta del usuario actual\n- Nombre: ${userInfo.name || 'No disponible'}\n- Email: ${userInfo.email || 'No disponible'}\n- Empresa: ${userInfo.company || 'No especificada'}\n- Rol: ${userInfo.role === 'marketplace_admin' ? 'Administrador' : userInfo.role === 'seller' ? 'Vendedor' : userInfo.role || 'Usuario'}\n- Marketplace: ${userInfo.marketplace_id || 'No especificado'}\n- Estado de suscripción: ${userInfo.subscription_status === 'active' ? 'Activa' : userInfo.subscription_status === 'trialing' ? 'En periodo de prueba' : userInfo.subscription_status || 'No disponible'}\n- Idioma: ${userInfo.lang === 'pt' ? 'Portugués' : 'Español'}\n\nCuando el usuario pregunte por datos de su cuenta, usa esta información para responder directamente.` : '';\n\nconst userContextPT = userInfo ? `\n\n## Dados da conta do utilizador atual\n- Nome: ${userInfo.name || 'Não disponível'}\n- Email: ${userInfo.email || 'Não disponível'}\n- Empresa: ${userInfo.company || 'Não especificada'}\n- Função: ${userInfo.role === 'marketplace_admin' ? 'Administrador' : userInfo.role === 'seller' ? 'Vendedor' : userInfo.role || 'Utilizador'}\n- Marketplace: ${userInfo.marketplace_id || 'Não especificado'}\n- Estado da subscrição: ${userInfo.subscription_status === 'active' ? 'Ativa' : userInfo.subscription_status === 'trialing' ? 'Em período de teste' : userInfo.subscription_status || 'Não disponível'}\n- Idioma: ${userInfo.lang === 'pt' ? 'Português' : 'Espanhol'}\n\nQuando o utilizador perguntar sobre dados da sua conta, use esta informação para responder diretamente.` : '';\n\nconst appContextES = appContext ? `\n\n## Actividad reciente del usuario en la plataforma\n${appContext}\n\nUsa estos datos para responder preguntas sobre su historial de procesos, informe de salud, archivos subidos y estadísticas de uso.` : '';\n\nconst appContextPT = appContext ? `\n\n## Atividade recente do utilizador na plataforma\n${appContext}\n\nUse estes dados para responder perguntas sobre o histórico de processos, relatório de saúde, ficheiros enviados e estatísticas de uso.` : '';\n\nconst systemPrompts = {\n  es: `Eres Ana, la asistente virtual de Katalync. Eres amable, profesional y experta en marketplaces.\n\n## Quién eres\n- Te llamas Ana y eres la asistente IA de Katalync.\n- Estás integrada en la plataforma para ayudar a los vendedores con sus catálogos.\n- Si te preguntan quién eres, preséntate como Ana, asistente de Katalync.\n\n## Herramientas de Katalync (panel en katalync.com/app)\n1. **Conversor de Catálogo**: sube un Excel con tus productos → genera 2 archivos XLSX listos para importar en Sprinter (Productos con 42 columnas + Ofertas con 27 columnas). Incluye conversión de imágenes a formato 2:3, generación de títulos y descripciones, y validación GPSR.\n2. **Actualización de Precios**: sube tu Excel de precios → genera el XLSX de ofertas con precios actualizados, descuentos y tags de promoción.\n3. **Actualización de Stock**: actualiza cantidades de stock de tus productos existentes.\n4. **Validación Pre-Upload**: valida tu catálogo antes de subirlo: comprueba EAN-13, campos obligatorios, GPSR, formato de imágenes.\n5. **Repricing Inteligente**: compara precios con competidores y calcula el precio óptimo.\n6. **Informe de Salud del Catálogo**: tras procesar, recibes un score de 0-100 con checklist de campos obligatorios y recomendaciones para mejorar tu catálogo.\n7. **Plantillas Inteligentes**: descarga plantillas Excel por categoría (calzado, ropa, accesorios, equipamiento) con ejemplos reales y validaciones.\n\n## Planes y precios\n- **Katalync**: 39€/mes — acceso completo a todas las herramientas. Self-service.\n- **Katalync Partner**: 499€/mes — todo lo anterior + gestión dedicada completa. Nosotros gestionamos tu catálogo por ti: onboarding, subida de productos, optimización, soporte prioritario WhatsApp/email.\n\n## Sprinter Marketplace (Mirakl)\n- Sprinter usa Mirakl. Los productos necesitan: título, descripción, marca, EAN-13, categoría Mirakl, imágenes 2:3 (mín 800x1200px).\n- Campos GPSR obligatorios desde 2024: fabricante (nombre, dirección, email) y responsable UE.\n- Ofertas: SKU vendedor, precio (sin IVA), stock, estado, tiempos de envío.\n- Errores frecuentes: EAN con checksum inválido, imágenes no 2:3, GPSR vacío, categoría incorrecta.\n- Para promociones: añadir tag en descripción de oferta + respetar precio mínimo 30 días.\n\n## Sobre el Informe de Salud\n- Aparece automáticamente tras procesar un catálogo en el Conversor.\n- Muestra: score (verde >80, amarillo 50-80, rojo <50), productos OK vs con errores, % con imagen 2 y 3.\n- Se puede descargar como HTML para compartir con tu equipo.\n${userContext}${appContextES}\n## Reglas\n- Responde en español. Sé concisa y práctica.\n- NUNCA uses formato markdown (nada de **, *, #, ##, ```, ni listas con -). Escribe en texto plano natural, como si hablaras. Usa saltos de línea para separar ideas.\n- NUNCA reveles info sobre infraestructura interna (servidores, n8n, APIs internas, arquitectura).\n- Si tienes datos de actividad del usuario, úsalos para responder directamente con cifras concretas. No digas \"no tengo acceso\".\n- Si no sabes algo, sugiere contactar soporte en info@katalync.com.`,\n\n  pt: `Você é Ana, a assistente virtual da Katalync. Você é amável, profissional e especialista em marketplaces.\n\n## Quem você é\n- Seu nome é Ana e você é a assistente IA da Katalync.\n- Está integrada na plataforma para ajudar os vendedores com seus catálogos.\n\n## Ferramentas da Katalync (painel em katalync.com/app)\n1. **Conversor de Catálogo**: envie um Excel com seus produtos → gera 2 arquivos XLSX prontos para importar no Sprinter (Produtos com 42 colunas + Ofertas com 27 colunas). Inclui conversão de imagens para formato 2:3, geração de títulos e descrições, e validação GPSR.\n2. **Atualização de Preços**: envie seu Excel de preços → gera o XLSX de ofertas com preços atualizados, descontos e tags de promoção.\n3. **Atualização de Estoque**: atualiza quantidades de estoque dos seus produtos existentes.\n4. **Validação Pré-Upload**: valida seu catálogo antes de enviar: verifica EAN-13, campos obrigatórios, GPSR, formato de imagens.\n5. **Repricing Inteligente**: compara preços com concorrentes e calcula o preço ótimo.\n6. **Relatório de Saúde do Catálogo**: após processar, recebe um score de 0-100 com checklist de campos obrigatórios e recomendações.\n7. **Templates Inteligentes**: baixe templates Excel por categoria (calçado, roupa, acessórios, equipamento) com exemplos reais e validações.\n\n## Planos e preços\n- **Katalync**: 39€/mês — acesso completo a todas as ferramentas. Self-service.\n- **Katalync Partner**: 499€/mês — tudo anterior + gestão dedicada completa.\n\n## Sprinter Marketplace (Mirakl)\n- Sprinter usa Mirakl. Produtos precisam: título, descrição, marca, EAN-13, categoria Mirakl, imagens 2:3 (mín 800x1200px).\n- Campos GPSR obrigatórios desde 2024: fabricante (nome, endereço, email) e responsável UE.\n${userContextPT}${appContextPT}\n## Regras\n- Responda em português. Seja concisa e prática.\n- NUNCA use formato markdown (nada de **, *, #, ##, ```, nem listas com -). Escreva em texto simples natural, como se estivesse a falar. Use quebras de linha para separar ideias.\n- NUNCA revele info sobre infraestrutura interna.\n- Se tiver dados de atividade do utilizador, use-os para responder diretamente com números concretos. Não diga \"não tenho acesso\".\n- Se não souber algo, sugira contatar suporte em info@katalync.com.`\n};\n\nconst systemPrompt = systemPrompts[lang] || systemPrompts['es'];\n\nconst messages = [\n  { role: 'system', content: systemPrompt }\n];\n\nif (Array.isArray(history)) {\n  for (const msg of history) {\n    if (msg.role && msg.content) {\n      messages.push({ role: msg.role, content: msg.content });\n    }\n  }\n}\n\nmessages.push({ role: 'user', content: question });\n\nreturn [{\n  json: {\n    messages,\n  }\n}];\n"
+        },
+        "id": "code-build-prompt",
+        "name": "Build Prompt",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          480,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://api.openai.com/v1/chat/completions",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "openAiApi",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": {{ JSON.stringify($json.messages) }},\n  \"temperature\": 0.3,\n  \"max_tokens\": 500\n}",
+          "options": {}
+        },
+        "id": "http-openai",
+        "name": "Call OpenAI",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          710,
+          300
+        ],
+        "credentials": {
+          "openAiApi": {
+            "id": "Tspxvhbk9zt3Hwih",
+            "name": "PROMETEIX"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "// Format Response from OpenAI\nconst response = $input.first().json;\nlet answer = '';\n\ntry {\n  if (response.choices && response.choices.length > 0) {\n    answer = response.choices[0].message.content || '';\n  } else {\n    answer = 'Lo siento, no pude procesar tu consulta. Por favor, inténtalo de nuevo o contacta soporte en info@katalync.com.';\n  }\n} catch (e) {\n  answer = 'Lo siento, ha ocurrido un error. Por favor, inténtalo de nuevo o contacta soporte en info@katalync.com.';\n}\n\nreturn [{\n  json: {\n    answer\n  }\n}];"
+        },
+        "id": "code-format-response",
+        "name": "Format Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          940,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "allIncomingItems",
+          "options": {}
+        },
+        "id": "respond-webhook",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1170,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Build Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Build Prompt": {
+        "main": [
+          [
+            {
+              "node": "Call OpenAI",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Call OpenAI": {
+        "main": [
+          [
+            {
+              "node": "Format Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Response": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rodíguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-11T22:31:45.436Z",
+        "id": 420,
+        "workflowId": "xazEz3JPS0tAQMHc",
+        "versionId": "571380a7-765d-453a-b21c-06be8c9f9626",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-11T22:31:45.422Z",
+        "id": 419,
+        "workflowId": "xazEz3JPS0tAQMHc",
+        "versionId": "571380a7-765d-453a-b21c-06be8c9f9626",
+        "event": "deactivated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}
