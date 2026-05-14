@@ -101,8 +101,20 @@ const TRANSLATIONS = {
     onb_feat_validate: 'Validación Pre-Upload', onb_feat_validate_sub: 'EAN, SKU, imágenes y campos antes de subir',
     onb_company_title: 'Sobre tu empresa', onb_company_sub: 'Esto nos ayuda a personalizar tu experiencia',
     company_name: 'Nombre de empresa', company_placeholder: 'Ej: Mi Empresa S.L.',
-    language: 'Idioma', onb_ready_title: '¡Todo listo!', onb_ready_sub: 'Revisa tu configuración y empieza a trabajar',
+    language: 'Idioma', onb_ready_title: '¡Todo listo!', onb_ready_sub: 'Tu tienda está conectada y tus productos sincronizados',
     onb_start: 'Empezar a trabajar', company: 'Empresa',
+    onb_connect_title: 'Conecta tu tienda', onb_connect_sub: 'Vincula tu e-commerce para sincronizar productos automáticamente',
+    onb_source: 'Plataforma', onb_store_url: 'URL de tu tienda', onb_store_url_hint: 'Ej: mi-tienda.myshopify.com',
+    onb_api_key: 'API Key / Access Token', onb_api_secret: 'API Secret', onb_vendor_name: 'Nombre del vendor',
+    onb_vendor_name_hint: 'Ej: Mi Marca',
+    onb_test_connection: 'Probar conexión', onb_testing: 'Probando...',
+    onb_test_ok: 'Conexión exitosa', onb_test_fail: 'No se pudo conectar. Verifica las credenciales.',
+    onb_skip_connect: 'Configurar después',
+    onb_sync_title: 'Primera sincronización', onb_sync_sub: 'Importando tus productos — esto puede tardar unos segundos',
+    onb_syncing: 'Sincronizando productos...', onb_sync_done: 'Sincronización completada',
+    onb_sync_products: 'productos importados', onb_sync_converting: 'Convirtiendo a formato marketplace...',
+    onb_sync_converted: 'Productos convertidos y listos',
+    onb_sync_error: 'Error en la sincronización. Podrás reintentar desde el panel.',
     nav_converter: 'Conversor', nav_prices: 'Precios', nav_validation: 'Validación',
     notifications: 'Notificaciones', mark_all_read: 'Marcar todo leído', no_notifications: 'Sin notificaciones',
     clear_all: 'Borrar todas', history: 'Historial', my_profile: 'Mi perfil', logout: 'Cerrar sesión',
@@ -440,8 +452,20 @@ const TRANSLATIONS = {
     onb_feat_validate: 'Validação Pre-Upload', onb_feat_validate_sub: 'EAN, SKU, imagens e campos antes de subir',
     onb_company_title: 'Sobre sua empresa', onb_company_sub: 'Isso nos ajuda a personalizar sua experiência',
     company_name: 'Nome da empresa', company_placeholder: 'Ex: Minha Empresa Lda.',
-    language: 'Idioma', onb_ready_title: 'Tudo pronto!', onb_ready_sub: 'Revise sua configuração e comece a trabalhar',
+    language: 'Idioma', onb_ready_title: 'Tudo pronto!', onb_ready_sub: 'Sua loja está conectada e seus produtos sincronizados',
     onb_start: 'Começar a trabalhar', company: 'Empresa',
+    onb_connect_title: 'Conecte sua loja', onb_connect_sub: 'Vincule seu e-commerce para sincronizar produtos automaticamente',
+    onb_source: 'Plataforma', onb_store_url: 'URL da sua loja', onb_store_url_hint: 'Ex: minha-loja.myshopify.com',
+    onb_api_key: 'API Key / Access Token', onb_api_secret: 'API Secret', onb_vendor_name: 'Nome do vendor',
+    onb_vendor_name_hint: 'Ex: Minha Marca',
+    onb_test_connection: 'Testar conexão', onb_testing: 'Testando...',
+    onb_test_ok: 'Conexão bem-sucedida', onb_test_fail: 'Não foi possível conectar. Verifique as credenciais.',
+    onb_skip_connect: 'Configurar depois',
+    onb_sync_title: 'Primeira sincronização', onb_sync_sub: 'Importando seus produtos — pode levar alguns segundos',
+    onb_syncing: 'Sincronizando produtos...', onb_sync_done: 'Sincronização concluída',
+    onb_sync_products: 'produtos importados', onb_sync_converting: 'Convertendo para formato marketplace...',
+    onb_sync_converted: 'Produtos convertidos e prontos',
+    onb_sync_error: 'Erro na sincronização. Poderá tentar novamente no painel.',
     nav_converter: 'Conversor', nav_prices: 'Preços', nav_validation: 'Validação',
     notifications: 'Notificações', mark_all_read: 'Marcar tudo lido', no_notifications: 'Sem notificações',
     clear_all: 'Apagar todas', history: 'Histórico', my_profile: 'Meu perfil', logout: 'Sair',
@@ -808,6 +832,10 @@ function app() {
     currentUser: null, authToken: null, showLoginPass: false, showRegisterPass: false, showPwdCurrent: false, showPwdNew: false,
 
     showOnboarding: false, onboardStep: 1, onboardCompany: '', onboardLang: safeGetLang(), onboardBusy: false, paymentJustCompleted: false,
+    onboardVendorName: '', onboardSource: 'shopify', onboardSourceUrl: '', onboardApiKey: '', onboardApiSecret: '',
+    onboardTestStatus: '', onboardTestBusy: false,
+    onboardSyncStatus: '', onboardSyncTotal: 0, onboardSyncConverted: false, onboardVendorId: null,
+    onboardSkippedConnect: false,
 
     showNotifPanel: false, notifications: [], unreadNotifCount: 0,
     showUserMenu: false,
@@ -1036,6 +1064,38 @@ function app() {
         this.profileName = this.currentUser?.name || ''; this.profileCompany = this.onboardCompany; this.profileLang = this.onboardLang;
       } catch(e) {}
       this.showOnboarding = false;
+      this.onboardBusy = false;
+      if (this.onboardVendorId) { this.loadSyncVendors(); }
+    },
+
+    async onboardTestConnection() {
+      if (!this.onboardSourceUrl || !this.onboardApiKey) return;
+      this.onboardTestBusy = true;
+      this.onboardTestStatus = '';
+      try {
+        const resp = await fetch(N8N_BASE + '/webhook/vendor-test-connection', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, source: this.onboardSource, source_url: this.onboardSourceUrl.replace(/\/+$/, ''), source_api_key: this.onboardApiKey, source_api_secret: this.onboardApiSecret }) });
+        const data = await resp.json();
+        this.onboardTestStatus = data.success ? 'ok' : 'fail';
+      } catch(e) { this.onboardTestStatus = 'fail'; }
+      this.onboardTestBusy = false;
+    },
+
+    async onboardCreateAndSync() {
+      this.onboardSyncStatus = 'creating';
+      this.onboardBusy = true;
+      try {
+        const createResp = await fetch(N8N_BASE + '/webhook/vendor-create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, name: this.onboardVendorName || this.onboardCompany || 'Mi Tienda', company: this.onboardCompany, source: this.onboardSource, source_url: this.onboardSourceUrl.replace(/\/+$/, ''), source_api_key: this.onboardApiKey, source_api_secret: this.onboardApiSecret, sync_interval_hours: 4, marketplaces: ['sprinter_es'] }) });
+        const createData = await createResp.json();
+        if (!createData.success || !createData.vendor) { this.onboardSyncStatus = 'error'; this.onboardBusy = false; return; }
+        this.onboardVendorId = createData.vendor.id;
+        this.onboardSyncStatus = 'syncing';
+        const syncEndpoint = this.onboardSource === 'woocommerce' ? '/webhook/woocommerce-sync-pull' : this.onboardSource === 'prestashop' ? '/webhook/prestashop-sync-pull' : '/webhook/shopify-sync-pull';
+        const syncResp = await fetch(N8N_BASE + syncEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: this.authToken, vendor_id: this.onboardVendorId }) });
+        const syncData = await syncResp.json();
+        if (!syncData.success) { this.onboardSyncStatus = 'error'; this.onboardBusy = false; return; }
+        this.onboardSyncTotal = syncData.total || 0;
+        this.onboardSyncStatus = 'done';
+      } catch(e) { this.onboardSyncStatus = 'error'; }
       this.onboardBusy = false;
     },
 

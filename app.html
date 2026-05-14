@@ -156,17 +156,17 @@
   <div x-show="currentUser && showOnboarding" class="onboarding-bg min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-lg">
       <!-- Step indicators -->
-      <div class="flex items-center justify-center gap-3 mb-8">
-        <template x-for="s in 3" :key="s">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 step-indicator"
+      <div class="flex items-center justify-center gap-2 mb-8">
+        <template x-for="s in 5" :key="s">
+          <div class="flex items-center gap-2">
+            <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 step-indicator"
               :class="onboardStep >= s ? 'step-active text-white' : 'bg-white/10 text-white/40'">
               <span x-show="onboardStep > s">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
               </span>
               <span x-show="onboardStep <= s" x-text="s"></span>
             </div>
-            <div x-show="s < 3" class="w-12 h-0.5 rounded" :class="onboardStep > s ? 'bg-brand-500' : 'bg-white/10'"></div>
+            <div x-show="s < 5" class="w-8 h-0.5 rounded" :class="onboardStep > s ? 'bg-brand-500' : 'bg-white/10'"></div>
           </div>
         </template>
       </div>
@@ -231,8 +231,100 @@
         </div>
       </div>
 
-      <!-- Step 3: Ready -->
+      <!-- Step 3: Connect store -->
       <div x-show="onboardStep === 3" class="auth-card rounded-2xl shadow-2xl p-8 fade-in">
+        <div class="text-center mb-6">
+          <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-violet-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg mb-4">
+            <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+          </div>
+          <h2 class="text-xl font-bold text-gray-900" x-text="t('onb_connect_title')"></h2>
+          <p class="text-sm text-gray-500 mt-1" x-text="t('onb_connect_sub')"></p>
+        </div>
+        <div class="space-y-4 mb-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" x-text="t('onb_vendor_name')"></label>
+            <input type="text" x-model="onboardVendorName" class="input-auth w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none" :placeholder="t('onb_vendor_name_hint')">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" x-text="t('onb_source')"></label>
+            <select x-model="onboardSource" class="input-auth w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none">
+              <option value="shopify">Shopify</option>
+              <option value="woocommerce">WooCommerce</option>
+              <option value="prestashop">PrestaShop</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" x-text="t('onb_store_url')"></label>
+            <input type="url" x-model="onboardSourceUrl" class="input-auth w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none" :placeholder="t('onb_store_url_hint')">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1" x-text="t('onb_api_key')"></label>
+            <input type="password" x-model="onboardApiKey" class="input-auth w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none">
+          </div>
+          <div x-show="onboardSource === 'woocommerce'">
+            <label class="block text-sm font-medium text-gray-700 mb-1" x-text="t('onb_api_secret')"></label>
+            <input type="password" x-model="onboardApiSecret" class="input-auth w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none">
+          </div>
+          <!-- Test result -->
+          <div x-show="onboardTestStatus === 'ok'" class="flex items-center gap-2 p-3 bg-green-50 rounded-xl">
+            <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            <span class="text-sm text-green-700" x-text="t('onb_test_ok')"></span>
+          </div>
+          <div x-show="onboardTestStatus === 'fail'" class="flex items-center gap-2 p-3 bg-red-50 rounded-xl">
+            <svg class="w-5 h-5 text-red-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            <span class="text-sm text-red-700" x-text="t('onb_test_fail')"></span>
+          </div>
+        </div>
+        <div class="space-y-3">
+          <button @click="onboardTestConnection()" :disabled="onboardTestBusy || !onboardSourceUrl || !onboardApiKey" class="w-full py-3 rounded-xl border-2 border-purple-200 text-sm font-medium text-purple-700 hover:bg-purple-50 transition-all disabled:opacity-50">
+            <span x-show="!onboardTestBusy" x-text="t('onb_test_connection')"></span>
+            <span x-show="onboardTestBusy" class="flex items-center justify-center gap-2"><svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg><span x-text="t('onb_testing')"></span></span>
+          </button>
+          <div class="flex gap-3">
+            <button @click="onboardStep = 2" class="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all" x-text="t('back')"></button>
+            <button @click="onboardStep = 4; onboardCreateAndSync()" :disabled="!onboardSourceUrl || !onboardApiKey || !onboardVendorName" class="flex-1 flame-gradient text-white font-semibold py-3 rounded-xl text-sm shadow-lg shadow-teal-200 hover:opacity-90 transition-all disabled:opacity-50" x-text="t('continue')"></button>
+          </div>
+          <p class="text-center"><button @click="onboardSkippedConnect = true; onboardStep = 5" class="text-xs text-gray-400 hover:text-gray-600 transition-colors" x-text="t('onb_skip_connect')"></button></p>
+        </div>
+      </div>
+
+      <!-- Step 4: First sync -->
+      <div x-show="onboardStep === 4" class="auth-card rounded-2xl shadow-2xl p-8 fade-in">
+        <div class="text-center mb-6">
+          <div class="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg mb-4">
+            <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+          </div>
+          <h2 class="text-xl font-bold text-gray-900" x-text="t('onb_sync_title')"></h2>
+          <p class="text-sm text-gray-500 mt-1" x-text="t('onb_sync_sub')"></p>
+        </div>
+        <div class="space-y-4 mb-6">
+          <!-- Syncing -->
+          <div x-show="onboardSyncStatus === 'creating' || onboardSyncStatus === 'syncing'" class="flex flex-col items-center gap-3 py-6">
+            <svg class="animate-spin w-10 h-10 text-brand-500" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+            <p class="text-sm text-gray-600" x-text="t('onb_syncing')"></p>
+          </div>
+          <!-- Success -->
+          <div x-show="onboardSyncStatus === 'done'" class="text-center py-4">
+            <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <p class="text-lg font-bold text-gray-900" x-text="t('onb_sync_done')"></p>
+            <p class="text-3xl font-bold text-brand-600 mt-2" x-text="onboardSyncTotal"></p>
+            <p class="text-sm text-gray-500" x-text="t('onb_sync_products')"></p>
+          </div>
+          <!-- Error -->
+          <div x-show="onboardSyncStatus === 'error'" class="text-center py-4">
+            <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </div>
+            <p class="text-sm text-red-600" x-text="t('onb_sync_error')"></p>
+          </div>
+        </div>
+        <button @click="onboardStep = 5" :disabled="onboardSyncStatus !== 'done' && onboardSyncStatus !== 'error'" class="w-full flame-gradient text-white font-semibold py-3 rounded-xl text-sm shadow-lg shadow-teal-200 hover:opacity-90 transition-all disabled:opacity-50" x-text="t('continue')"></button>
+      </div>
+
+      <!-- Step 5: Ready -->
+      <div x-show="onboardStep === 5" class="auth-card rounded-2xl shadow-2xl p-8 fade-in">
         <div class="text-center mb-6">
           <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg mb-4">
             <svg class="w-9 h-9 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -245,6 +337,8 @@
           <div class="flex justify-between text-sm"><span class="text-gray-500">Email</span><span class="font-medium text-gray-800" x-text="currentUser?.email"></span></div>
           <div x-show="onboardCompany" class="flex justify-between text-sm"><span class="text-gray-500" x-text="t('company')"></span><span class="font-medium text-gray-800" x-text="onboardCompany"></span></div>
           <div class="flex justify-between text-sm"><span class="text-gray-500" x-text="t('language')"></span><span class="font-medium text-gray-800" x-text="onboardLang === 'es' ? t('lang_spanish') : t('lang_portuguese')"></span></div>
+          <div x-show="onboardVendorName && !onboardSkippedConnect" class="flex justify-between text-sm"><span class="text-gray-500" x-text="t('onb_source')"></span><span class="font-medium text-gray-800" x-text="onboardVendorName + ' (' + onboardSource + ')'"></span></div>
+          <div x-show="onboardSyncTotal > 0" class="flex justify-between text-sm"><span class="text-gray-500" x-text="t('onb_sync_products')"></span><span class="font-medium text-brand-600" x-text="onboardSyncTotal"></span></div>
         </div>
         <button @click="finishOnboarding()" :disabled="onboardBusy" class="w-full flame-gradient text-white font-semibold py-3 rounded-xl text-sm shadow-lg shadow-teal-200 hover:opacity-90 transition-all">
           <span x-show="!onboardBusy" x-text="t('onb_start')"></span>
@@ -253,7 +347,7 @@
       </div>
 
       <!-- Skip link -->
-      <p class="text-center mt-4"><button @click="finishOnboarding()" class="text-sm text-white/50 hover:text-white/80 transition-colors" x-text="t('skip')"></button></p>
+      <p class="text-center mt-4"><button @click="onboardSkippedConnect = true; finishOnboarding()" class="text-sm text-white/50 hover:text-white/80 transition-colors" x-text="t('skip')"></button></p>
     </div>
   </div>
 

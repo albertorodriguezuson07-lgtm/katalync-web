@@ -1,0 +1,213 @@
+{
+  "updatedAt": "2026-05-14T19:02:54.335Z",
+  "createdAt": "2026-05-13T19:19:23.851Z",
+  "id": "WzWyNQ52aCwH05k3",
+  "name": "Katalync - Shopify Sync Pull",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "shopify-sync-pull",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "shopify-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "shopify-sync-pull"
+    },
+    {
+      "parameters": {
+        "jsCode": "const https = require('https');\n\nfunction httpReq(url, options = {}) {\n  return new Promise((resolve, reject) => {\n    const m = url.match(/^https?:\\/\\/([^/]+)(\\/.*)$/);\n    if (!m) { reject(new Error('Invalid URL: ' + url)); return; }\n    const hostname = m[1];\n    const path = m[2] || '/';\n    const postData = options.body || '';\n    const req = https.request({\n      hostname: hostname,\n      port: 443,\n      path: path,\n      method: options.method || 'GET',\n      headers: { ...options.headers, ...(postData ? { 'Content-Length': Buffer.byteLength(postData) } : {}) }\n    }, (res) => {\n      const chunks = [];\n      res.on('data', c => chunks.push(c));\n      res.on('end', () => {\n        const body = Buffer.concat(chunks).toString();\n        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, text: () => Promise.resolve(body), json: () => Promise.resolve(JSON.parse(body)), headers: res.headers });\n      });\n    });\n    req.on('error', reject);\n    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Request timeout')); });\n    if (postData) req.write(postData);\n    req.end();\n  });\n}\n\n// ============================================================\n// Katalync - Shopify Sync Pull\n// Full pipeline: auth \u2192 fetch vendor \u2192 paginate Shopify API \u2192\n// map products \u2192 upsert to Supabase \u2192 log results\n// ============================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\nconst { token, vendor_id } = body;\n\n// --- System token for scheduled sync ---\nconst SYSTEM_SYNC_SECRET = 'ks_sys_8f3a2b1c4d5e6f7a8b9c0d1e2f3a4b5c';\nlet isSystemSync = false;\n\n// --- Constants ---\nconst SUPABASE_URL = 'https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q';\nconst sbHeaders = {\n  'apikey': SUPABASE_KEY,\n  'Authorization': `Bearer ${SUPABASE_KEY}`,\n  'Content-Type': 'application/json',\n  'Prefer': 'return=representation'\n};\n\n// --- Helper: Supabase request ---\nasync function sbFetch(path, options = {}) {\n  const url = `${SUPABASE_URL}${path}`;\n  const resp = await httpReq(url, {\n    headers: { ...sbHeaders, ...(options.headers || {}) },\n    method: options.method || 'GET',\n    body: options.body ? JSON.stringify(options.body) : undefined\n  });\n  const text = await resp.text();\n  if (!resp.ok) {\n    throw new Error(`Supabase ${options.method || 'GET'} ${path} failed (${resp.status}): ${text}`);\n  }\n  return text ? JSON.parse(text) : null;\n}\n\n// --- Helper: safe string ---\nfunction safeStr(val, fallback = '') {\n  if (val === null || val === undefined) return fallback;\n  return String(val).trim() || fallback;\n}\n\n// --- Helper: safe float ---\nfunction safeFloat(val, fallback = 0) {\n  const n = parseFloat(val);\n  return isNaN(n) ? fallback : n;\n}\n\n// --- Helper: safe int ---\nfunction safeInt(val, fallback = 0) {\n  const n = parseInt(val, 10);\n  return isNaN(n) ? fallback : n;\n}\n\ntry {\n  // ========== STEP 1: Verify token ==========\n  if (!token || typeof token !== 'string') {\n    return [{ json: { success: false, error: 'Missing or invalid token' } }];\n  }\n  if (!vendor_id) {\n    return [{ json: { success: false, error: 'Missing vendor_id' } }];\n  }\n\n  let user_id = null;\n\n  if (token === SYSTEM_SYNC_SECRET) {\n    isSystemSync = true;\n  } else {\n    // Auth verification \u2014 call auth-verify endpoint\n    const authResp = await httpReq('https://api.katalync.com/webhook/auth-verify', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({ token })\n    });\n    const authData = await authResp.json();\n    if (!authData.success) {\n      return [{ json: { success: false, error: authData.error || 'Token invalid or expired' } }];\n    }\n    const userEmail = authData.email;\n\n    // Upsert user into Supabase (auto-provision from n8n session data)\n    const upsertData = await sbFetch('/users?on_conflict=email', {\n      method: 'POST',\n      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },\n      body: [{\n        email: authData.email,\n        name: authData.name || authData.email,\n        password_hash: 'oauth-managed',\n        role: authData.role || 'user',\n        company: authData.company || null,\n        lang: authData.lang || 'es',\n        onboarded: authData.onboarded || false,\n        subscription_status: authData.subscription_status || 'active',\n        last_login_at: new Date().toISOString()\n      }]\n    });\n    user_id = upsertData && upsertData.length > 0 ? upsertData[0].id : null;\n    if (!user_id) {\n      return [{ json: { success: false, error: 'Failed to provision user' } }];\n    }\n  }\n\n  // ========== STEP 2: Fetch vendor ==========\n  const vendorQuery = isSystemSync\n    ? `/vendors?id=eq.${vendor_id}&select=*`\n    : `/vendors?id=eq.${vendor_id}&user_id=eq.${user_id}&select=*`;\n  const vendors = await sbFetch(vendorQuery);\n  if (!vendors || vendors.length === 0) {\n    return [{ json: { success: false, error: 'Vendor not found or access denied' } }];\n  }\n  const vendor = vendors[0];\n\n  // ========== STEP 3: Validate source ==========\n  if (vendor.source !== 'shopify') {\n    return [{ json: { success: false, error: `Vendor source is '${vendor.source}', expected 'shopify'` } }];\n  }\n\n  if (!vendor.source_url || !vendor.source_api_key) {\n    return [{ json: { success: false, error: 'Vendor missing source_url or source_api_key' } }];\n  }\n\n  // Normalize source_url: remove trailing slash\n  const shopifyUrl = vendor.source_url.replace(/\\/+$/, '');\n  const accessToken = vendor.source_api_key;\n\n  // ========== STEP 4: Create sync_log ==========\n  const startedAt = new Date().toISOString();\n  const syncLogs = await sbFetch('/sync_logs', {\n    method: 'POST',\n    body: {\n      vendor_id: vendor.id,\n      direction: 'pull',\n      total_products: 0,\n      created_count: 0,\n      updated_count: 0,\n      error_count: 0,\n      status: 'running',\n      started_at: startedAt\n    }\n  });\n  const syncLog = syncLogs[0];\n  const sync_log_id = syncLog.id;\n\n  // ========== STEP 5-7: Fetch ALL Shopify products (with pagination) ==========\n  let allProducts = [];\n  let nextUrl = `${shopifyUrl}/admin/api/2024-01/products.json?limit=250&status=active`;\n  let pageCount = 0;\n  const MAX_PAGES = 100; // Safety limit: 100 pages * 250 = 25,000 products max\n\n  while (nextUrl && pageCount < MAX_PAGES) {\n    pageCount++;\n    let resp;\n    try {\n      resp = await httpReq(nextUrl, {\n        method: 'GET',\n        headers: {\n          'X-Shopify-Access-Token': accessToken,\n          'Content-Type': 'application/json'\n        }\n      });\n    } catch (fetchErr) {\n      throw new Error(`Shopify API connection failed (page ${pageCount}): ${fetchErr.message}`);\n    }\n\n    if (!resp.ok) {\n      const errText = await resp.text();\n      throw new Error(`Shopify API error ${resp.status} (page ${pageCount}): ${errText.substring(0, 500)}`);\n    }\n\n    const data = await resp.json();\n    if (data.products && Array.isArray(data.products)) {\n      allProducts = allProducts.concat(data.products);\n    }\n\n    // Parse Link header for pagination\n    nextUrl = null;\n    const linkHeader = resp.headers['link'];\n    if (linkHeader) {\n      const matches = linkHeader.match(/<([^>]+)>;\\s*rel=\"next\"/);\n      if (matches && matches[1]) {\n        nextUrl = matches[1];\n      }\n    }\n\n    // Rate limiting: Shopify allows 2 req/sec at basic tier\n    if (nextUrl) {\n      await new Promise(resolve => setTimeout(resolve, 600));\n    }\n  }\n\n  // ========== STEP 7 (continued): Map Shopify products to Katalync format ==========\n  const mappedProducts = [];\n  const syncErrors = [];\n\n  for (const product of allProducts) {\n    try {\n      const variants = product.variants || [];\n      if (variants.length === 0) {\n        // Product with no variants \u2014 skip but log\n        syncErrors.push({\n          sync_log_id,\n          sku: safeStr(product.id),\n          field: 'variants',\n          error_type: 'missing_data',\n          message: `Product ${product.id} (${safeStr(product.title)}) has no variants`\n        });\n        continue;\n      }\n\n      for (const variant of variants) {\n        try {\n          // Build SKU\n          let sku = safeStr(variant.sku);\n          if (!sku) {\n            sku = `${product.id}-${variant.id}`;\n          }\n\n          // Build name\n          let name = safeStr(product.title, 'Untitled');\n          const variantTitle = safeStr(variant.title);\n          if (variantTitle && variantTitle !== 'Default Title') {\n            name = `${name} - ${variantTitle}`;\n          }\n\n          // Find image\n          let imageUrl = '';\n          if (variant.image_id && product.images && product.images.length > 0) {\n            const variantImage = product.images.find(img => img.id === variant.image_id);\n            imageUrl = variantImage ? variantImage.src : '';\n          }\n          if (!imageUrl && product.images && product.images.length > 0) {\n            imageUrl = product.images[0].src || '';\n          }\n          // Remove query params from Shopify CDN URLs for cleaner storage\n          if (imageUrl && imageUrl.includes('?')) {\n            imageUrl = imageUrl.split('?')[0];\n          }\n\n          const mapped = {\n            vendor_id: vendor.id,\n            sku: sku,\n            ean: safeStr(variant.barcode),\n            name: name.substring(0, 500), // Reasonable limit\n            brand: safeStr(product.vendor),\n            category: safeStr(product.product_type),\n            price: safeFloat(variant.price),\n            stock: safeInt(variant.inventory_quantity, 0),\n            image_url: imageUrl,\n            raw_data: {\n              shopify_product_id: product.id,\n              shopify_variant_id: variant.id,\n              shopify_handle: product.handle,\n              shopify_status: product.status,\n              shopify_tags: product.tags,\n              variant_title: variant.title,\n              variant_option1: variant.option1,\n              variant_option2: variant.option2,\n              variant_option3: variant.option3,\n              variant_weight: variant.weight,\n              variant_weight_unit: variant.weight_unit,\n              variant_inventory_item_id: variant.inventory_item_id,\n              variant_fulfillment_service: variant.fulfillment_service,\n              compare_at_price: variant.compare_at_price,\n              requires_shipping: variant.requires_shipping,\n              taxable: variant.taxable\n            },\n            sync_status: 'synced',\n            last_synced_at: new Date().toISOString()\n          };\n\n          mappedProducts.push(mapped);\n        } catch (variantErr) {\n          syncErrors.push({\n            sync_log_id,\n            sku: safeStr(variant.sku || `${product.id}-${variant.id}`),\n            field: 'variant_mapping',\n            error_type: 'mapping_error',\n            message: `Error mapping variant ${variant.id}: ${variantErr.message}`\n          });\n        }\n      }\n    } catch (productErr) {\n      syncErrors.push({\n        sync_log_id,\n        sku: safeStr(product.id),\n        field: 'product_mapping',\n        error_type: 'mapping_error',\n        message: `Error mapping product ${product.id}: ${productErr.message}`\n      });\n    }\n  }\n\n  // ========== STEP 8: Delta sync + Upsert products ==========\n  let createdCount = 0;\n  let updatedCount = 0;\n  let unchangedCount = 0;\n  let errorCount = syncErrors.length;\n  const BATCH_SIZE = 50;\n\n  // Fetch existing products with comparison fields\n  const existingProducts = await sbFetch(\n    `/vendor_products?vendor_id=eq.${vendor.id}&select=sku,name,brand,category,price,stock,image_url,ean&limit=100000`\n  );\n  const existingMap = {};\n  (existingProducts || []).forEach(p => { existingMap[p.sku] = p; });\n  const existingSkus = new Set(Object.keys(existingMap));\n\n  // Compare each product and set sync_status\n  for (const mapped of mappedProducts) {\n    const existing = existingMap[mapped.sku];\n    if (!existing) {\n      mapped.sync_status = 'new';\n    } else {\n      const changed = (\n        mapped.name !== (existing.name || '') ||\n        mapped.brand !== (existing.brand || '') ||\n        mapped.category !== (existing.category || '') ||\n        Math.round(mapped.price * 100) !== Math.round((existing.price || 0) * 100) ||\n        mapped.stock !== (existing.stock || 0) ||\n        mapped.image_url !== (existing.image_url || '') ||\n        mapped.ean !== (existing.ean || '')\n      );\n      if (changed) {\n        mapped.sync_status = 'changed';\n        mapped.sprinter_product = null;\n        mapped.sprinter_offer = null;\n      } else {\n        mapped.sync_status = 'unchanged';\n        unchangedCount++;\n      }\n    }\n  }\n\n  // Only upsert new or changed products\n  const productsToUpsert = mappedProducts.filter(p => p.sync_status !== 'unchanged');\n\n  // Upsert in batches\n  for (let i = 0; i < productsToUpsert.length; i += BATCH_SIZE) {\n    const batch = productsToUpsert.slice(i, i + BATCH_SIZE);\n\n    try {\n      await sbFetch('/vendor_products?on_conflict=vendor_id,sku', {\n        method: 'POST',\n        headers: {\n          'Prefer': 'resolution=merge-duplicates,return=representation'\n        },\n        body: batch\n      });\n\n      // Count created vs updated\n      for (const item of batch) {\n        if (existingSkus.has(item.sku)) {\n          updatedCount++;\n        } else {\n          createdCount++;\n        }\n      }\n    } catch (upsertErr) {\n      // If batch fails, try individual inserts\n      for (const item of batch) {\n        try {\n          await sbFetch('/vendor_products?on_conflict=vendor_id,sku', {\n            method: 'POST',\n            headers: {\n              'Prefer': 'resolution=merge-duplicates,return=representation'\n            },\n            body: [item]\n          });\n          if (existingSkus.has(item.sku)) {\n            updatedCount++;\n          } else {\n            createdCount++;\n          }\n        } catch (itemErr) {\n          errorCount++;\n          syncErrors.push({\n            sync_log_id,\n            sku: item.sku,\n            field: 'upsert',\n            error_type: 'database_error',\n            message: `Upsert failed: ${itemErr.message}`.substring(0, 500)\n          });\n        }\n      }\n    }\n  }\n\n  // ========== STEP 9: Update sync_log ==========\n  const completedAt = new Date().toISOString();\n  await sbFetch(`/sync_logs?id=eq.${sync_log_id}`, {\n    method: 'PATCH',\n    body: {\n      status: errorCount > 0 ? 'completed_with_errors' : 'completed',\n      total_products: mappedProducts.length,\n      created_count: createdCount,\n      updated_count: updatedCount,\n      error_count: errorCount,\n      error_details: syncErrors.length > 0 ? syncErrors.slice(0, 100) : null,\n      completed_at: completedAt\n    }\n  });\n\n  // ========== STEP 10: Update vendor ==========\n  const syncInterval = vendor.sync_interval_hours || 24;\n  const nextSyncAt = new Date(Date.now() + syncInterval * 60 * 60 * 1000).toISOString();\n\n  await sbFetch(`/vendors?id=eq.${vendor.id}`, {\n    method: 'PATCH',\n    body: {\n      product_count: createdCount + updatedCount,\n      sync_status: errorCount > 0 ? 'completed_with_errors' : 'synced',\n      last_sync_at: completedAt,\n      next_sync_at: nextSyncAt,\n      last_sync_products_synced: createdCount + updatedCount,\n      last_sync_errors: errorCount\n    }\n  });\n\n  // ========== STEP 11: Insert sync_errors ==========\n  if (syncErrors.length > 0) {\n    // Insert in batches of 50\n    for (let i = 0; i < syncErrors.length; i += BATCH_SIZE) {\n      const errorBatch = syncErrors.slice(i, i + BATCH_SIZE);\n      try {\n        await sbFetch('/sync_errors', {\n          method: 'POST',\n          body: errorBatch\n        });\n      } catch (e) {\n        // Don't fail the whole sync just because error logging failed\n        console.log('Warning: Failed to log sync errors batch:', e.message);\n      }\n    }\n  }\n\n\n  // ========== STEP 11.5: Trigger auto-convert (fire-and-forget) ==========\n  if (productsToUpsert.length > 0) {\n    httpReq('https://api.katalync.com/webhook/auto-convert', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({\n        token: isSystemSync ? SYSTEM_SYNC_SECRET : token,\n        vendor_id: vendor.id,\n        marketplaces: (vendor.config && vendor.config.marketplaces) || ['sprinter_es']\n      }),\n      timeout: 5000\n    }).catch(() => {});\n  }\n\n  // ========== STEP 12: Return result ==========\n  return [{\n    json: {\n      success: true,\n      vendor_id: vendor.id,\n      vendor_name: vendor.name,\n      source: 'shopify',\n      total: mappedProducts.length,\n      created: createdCount,\n      updated: updatedCount,\n      unchanged: unchangedCount,\n      upserted: productsToUpsert.length,\n      errors: errorCount,\n      pages_fetched: pageCount,\n      shopify_products: allProducts.length,\n      sync_log_id: sync_log_id,\n      scheduled: isSystemSync,\n      duration_ms: Date.now() - new Date(startedAt).getTime()\n    }\n  }];\n\n} catch (fatalError) {\n  // Fatal error handler \u2014 update sync_log if possible\n  try {\n    if (typeof sync_log_id !== 'undefined') {\n      await sbFetch(`/sync_logs?id=eq.${sync_log_id}`, {\n        method: 'PATCH',\n        body: {\n          status: 'failed',\n          error_details: [{ error: fatalError.message }],\n          completed_at: new Date().toISOString()\n        }\n      });\n    }\n    if (typeof vendor !== 'undefined') {\n      await sbFetch(`/vendors?id=eq.${vendor.id}`, {\n        method: 'PATCH',\n        body: {\n          sync_status: 'error'\n        }\n      });\n    }\n  } catch (e) {\n    // Best effort\n  }\n\n  return [{\n    json: {\n      success: false,\n      error: fatalError.message,\n      vendor_id: body.vendor_id || null\n    }\n  }];\n}\n"
+      },
+      "id": "shopify-main-code",
+      "name": "Shopify Sync Pipeline",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": "={{ $json.success ? 200 : 400 }}"
+        }
+      },
+      "id": "shopify-respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Shopify Sync Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shopify Sync Pipeline": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "c1158589-9832-485a-bd98-3c879c4cee1d",
+  "activeVersionId": "c1158589-9832-485a-bd98-3c879c4cee1d",
+  "versionCounter": 39,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-05-13T19:19:23.878Z",
+      "createdAt": "2026-05-13T19:19:23.878Z",
+      "role": "workflow:owner",
+      "workflowId": "WzWyNQ52aCwH05k3",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rod\u00edguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-05-14T19:02:54.338Z",
+    "createdAt": "2026-05-14T19:02:54.338Z",
+    "versionId": "c1158589-9832-485a-bd98-3c879c4cee1d",
+    "workflowId": "WzWyNQ52aCwH05k3",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "shopify-sync-pull",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "id": "shopify-webhook",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          240,
+          300
+        ],
+        "webhookId": "shopify-sync-pull"
+      },
+      {
+        "parameters": {
+          "jsCode": "const https = require('https');\n\nfunction httpReq(url, options = {}) {\n  return new Promise((resolve, reject) => {\n    const m = url.match(/^https?:\\/\\/([^/]+)(\\/.*)$/);\n    if (!m) { reject(new Error('Invalid URL: ' + url)); return; }\n    const hostname = m[1];\n    const path = m[2] || '/';\n    const postData = options.body || '';\n    const req = https.request({\n      hostname: hostname,\n      port: 443,\n      path: path,\n      method: options.method || 'GET',\n      headers: { ...options.headers, ...(postData ? { 'Content-Length': Buffer.byteLength(postData) } : {}) }\n    }, (res) => {\n      const chunks = [];\n      res.on('data', c => chunks.push(c));\n      res.on('end', () => {\n        const body = Buffer.concat(chunks).toString();\n        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, text: () => Promise.resolve(body), json: () => Promise.resolve(JSON.parse(body)), headers: res.headers });\n      });\n    });\n    req.on('error', reject);\n    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Request timeout')); });\n    if (postData) req.write(postData);\n    req.end();\n  });\n}\n\n// ============================================================\n// Katalync - Shopify Sync Pull\n// Full pipeline: auth \u2192 fetch vendor \u2192 paginate Shopify API \u2192\n// map products \u2192 upsert to Supabase \u2192 log results\n// ============================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\nconst { token, vendor_id } = body;\n\n// --- System token for scheduled sync ---\nconst SYSTEM_SYNC_SECRET = 'ks_sys_8f3a2b1c4d5e6f7a8b9c0d1e2f3a4b5c';\nlet isSystemSync = false;\n\n// --- Constants ---\nconst SUPABASE_URL = 'https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q';\nconst sbHeaders = {\n  'apikey': SUPABASE_KEY,\n  'Authorization': `Bearer ${SUPABASE_KEY}`,\n  'Content-Type': 'application/json',\n  'Prefer': 'return=representation'\n};\n\n// --- Helper: Supabase request ---\nasync function sbFetch(path, options = {}) {\n  const url = `${SUPABASE_URL}${path}`;\n  const resp = await httpReq(url, {\n    headers: { ...sbHeaders, ...(options.headers || {}) },\n    method: options.method || 'GET',\n    body: options.body ? JSON.stringify(options.body) : undefined\n  });\n  const text = await resp.text();\n  if (!resp.ok) {\n    throw new Error(`Supabase ${options.method || 'GET'} ${path} failed (${resp.status}): ${text}`);\n  }\n  return text ? JSON.parse(text) : null;\n}\n\n// --- Helper: safe string ---\nfunction safeStr(val, fallback = '') {\n  if (val === null || val === undefined) return fallback;\n  return String(val).trim() || fallback;\n}\n\n// --- Helper: safe float ---\nfunction safeFloat(val, fallback = 0) {\n  const n = parseFloat(val);\n  return isNaN(n) ? fallback : n;\n}\n\n// --- Helper: safe int ---\nfunction safeInt(val, fallback = 0) {\n  const n = parseInt(val, 10);\n  return isNaN(n) ? fallback : n;\n}\n\ntry {\n  // ========== STEP 1: Verify token ==========\n  if (!token || typeof token !== 'string') {\n    return [{ json: { success: false, error: 'Missing or invalid token' } }];\n  }\n  if (!vendor_id) {\n    return [{ json: { success: false, error: 'Missing vendor_id' } }];\n  }\n\n  let user_id = null;\n\n  if (token === SYSTEM_SYNC_SECRET) {\n    isSystemSync = true;\n  } else {\n    // Auth verification \u2014 call auth-verify endpoint\n    const authResp = await httpReq('https://api.katalync.com/webhook/auth-verify', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({ token })\n    });\n    const authData = await authResp.json();\n    if (!authData.success) {\n      return [{ json: { success: false, error: authData.error || 'Token invalid or expired' } }];\n    }\n    const userEmail = authData.email;\n\n    // Upsert user into Supabase (auto-provision from n8n session data)\n    const upsertData = await sbFetch('/users?on_conflict=email', {\n      method: 'POST',\n      headers: { 'Prefer': 'resolution=merge-duplicates,return=representation' },\n      body: [{\n        email: authData.email,\n        name: authData.name || authData.email,\n        password_hash: 'oauth-managed',\n        role: authData.role || 'user',\n        company: authData.company || null,\n        lang: authData.lang || 'es',\n        onboarded: authData.onboarded || false,\n        subscription_status: authData.subscription_status || 'active',\n        last_login_at: new Date().toISOString()\n      }]\n    });\n    user_id = upsertData && upsertData.length > 0 ? upsertData[0].id : null;\n    if (!user_id) {\n      return [{ json: { success: false, error: 'Failed to provision user' } }];\n    }\n  }\n\n  // ========== STEP 2: Fetch vendor ==========\n  const vendorQuery = isSystemSync\n    ? `/vendors?id=eq.${vendor_id}&select=*`\n    : `/vendors?id=eq.${vendor_id}&user_id=eq.${user_id}&select=*`;\n  const vendors = await sbFetch(vendorQuery);\n  if (!vendors || vendors.length === 0) {\n    return [{ json: { success: false, error: 'Vendor not found or access denied' } }];\n  }\n  const vendor = vendors[0];\n\n  // ========== STEP 3: Validate source ==========\n  if (vendor.source !== 'shopify') {\n    return [{ json: { success: false, error: `Vendor source is '${vendor.source}', expected 'shopify'` } }];\n  }\n\n  if (!vendor.source_url || !vendor.source_api_key) {\n    return [{ json: { success: false, error: 'Vendor missing source_url or source_api_key' } }];\n  }\n\n  // Normalize source_url: remove trailing slash\n  const shopifyUrl = vendor.source_url.replace(/\\/+$/, '');\n  const accessToken = vendor.source_api_key;\n\n  // ========== STEP 4: Create sync_log ==========\n  const startedAt = new Date().toISOString();\n  const syncLogs = await sbFetch('/sync_logs', {\n    method: 'POST',\n    body: {\n      vendor_id: vendor.id,\n      direction: 'pull',\n      total_products: 0,\n      created_count: 0,\n      updated_count: 0,\n      error_count: 0,\n      status: 'running',\n      started_at: startedAt\n    }\n  });\n  const syncLog = syncLogs[0];\n  const sync_log_id = syncLog.id;\n\n  // ========== STEP 5-7: Fetch ALL Shopify products (with pagination) ==========\n  let allProducts = [];\n  let nextUrl = `${shopifyUrl}/admin/api/2024-01/products.json?limit=250&status=active`;\n  let pageCount = 0;\n  const MAX_PAGES = 100; // Safety limit: 100 pages * 250 = 25,000 products max\n\n  while (nextUrl && pageCount < MAX_PAGES) {\n    pageCount++;\n    let resp;\n    try {\n      resp = await httpReq(nextUrl, {\n        method: 'GET',\n        headers: {\n          'X-Shopify-Access-Token': accessToken,\n          'Content-Type': 'application/json'\n        }\n      });\n    } catch (fetchErr) {\n      throw new Error(`Shopify API connection failed (page ${pageCount}): ${fetchErr.message}`);\n    }\n\n    if (!resp.ok) {\n      const errText = await resp.text();\n      throw new Error(`Shopify API error ${resp.status} (page ${pageCount}): ${errText.substring(0, 500)}`);\n    }\n\n    const data = await resp.json();\n    if (data.products && Array.isArray(data.products)) {\n      allProducts = allProducts.concat(data.products);\n    }\n\n    // Parse Link header for pagination\n    nextUrl = null;\n    const linkHeader = resp.headers['link'];\n    if (linkHeader) {\n      const matches = linkHeader.match(/<([^>]+)>;\\s*rel=\"next\"/);\n      if (matches && matches[1]) {\n        nextUrl = matches[1];\n      }\n    }\n\n    // Rate limiting: Shopify allows 2 req/sec at basic tier\n    if (nextUrl) {\n      await new Promise(resolve => setTimeout(resolve, 600));\n    }\n  }\n\n  // ========== STEP 7 (continued): Map Shopify products to Katalync format ==========\n  const mappedProducts = [];\n  const syncErrors = [];\n\n  for (const product of allProducts) {\n    try {\n      const variants = product.variants || [];\n      if (variants.length === 0) {\n        // Product with no variants \u2014 skip but log\n        syncErrors.push({\n          sync_log_id,\n          sku: safeStr(product.id),\n          field: 'variants',\n          error_type: 'missing_data',\n          message: `Product ${product.id} (${safeStr(product.title)}) has no variants`\n        });\n        continue;\n      }\n\n      for (const variant of variants) {\n        try {\n          // Build SKU\n          let sku = safeStr(variant.sku);\n          if (!sku) {\n            sku = `${product.id}-${variant.id}`;\n          }\n\n          // Build name\n          let name = safeStr(product.title, 'Untitled');\n          const variantTitle = safeStr(variant.title);\n          if (variantTitle && variantTitle !== 'Default Title') {\n            name = `${name} - ${variantTitle}`;\n          }\n\n          // Find image\n          let imageUrl = '';\n          if (variant.image_id && product.images && product.images.length > 0) {\n            const variantImage = product.images.find(img => img.id === variant.image_id);\n            imageUrl = variantImage ? variantImage.src : '';\n          }\n          if (!imageUrl && product.images && product.images.length > 0) {\n            imageUrl = product.images[0].src || '';\n          }\n          // Remove query params from Shopify CDN URLs for cleaner storage\n          if (imageUrl && imageUrl.includes('?')) {\n            imageUrl = imageUrl.split('?')[0];\n          }\n\n          const mapped = {\n            vendor_id: vendor.id,\n            sku: sku,\n            ean: safeStr(variant.barcode),\n            name: name.substring(0, 500), // Reasonable limit\n            brand: safeStr(product.vendor),\n            category: safeStr(product.product_type),\n            price: safeFloat(variant.price),\n            stock: safeInt(variant.inventory_quantity, 0),\n            image_url: imageUrl,\n            raw_data: {\n              shopify_product_id: product.id,\n              shopify_variant_id: variant.id,\n              shopify_handle: product.handle,\n              shopify_status: product.status,\n              shopify_tags: product.tags,\n              variant_title: variant.title,\n              variant_option1: variant.option1,\n              variant_option2: variant.option2,\n              variant_option3: variant.option3,\n              variant_weight: variant.weight,\n              variant_weight_unit: variant.weight_unit,\n              variant_inventory_item_id: variant.inventory_item_id,\n              variant_fulfillment_service: variant.fulfillment_service,\n              compare_at_price: variant.compare_at_price,\n              requires_shipping: variant.requires_shipping,\n              taxable: variant.taxable\n            },\n            sync_status: 'synced',\n            last_synced_at: new Date().toISOString()\n          };\n\n          mappedProducts.push(mapped);\n        } catch (variantErr) {\n          syncErrors.push({\n            sync_log_id,\n            sku: safeStr(variant.sku || `${product.id}-${variant.id}`),\n            field: 'variant_mapping',\n            error_type: 'mapping_error',\n            message: `Error mapping variant ${variant.id}: ${variantErr.message}`\n          });\n        }\n      }\n    } catch (productErr) {\n      syncErrors.push({\n        sync_log_id,\n        sku: safeStr(product.id),\n        field: 'product_mapping',\n        error_type: 'mapping_error',\n        message: `Error mapping product ${product.id}: ${productErr.message}`\n      });\n    }\n  }\n\n  // ========== STEP 8: Delta sync + Upsert products ==========\n  let createdCount = 0;\n  let updatedCount = 0;\n  let unchangedCount = 0;\n  let errorCount = syncErrors.length;\n  const BATCH_SIZE = 50;\n\n  // Fetch existing products with comparison fields\n  const existingProducts = await sbFetch(\n    `/vendor_products?vendor_id=eq.${vendor.id}&select=sku,name,brand,category,price,stock,image_url,ean&limit=100000`\n  );\n  const existingMap = {};\n  (existingProducts || []).forEach(p => { existingMap[p.sku] = p; });\n  const existingSkus = new Set(Object.keys(existingMap));\n\n  // Compare each product and set sync_status\n  for (const mapped of mappedProducts) {\n    const existing = existingMap[mapped.sku];\n    if (!existing) {\n      mapped.sync_status = 'new';\n    } else {\n      const changed = (\n        mapped.name !== (existing.name || '') ||\n        mapped.brand !== (existing.brand || '') ||\n        mapped.category !== (existing.category || '') ||\n        Math.round(mapped.price * 100) !== Math.round((existing.price || 0) * 100) ||\n        mapped.stock !== (existing.stock || 0) ||\n        mapped.image_url !== (existing.image_url || '') ||\n        mapped.ean !== (existing.ean || '')\n      );\n      if (changed) {\n        mapped.sync_status = 'changed';\n        mapped.sprinter_product = null;\n        mapped.sprinter_offer = null;\n      } else {\n        mapped.sync_status = 'unchanged';\n        unchangedCount++;\n      }\n    }\n  }\n\n  // Only upsert new or changed products\n  const productsToUpsert = mappedProducts.filter(p => p.sync_status !== 'unchanged');\n\n  // Upsert in batches\n  for (let i = 0; i < productsToUpsert.length; i += BATCH_SIZE) {\n    const batch = productsToUpsert.slice(i, i + BATCH_SIZE);\n\n    try {\n      await sbFetch('/vendor_products?on_conflict=vendor_id,sku', {\n        method: 'POST',\n        headers: {\n          'Prefer': 'resolution=merge-duplicates,return=representation'\n        },\n        body: batch\n      });\n\n      // Count created vs updated\n      for (const item of batch) {\n        if (existingSkus.has(item.sku)) {\n          updatedCount++;\n        } else {\n          createdCount++;\n        }\n      }\n    } catch (upsertErr) {\n      // If batch fails, try individual inserts\n      for (const item of batch) {\n        try {\n          await sbFetch('/vendor_products?on_conflict=vendor_id,sku', {\n            method: 'POST',\n            headers: {\n              'Prefer': 'resolution=merge-duplicates,return=representation'\n            },\n            body: [item]\n          });\n          if (existingSkus.has(item.sku)) {\n            updatedCount++;\n          } else {\n            createdCount++;\n          }\n        } catch (itemErr) {\n          errorCount++;\n          syncErrors.push({\n            sync_log_id,\n            sku: item.sku,\n            field: 'upsert',\n            error_type: 'database_error',\n            message: `Upsert failed: ${itemErr.message}`.substring(0, 500)\n          });\n        }\n      }\n    }\n  }\n\n  // ========== STEP 9: Update sync_log ==========\n  const completedAt = new Date().toISOString();\n  await sbFetch(`/sync_logs?id=eq.${sync_log_id}`, {\n    method: 'PATCH',\n    body: {\n      status: errorCount > 0 ? 'completed_with_errors' : 'completed',\n      total_products: mappedProducts.length,\n      created_count: createdCount,\n      updated_count: updatedCount,\n      error_count: errorCount,\n      error_details: syncErrors.length > 0 ? syncErrors.slice(0, 100) : null,\n      completed_at: completedAt\n    }\n  });\n\n  // ========== STEP 10: Update vendor ==========\n  const syncInterval = vendor.sync_interval_hours || 24;\n  const nextSyncAt = new Date(Date.now() + syncInterval * 60 * 60 * 1000).toISOString();\n\n  await sbFetch(`/vendors?id=eq.${vendor.id}`, {\n    method: 'PATCH',\n    body: {\n      product_count: createdCount + updatedCount,\n      sync_status: errorCount > 0 ? 'completed_with_errors' : 'synced',\n      last_sync_at: completedAt,\n      next_sync_at: nextSyncAt,\n      last_sync_products_synced: createdCount + updatedCount,\n      last_sync_errors: errorCount\n    }\n  });\n\n  // ========== STEP 11: Insert sync_errors ==========\n  if (syncErrors.length > 0) {\n    // Insert in batches of 50\n    for (let i = 0; i < syncErrors.length; i += BATCH_SIZE) {\n      const errorBatch = syncErrors.slice(i, i + BATCH_SIZE);\n      try {\n        await sbFetch('/sync_errors', {\n          method: 'POST',\n          body: errorBatch\n        });\n      } catch (e) {\n        // Don't fail the whole sync just because error logging failed\n        console.log('Warning: Failed to log sync errors batch:', e.message);\n      }\n    }\n  }\n\n\n  // ========== STEP 11.5: Trigger auto-convert (fire-and-forget) ==========\n  if (productsToUpsert.length > 0) {\n    httpReq('https://api.katalync.com/webhook/auto-convert', {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({\n        token: isSystemSync ? SYSTEM_SYNC_SECRET : token,\n        vendor_id: vendor.id,\n        marketplaces: (vendor.config && vendor.config.marketplaces) || ['sprinter_es']\n      }),\n      timeout: 5000\n    }).catch(() => {});\n  }\n\n  // ========== STEP 12: Return result ==========\n  return [{\n    json: {\n      success: true,\n      vendor_id: vendor.id,\n      vendor_name: vendor.name,\n      source: 'shopify',\n      total: mappedProducts.length,\n      created: createdCount,\n      updated: updatedCount,\n      unchanged: unchangedCount,\n      upserted: productsToUpsert.length,\n      errors: errorCount,\n      pages_fetched: pageCount,\n      shopify_products: allProducts.length,\n      sync_log_id: sync_log_id,\n      scheduled: isSystemSync,\n      duration_ms: Date.now() - new Date(startedAt).getTime()\n    }\n  }];\n\n} catch (fatalError) {\n  // Fatal error handler \u2014 update sync_log if possible\n  try {\n    if (typeof sync_log_id !== 'undefined') {\n      await sbFetch(`/sync_logs?id=eq.${sync_log_id}`, {\n        method: 'PATCH',\n        body: {\n          status: 'failed',\n          error_details: [{ error: fatalError.message }],\n          completed_at: new Date().toISOString()\n        }\n      });\n    }\n    if (typeof vendor !== 'undefined') {\n      await sbFetch(`/vendors?id=eq.${vendor.id}`, {\n        method: 'PATCH',\n        body: {\n          sync_status: 'error'\n        }\n      });\n    }\n  } catch (e) {\n    // Best effort\n  }\n\n  return [{\n    json: {\n      success: false,\n      error: fatalError.message,\n      vendor_id: body.vendor_id || null\n    }\n  }];\n}\n"
+        },
+        "id": "shopify-main-code",
+        "name": "Shopify Sync Pipeline",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          480,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}",
+          "options": {
+            "responseCode": "={{ $json.success ? 200 : 400 }}"
+          }
+        },
+        "id": "shopify-respond",
+        "name": "Respond",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          720,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Shopify Sync Pipeline",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Shopify Sync Pipeline": {
+        "main": [
+          [
+            {
+              "node": "Respond",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rod\u00edguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-14T19:02:54.427Z",
+        "id": 801,
+        "workflowId": "WzWyNQ52aCwH05k3",
+        "versionId": "c1158589-9832-485a-bd98-3c879c4cee1d",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-14T19:02:54.391Z",
+        "id": 800,
+        "workflowId": "WzWyNQ52aCwH05k3",
+        "versionId": "c1158589-9832-485a-bd98-3c879c4cee1d",
+        "event": "deactivated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}

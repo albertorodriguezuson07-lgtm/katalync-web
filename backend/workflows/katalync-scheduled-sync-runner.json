@@ -1,0 +1,294 @@
+{
+  "updatedAt": "2026-05-14T15:40:35.298Z",
+  "createdAt": "2026-05-13T19:20:15.812Z",
+  "id": "o0j3aYkgtK35bDZ7",
+  "name": "Katalync - Scheduled Sync Runner",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/vendors",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        },
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "sync_status",
+              "value": "=in.(active,synced,converted,completed_with_errors,converted_with_errors)"
+            },
+            {
+              "name": "next_sync_at",
+              "value": "=lte.{{ new Date().toISOString() }}"
+            },
+            {
+              "name": "select",
+              "value": "id,name,source,sync_interval_hours,last_sync_at,next_sync_at,config"
+            }
+          ]
+        }
+      },
+      "id": "query-vendors",
+      "name": "Query Due Vendors",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        300
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const https = require('https');\n\nfunction httpReq(url, options = {}) {\n  return new Promise((resolve, reject) => {\n    const m = url.match(/^https?:\\/\\/([^/]+)(\\/.*)$/);\n    if (!m) { reject(new Error('Invalid URL: ' + url)); return; }\n    const hostname = m[1];\n    const path = m[2] || '/';\n    const postData = options.body || '';\n    const req = https.request({\n      hostname: hostname,\n      port: 443,\n      path: path,\n      method: options.method || 'GET',\n      headers: { ...options.headers, ...(postData ? { 'Content-Length': Buffer.byteLength(postData) } : {}) }\n    }, (res) => {\n      const chunks = [];\n      res.on('data', c => chunks.push(c));\n      res.on('end', () => {\n        const body = Buffer.concat(chunks).toString();\n        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, text: () => Promise.resolve(body), json: () => Promise.resolve(JSON.parse(body)), headers: res.headers });\n      });\n    });\n    req.on('error', reject);\n    req.setTimeout(300000, () => { req.destroy(); reject(new Error('Request timeout')); });\n    if (postData) req.write(postData);\n    req.end();\n  });\n}\n\nconst SUPABASE_URL = 'https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q';\nconst sbHeaders = {\n  'apikey': SUPABASE_KEY,\n  'Authorization': 'Bearer ' + SUPABASE_KEY,\n  'Content-Type': 'application/json',\n  'Prefer': 'return=minimal'\n};\n\nconst SYSTEM_SYNC_SECRET = 'ks_sys_8f3a2b1c4d5e6f7a8b9c0d1e2f3a4b5c';\n\nconst SYNC_ENDPOINTS = {\n  shopify: 'https://api.katalync.com/webhook/shopify-sync-pull',\n  woocommerce: 'https://api.katalync.com/webhook/woocommerce-sync-pull',\n  prestashop: 'https://api.katalync.com/webhook/prestashop-sync-pull'\n};\n\nconst response = $input.first().json;\nconst vendors = Array.isArray(response) ? response : [];\n\nif (vendors.length === 0) {\n  return [{ json: { done: true, vendor_count: 0, message: 'No vendors due for sync' } }];\n}\n\nconst results = [];\n\nfor (const vendor of vendors) {\n  const source = vendor.source || 'manual';\n  const endpoint = SYNC_ENDPOINTS[source];\n\n  if (!endpoint) {\n    results.push({\n      vendor_id: vendor.id,\n      vendor_name: vendor.name,\n      source: source,\n      sync_success: false,\n      skipped: true,\n      message: 'No sync endpoint for source: ' + source\n    });\n    continue;\n  }\n\n  try {\n    const syncResp = await httpReq(endpoint, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({\n        token: SYSTEM_SYNC_SECRET,\n        vendor_id: vendor.id\n      })\n    });\n\n    let syncData = {};\n    try { syncData = await syncResp.json(); } catch (e) { syncData = { raw: await syncResp.text() }; }\n\n    const syncInterval = vendor.sync_interval_hours || 24;\n    const now = new Date();\n    const nextSyncAt = new Date(now.getTime() + syncInterval * 60 * 60 * 1000).toISOString();\n\n    await httpReq(SUPABASE_URL + '/vendors?id=eq.' + vendor.id, {\n      method: 'PATCH',\n      headers: sbHeaders,\n      body: JSON.stringify({\n        last_sync_at: now.toISOString(),\n        next_sync_at: nextSyncAt,\n        sync_status: syncResp.ok && syncData.success ? 'synced' : 'error',\n        updated_at: now.toISOString()\n      })\n    });\n\n    await httpReq(SUPABASE_URL + '/sync_logs', {\n      method: 'POST',\n      headers: { ...sbHeaders, 'Prefer': 'return=minimal' },\n      body: JSON.stringify({\n        vendor_id: vendor.id,\n        direction: 'pull',\n        sync_type: 'scheduled',\n        status: syncResp.ok && syncData.success ? 'completed' : 'failed',\n        total_products: syncData.total || 0,\n        created_products: syncData.created || 0,\n        updated_products: syncData.updated || 0,\n        error_count: syncData.errors || 0,\n        details: { source: source, scheduled: true, response: syncData },\n        started_at: now.toISOString(),\n        completed_at: new Date().toISOString()\n      })\n    });\n\n    if (!syncResp.ok || !syncData.success) {\n      await httpReq(SUPABASE_URL + '/notifications', {\n        method: 'POST',\n        headers: { ...sbHeaders, 'Prefer': 'return=minimal' },\n        body: JSON.stringify({\n          vendor_id: vendor.id,\n          type: 'sync_error',\n          title: 'Scheduled Sync Failed: ' + (vendor.name || source),\n          message: syncData.error || 'Scheduled sync returned an error. Check configuration.',\n          severity: 'error',\n          read: false,\n          created_at: new Date().toISOString()\n        })\n      });\n    }\n\n    results.push({\n      vendor_id: vendor.id,\n      vendor_name: vendor.name,\n      source: source,\n      sync_success: syncResp.ok && syncData.success,\n      total: syncData.total || 0,\n      error: syncData.error || null\n    });\n\n  } catch (err) {\n    try {\n      const syncInterval = vendor.sync_interval_hours || 24;\n      const now = new Date();\n      const nextSyncAt = new Date(now.getTime() + syncInterval * 60 * 60 * 1000).toISOString();\n      await httpReq(SUPABASE_URL + '/vendors?id=eq.' + vendor.id, {\n        method: 'PATCH',\n        headers: sbHeaders,\n        body: JSON.stringify({\n          sync_status: 'error',\n          next_sync_at: nextSyncAt,\n          updated_at: now.toISOString()\n        })\n      });\n      await httpReq(SUPABASE_URL + '/notifications', {\n        method: 'POST',\n        headers: { ...sbHeaders, 'Prefer': 'return=minimal' },\n        body: JSON.stringify({\n          vendor_id: vendor.id,\n          type: 'sync_error',\n          title: 'Scheduled Sync Failed: ' + (vendor.name || source),\n          message: err.message,\n          severity: 'error',\n          read: false,\n          created_at: new Date().toISOString()\n        })\n      });\n    } catch (e) {}\n\n    results.push({\n      vendor_id: vendor.id,\n      vendor_name: vendor.name,\n      source: source,\n      sync_success: false,\n      error: err.message\n    });\n  }\n}\n\nreturn [{ json: {\n  done: true,\n  vendor_count: vendors.length,\n  results: results,\n  timestamp: new Date().toISOString()\n} }];"
+      },
+      "id": "sync-all-vendors",
+      "name": "Sync All Vendors",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Query Due Vendors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Due Vendors": {
+      "main": [
+        [
+          {
+            "node": "Sync All Vendors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "executionTimeout": 600
+  },
+  "staticData": {
+    "node:Schedule Trigger": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": null,
+  "versionId": "d5983663-1323-4647-b53f-4e6baaa1e308",
+  "activeVersionId": "d5983663-1323-4647-b53f-4e6baaa1e308",
+  "versionCounter": 10,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-05-13T19:20:15.814Z",
+      "createdAt": "2026-05-13T19:20:15.814Z",
+      "role": "workflow:owner",
+      "workflowId": "o0j3aYkgtK35bDZ7",
+      "projectId": "tyxNezNQ7cFvZD0D",
+      "project": {
+        "updatedAt": "2026-03-15T20:06:27.953Z",
+        "createdAt": "2026-03-15T20:01:59.520Z",
+        "id": "tyxNezNQ7cFvZD0D",
+        "name": "Alberto Rod\u00edguez <albertorodriguezuson07@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-05-14T15:40:35.299Z",
+    "createdAt": "2026-05-14T15:40:35.299Z",
+    "versionId": "d5983663-1323-4647-b53f-4e6baaa1e308",
+    "workflowId": "o0j3aYkgtK35bDZ7",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "minutes",
+                "minutesInterval": 30
+              }
+            ]
+          }
+        },
+        "id": "schedule-trigger",
+        "name": "Schedule Trigger",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          0,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/vendors",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "apikey",
+                "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
+              },
+              {
+                "name": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q"
+              },
+              {
+                "name": "Accept",
+                "value": "application/json"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 15000
+          },
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "sync_status",
+                "value": "=in.(active,synced,converted,completed_with_errors,converted_with_errors)"
+              },
+              {
+                "name": "next_sync_at",
+                "value": "=lte.{{ new Date().toISOString() }}"
+              },
+              {
+                "name": "select",
+                "value": "id,name,source,sync_interval_hours,last_sync_at,next_sync_at,config"
+              }
+            ]
+          }
+        },
+        "id": "query-vendors",
+        "name": "Query Due Vendors",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          300,
+          300
+        ],
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const https = require('https');\n\nfunction httpReq(url, options = {}) {\n  return new Promise((resolve, reject) => {\n    const m = url.match(/^https?:\\/\\/([^/]+)(\\/.*)$/);\n    if (!m) { reject(new Error('Invalid URL: ' + url)); return; }\n    const hostname = m[1];\n    const path = m[2] || '/';\n    const postData = options.body || '';\n    const req = https.request({\n      hostname: hostname,\n      port: 443,\n      path: path,\n      method: options.method || 'GET',\n      headers: { ...options.headers, ...(postData ? { 'Content-Length': Buffer.byteLength(postData) } : {}) }\n    }, (res) => {\n      const chunks = [];\n      res.on('data', c => chunks.push(c));\n      res.on('end', () => {\n        const body = Buffer.concat(chunks).toString();\n        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, text: () => Promise.resolve(body), json: () => Promise.resolve(JSON.parse(body)), headers: res.headers });\n      });\n    });\n    req.on('error', reject);\n    req.setTimeout(300000, () => { req.destroy(); reject(new Error('Request timeout')); });\n    if (postData) req.write(postData);\n    req.end();\n  });\n}\n\nconst SUPABASE_URL = 'https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q';\nconst sbHeaders = {\n  'apikey': SUPABASE_KEY,\n  'Authorization': 'Bearer ' + SUPABASE_KEY,\n  'Content-Type': 'application/json',\n  'Prefer': 'return=minimal'\n};\n\nconst SYSTEM_SYNC_SECRET = 'ks_sys_8f3a2b1c4d5e6f7a8b9c0d1e2f3a4b5c';\n\nconst SYNC_ENDPOINTS = {\n  shopify: 'https://api.katalync.com/webhook/shopify-sync-pull',\n  woocommerce: 'https://api.katalync.com/webhook/woocommerce-sync-pull',\n  prestashop: 'https://api.katalync.com/webhook/prestashop-sync-pull'\n};\n\nconst response = $input.first().json;\nconst vendors = Array.isArray(response) ? response : [];\n\nif (vendors.length === 0) {\n  return [{ json: { done: true, vendor_count: 0, message: 'No vendors due for sync' } }];\n}\n\nconst results = [];\n\nfor (const vendor of vendors) {\n  const source = vendor.source || 'manual';\n  const endpoint = SYNC_ENDPOINTS[source];\n\n  if (!endpoint) {\n    results.push({\n      vendor_id: vendor.id,\n      vendor_name: vendor.name,\n      source: source,\n      sync_success: false,\n      skipped: true,\n      message: 'No sync endpoint for source: ' + source\n    });\n    continue;\n  }\n\n  try {\n    const syncResp = await httpReq(endpoint, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({\n        token: SYSTEM_SYNC_SECRET,\n        vendor_id: vendor.id\n      })\n    });\n\n    let syncData = {};\n    try { syncData = await syncResp.json(); } catch (e) { syncData = { raw: await syncResp.text() }; }\n\n    const syncInterval = vendor.sync_interval_hours || 24;\n    const now = new Date();\n    const nextSyncAt = new Date(now.getTime() + syncInterval * 60 * 60 * 1000).toISOString();\n\n    await httpReq(SUPABASE_URL + '/vendors?id=eq.' + vendor.id, {\n      method: 'PATCH',\n      headers: sbHeaders,\n      body: JSON.stringify({\n        last_sync_at: now.toISOString(),\n        next_sync_at: nextSyncAt,\n        sync_status: syncResp.ok && syncData.success ? 'synced' : 'error',\n        updated_at: now.toISOString()\n      })\n    });\n\n    await httpReq(SUPABASE_URL + '/sync_logs', {\n      method: 'POST',\n      headers: { ...sbHeaders, 'Prefer': 'return=minimal' },\n      body: JSON.stringify({\n        vendor_id: vendor.id,\n        direction: 'pull',\n        sync_type: 'scheduled',\n        status: syncResp.ok && syncData.success ? 'completed' : 'failed',\n        total_products: syncData.total || 0,\n        created_products: syncData.created || 0,\n        updated_products: syncData.updated || 0,\n        error_count: syncData.errors || 0,\n        details: { source: source, scheduled: true, response: syncData },\n        started_at: now.toISOString(),\n        completed_at: new Date().toISOString()\n      })\n    });\n\n    if (!syncResp.ok || !syncData.success) {\n      await httpReq(SUPABASE_URL + '/notifications', {\n        method: 'POST',\n        headers: { ...sbHeaders, 'Prefer': 'return=minimal' },\n        body: JSON.stringify({\n          vendor_id: vendor.id,\n          type: 'sync_error',\n          title: 'Scheduled Sync Failed: ' + (vendor.name || source),\n          message: syncData.error || 'Scheduled sync returned an error. Check configuration.',\n          severity: 'error',\n          read: false,\n          created_at: new Date().toISOString()\n        })\n      });\n    }\n\n    results.push({\n      vendor_id: vendor.id,\n      vendor_name: vendor.name,\n      source: source,\n      sync_success: syncResp.ok && syncData.success,\n      total: syncData.total || 0,\n      error: syncData.error || null\n    });\n\n  } catch (err) {\n    try {\n      const syncInterval = vendor.sync_interval_hours || 24;\n      const now = new Date();\n      const nextSyncAt = new Date(now.getTime() + syncInterval * 60 * 60 * 1000).toISOString();\n      await httpReq(SUPABASE_URL + '/vendors?id=eq.' + vendor.id, {\n        method: 'PATCH',\n        headers: sbHeaders,\n        body: JSON.stringify({\n          sync_status: 'error',\n          next_sync_at: nextSyncAt,\n          updated_at: now.toISOString()\n        })\n      });\n      await httpReq(SUPABASE_URL + '/notifications', {\n        method: 'POST',\n        headers: { ...sbHeaders, 'Prefer': 'return=minimal' },\n        body: JSON.stringify({\n          vendor_id: vendor.id,\n          type: 'sync_error',\n          title: 'Scheduled Sync Failed: ' + (vendor.name || source),\n          message: err.message,\n          severity: 'error',\n          read: false,\n          created_at: new Date().toISOString()\n        })\n      });\n    } catch (e) {}\n\n    results.push({\n      vendor_id: vendor.id,\n      vendor_name: vendor.name,\n      source: source,\n      sync_success: false,\n      error: err.message\n    });\n  }\n}\n\nreturn [{ json: {\n  done: true,\n  vendor_count: vendors.length,\n  results: results,\n  timestamp: new Date().toISOString()\n} }];"
+        },
+        "id": "sync-all-vendors",
+        "name": "Sync All Vendors",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          600,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "Schedule Trigger": {
+        "main": [
+          [
+            {
+              "node": "Query Due Vendors",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Query Due Vendors": {
+        "main": [
+          [
+            {
+              "node": "Sync All Vendors",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Alberto Rod\u00edguez",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-05-14T15:40:35.361Z",
+        "id": 793,
+        "workflowId": "o0j3aYkgtK35bDZ7",
+        "versionId": "d5983663-1323-4647-b53f-4e6baaa1e308",
+        "event": "activated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      },
+      {
+        "createdAt": "2026-05-14T15:40:35.341Z",
+        "id": 792,
+        "workflowId": "o0j3aYkgtK35bDZ7",
+        "versionId": "d5983663-1323-4647-b53f-4e6baaa1e308",
+        "event": "deactivated",
+        "userId": "b68b68ca-9c39-4207-ad76-245aa5cfbc15"
+      }
+    ]
+  }
+}
