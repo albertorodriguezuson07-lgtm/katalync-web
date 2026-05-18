@@ -6,7 +6,10 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [
+        240,
+        300
+      ],
       "parameters": {
         "httpMethod": "POST",
         "path": "vendor-list",
@@ -17,147 +20,26 @@
     },
     {
       "id": "a1b2c3d4-1111-4aaa-bbbb-000000000002",
-      "name": "Verify Token",
+      "name": "Fetch Vendors",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 300],
+      "position": [
+        480,
+        300
+      ],
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst { body } = input;\n\nif (!body || !body.token) {\n  return [{ json: { error: 'Token is required', statusCode: 401 } }];\n}\n\ntry {\n  const parts = body.token.split('.');\n  if (parts.length !== 3) {\n    return [{ json: { error: 'Invalid token format', statusCode: 401 } }];\n  }\n  \n  // Base64url decode the payload\n  let payload = parts[1].replace(/-/g, '+').replace(/_/g, '/');\n  while (payload.length % 4) payload += '=';\n  const decoded = JSON.parse(Buffer.from(payload, 'base64').toString('utf8'));\n  \n  if (!decoded.user_id) {\n    return [{ json: { error: 'Invalid token: missing user_id', statusCode: 401 } }];\n  }\n  \n  // Check expiration\n  if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {\n    return [{ json: { error: 'Token expired', statusCode: 401 } }];\n  }\n  \n  return [{ json: { user_id: decoded.user_id, email: decoded.email || null, valid: true } }];\n} catch (e) {\n  return [{ json: { error: 'Token decode failed: ' + e.message, statusCode: 401 } }];\n}"
-      }
-    },
-    {
-      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000003",
-      "name": "Check Token Valid",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [680, 300],
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
-            {
-              "id": "cond-token-valid",
-              "leftValue": "={{ $json.valid }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "true"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      }
-    },
-    {
-      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000004",
-      "name": "Auth Error Response",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [900, 460],
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ success: false, error: $json.error }) }}",
-        "options": {
-          "responseCode": "={{ $json.statusCode || 401 }}"
-        }
-      }
-    },
-    {
-      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000005",
-      "name": "Get Vendors",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [900, 160],
-      "parameters": {
-        "method": "GET",
-        "url": "=https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/vendors?user_id=eq.{{ $json.user_id }}&order=created_at.desc",
-        "authentication": "none",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "fullResponse": false
-            }
-          }
-        }
-      }
-    },
-    {
-      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000006",
-      "name": "Get Product Counts",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1120, 160],
-      "parameters": {
-        "jsCode": "const vendors = $input.first().json;\nconst vendorList = Array.isArray(vendors) ? vendors : [vendors];\n\n// Store vendors for the next HTTP call\n// We'll build vendor IDs to query product counts\nconst vendorIds = vendorList.map(v => v.id).filter(Boolean);\n\nreturn [{ json: { vendors: vendorList, vendorIds } }];"
-      }
-    },
-    {
-      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000007",
-      "name": "Get Product Counts HTTP",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1340, 160],
-      "parameters": {
-        "method": "GET",
-        "url": "=https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1/vendor_products?select=vendor_id,id&vendor_id=in.({{ $json.vendorIds.join(',') }})",
-        "authentication": "none",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE"
-            },
-            {
-              "name": "Authorization",
-              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "fullResponse": false
-            }
-          }
-        }
-      }
-    },
-    {
-      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000008",
-      "name": "Merge Vendors with Counts",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1560, 160],
-      "parameters": {
-        "jsCode": "const products = $input.first().json;\nconst productList = Array.isArray(products) ? products : (products.id ? [products] : []);\n\n// Get vendors from previous Code node via $('node_name')\nconst vendorData = $('Get Product Counts').first().json;\nconst vendors = vendorData.vendors || [];\n\n// Count products per vendor\nconst counts = {};\nfor (const p of productList) {\n  if (p.vendor_id) {\n    counts[p.vendor_id] = (counts[p.vendor_id] || 0) + 1;\n  }\n}\n\n// Merge counts into vendors\nconst enrichedVendors = vendors.map(v => ({\n  ...v,\n  product_count_actual: counts[v.id] || 0\n}));\n\nreturn [{ json: { success: true, vendors: enrichedVendors, total: enrichedVendors.length } }];"
+        "jsCode": "const https = require('https');\n\nfunction httpReq(url, options = {}) {\n  return new Promise((resolve, reject) => {\n    const m = url.match(/^https?:\\/\\/([^/]+)(\\/.*)$/);\n    if (!m) { reject(new Error('Invalid URL: ' + url)); return; }\n    const hostname = m[1];\n    const path = m[2] || '/';\n    const postData = options.body || '';\n    const req = https.request({\n      hostname: hostname,\n      port: 443,\n      path: path,\n      method: options.method || 'GET',\n      headers: { ...options.headers, ...(postData ? { 'Content-Length': Buffer.byteLength(postData) } : {}) }\n    }, (res) => {\n      const chunks = [];\n      res.on('data', c => chunks.push(c));\n      res.on('end', () => {\n        const body = Buffer.concat(chunks).toString();\n        resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, text: () => Promise.resolve(body), json: () => Promise.resolve(JSON.parse(body)), headers: res.headers });\n      });\n    });\n    req.on('error', reject);\n    req.setTimeout(15000, () => { req.destroy(); reject(new Error('Request timeout')); });\n    if (postData) req.write(postData);\n    req.end();\n  });\n}\n\nconst SUPABASE_URL = 'https://prometeix-servidor-supabase.reyl9a.easypanel.host/rest/v1';\nconst SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q';\nconst sbHeaders = { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY, 'Content-Type': 'application/json' };\n\nconst input = $input.first().json;\nconst { body } = input;\n\nif (!body || !body.token) {\n  return [{ json: { success: false, error: 'Token is required' } }];\n}\n\ntry {\n  const authResp = await httpReq('https://api.katalync.com/webhook/auth-verify', {\n    method: 'POST',\n    headers: { 'Content-Type': 'application/json' },\n    body: JSON.stringify({ token: body.token })\n  });\n  const authData = await authResp.json();\n  if (!authData.success) {\n    return [{ json: { success: false, error: authData.error || 'Token invalid or expired' } }];\n  }\n\n  // Upsert user\n  const upsertResp = await httpReq(SUPABASE_URL + '/users?on_conflict=email', {\n    method: 'POST',\n    headers: { ...sbHeaders, 'Prefer': 'resolution=merge-duplicates,return=representation' },\n    body: JSON.stringify([{\n      email: authData.email,\n      name: authData.name || authData.email,\n      password_hash: 'oauth-managed',\n      role: authData.role || 'user',\n      company: authData.company || null,\n      lang: authData.lang || 'es',\n      onboarded: authData.onboarded || false,\n      subscription_status: authData.subscription_status || 'active',\n      last_login_at: new Date().toISOString()\n    }])\n  });\n  const upsertData = await upsertResp.json();\n  const user_id = upsertData && upsertData.length > 0 ? upsertData[0].id : null;\n  if (!user_id) {\n    return [{ json: { success: false, error: 'Failed to provision user' } }];\n  }\n\n  // Fetch vendors\n  const isAdmin = authData.role === 'admin' || authData.role === 'super_admin';\n  const vendorUrl = isAdmin\n    ? SUPABASE_URL + '/vendors?order=created_at.desc'\n    : SUPABASE_URL + '/vendors?user_id=eq.' + user_id + '&order=created_at.desc';\n  const vendorsResp = await httpReq(vendorUrl, {\n    method: 'GET',\n    headers: sbHeaders\n  });\n  const vendors = await vendorsResp.json();\n  const vendorList = Array.isArray(vendors) ? vendors : [];\n\n  // Fetch product counts per vendor\n  if (vendorList.length > 0) {\n    const vendorIds = vendorList.map(v => v.id).join(',');\n    const countsResp = await httpReq(SUPABASE_URL + '/vendor_products?select=vendor_id&vendor_id=in.(' + vendorIds + ')', {\n      method: 'GET',\n      headers: sbHeaders\n    });\n    const products = await countsResp.json();\n    const counts = {};\n    if (Array.isArray(products)) {\n      for (const p of products) {\n        if (p.vendor_id) counts[p.vendor_id] = (counts[p.vendor_id] || 0) + 1;\n      }\n    }\n    for (const v of vendorList) {\n      v.product_count_actual = counts[v.id] || 0;\n    }\n  }\n\n  return [{ json: { success: true, vendors: vendorList, total: vendorList.length } }];\n} catch (e) {\n  return [{ json: { success: false, error: 'Server error: ' + e.message } }];\n}"
       }
     },
     {
       "id": "a1b2c3d4-1111-4aaa-bbbb-000000000009",
-      "name": "Success Response",
+      "name": "Respond",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1780, 160],
+      "position": [
+        720,
+        300
+      ],
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ JSON.stringify($json) }}",
@@ -172,80 +54,18 @@
       "main": [
         [
           {
-            "node": "Verify Token",
+            "node": "Fetch Vendors",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Verify Token": {
+    "Fetch Vendors": {
       "main": [
         [
           {
-            "node": "Check Token Valid",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Check Token Valid": {
-      "main": [
-        [
-          {
-            "node": "Get Vendors",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Auth Error Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Vendors": {
-      "main": [
-        [
-          {
-            "node": "Get Product Counts",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Product Counts": {
-      "main": [
-        [
-          {
-            "node": "Get Product Counts HTTP",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Get Product Counts HTTP": {
-      "main": [
-        [
-          {
-            "node": "Merge Vendors with Counts",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge Vendors with Counts": {
-      "main": [
-        [
-          {
-            "node": "Success Response",
+            "node": "Respond",
             "type": "main",
             "index": 0
           }
